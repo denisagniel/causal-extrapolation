@@ -1,0 +1,256 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage{color, xcolor}
+\usepackage{setspace}
+\usepackage{natbib}
+\title{What we estimate when we estimate dynamic causal effects in panel data}
+\date{\today}
+\input{common-defs}
+\input{typography-preamble}
+
+\newtheorem{assumption}{Assumption}
+
+\setlength{\topmargin}{-.25in}
+\setlength{\oddsidemargin}{-0.4in}
+\setlength{\textwidth}{7.2in}
+\setlength{\textheight}{9.0in}
+\setlength{\unitlength}{1em}
+\parindent 16pt
+
+\renewcommand{\P}{\mathbb{P}}
+
+\doublespacing
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Policy-relevant decisions depend on causal effects in the current or next period (e.g., FATT, FATU), but standard panel-data methods target backward-looking estimands such as the average treatment effect on the treated (ATT) or group-time ATTs over the observed window. We formalize this gap using future causal effects and show that identifying them requires either taking dynamic effects \emph{less} seriously---by assuming time homogeneity so that backward-looking ATT or group-time effects equal the FATT---or \emph{more} seriously---by specifying how effects evolve and extrapolating. Under time homogeneity, the FATT is identified by the ATT or by a convex combination of within-group ATTs; under a parametric model for group-time effects, the FATT is identified by extrapolating the fitted model to the future period. We give efficient influence functions for the FATT under both paths so that standard errors and confidence intervals propagate correctly from first-stage estimators.
+\end{abstract}
+
+\section{Introduction}
+
+There is a fundamental and unacknowledged tension at the heart of policy analysis and causal inference with panel data more broadly \citep{egamiElementsExternalValidity2023,heckmanPolicyRelevantTreatmentEffects2001}. This tension arises because of the possibility of dynamic causal effects (effects that change over time), which, as we'll argue below, preclude an important type of external validity: if policy effects are truly unrestrictedly dynamic, then it is impossible to use historical data to inform \textit{any} current decisions, which decisions are presumably the reason we care about estimating any causal effects in the first place. 
+
+Most causal inference rests on an implicit assumption of time homogeneity. We might call this assumption the Fundamental Promise of Causal Inference: causal effects estimated (by necessity) on data collected in the past can be used to inform decision-making in the present \citep{egamiElementsExternalValidity2023,khosrowiExtrapolationCausalEffects2019,cartwrightHuntingCausesUsing2007}. If two identical clinical trials -- same target population and inclusion criteria, same treatment, same outcome -- were expected to not only give different results but in fact target different causal effects simply because of the passage of time, that would be a major crisis for causal inference. A durable understanding of causal effects would be elusive.
+
+Public policies are widely understood to violate this assumption and are assumed to have effects that inherently change over time \citep{lucasjrEconometricPolicyEvaluation1976,ericssonExogeneityCointegrationEconomic1998,estrellaAreDeepParameters1999}. Policies are introduced into dynamic contexts, may be administered or enforced differently over time, and may themselves cause changes in public behavior and attitude. Technological advancement, public opinion, economic conditions, and new research may all modify the causal effects policies. 
+
+This basic assumption of dynamic effects has driven a great deal of recent advances in methods for causal inference with panel data \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a}. Recent surveys clarify how heterogeneity and dynamics enter identification and estimation in this setting \citep{arkhangelskyCausalModelsLongitudinal2024,dechaisemartinTwowayFixedEffects2023}. It is now standard to assume that causal effects vary both with time of treatment and time since implementation. These effects (often called ``group-time" effects) may be of interest in themselves but more typically are aggregated into coarser effects like an ``overall" average treatment effect on the treated (ATT). Assuming such dynamic effects solves a problem with classical methods like two-way fixed effects: they may incur bias in the presence of time-heterogeneous effects because they implicitly include comparisons between units treated at different times in their estimate of the ATT \citep{sunEstimatingDynamicTreatment2021}.
+
+While methods assuming dynamic effects have been developed for good reasons, they strike at the heart of the Fundamental Promise of Causal Inference. In the presence of dynamic effects, it is not clear how one can connect causal effects estimated on historical data to any decision one would make now or in the future \citep{egamiElementsExternalValidity2023,devauxQuantifyingRobustnessExternal2022,khosrowiExtrapolationCausalEffects2019}. The question of when and how historical evidence can inform current or future decisions is central to the literature on generalizing and transporting causal effects \citep{coleGeneralizingEvidenceRandomized2010,tiptonImprovingGeneralizationsExperiments2013,manskiPublicPolicyUncertain2013}. If one estimates the effect of a public policy to be beneficial (e.g., improves life expectancy) among states that implemented it in historical data, does that mean that it would be wise to maintain that policy in places that have already implemented and/or to implement it in places it has not been implemented? If effects are unrestrictedly dynamic, it's impossible to say. 
+
+We seek to resolve this tension between dynamic effects and the Fundamental Promise by encouraging researchers to either take the possibility of dynamic effects \textit{less} seriously or \textit{more} seriously. Taking it less seriously involves assuming some level of time homogeneity in causal effects. This would allow causal effects that would inform current and future decisions to be identified in historical data. We argue that an informal version of this is currently standard practice, where average treatment effects estimated on historical data are treated as if they are stable enough over time to inform current debates \citep{gablerDealingHeterogeneityTreatment2009,cintronHeterogeneousTreatmentEffects2022}. The notion of policy-relevant treatment effects formalizes which estimands answer counterfactual policy questions \citep{heckmanPolicyRelevantTreatmentEffects2001,sasakiEstimationInferencePolicy2023}. On the other hand, taking dynamic effects more seriously would require formally modeling how dynamic effects change over time and using such a model to extrapolate into the future \citep{khosrowiExtrapolationCausalEffects2019,maebaExtrapolationTreatmentEffect2024}, as in structural approaches that enable extrapolation across regimes \citep{heckmanStructuralEquationsTreatment2005,pearlExternalValidityCalculus2022}. 
+
+We introduce new causal estimands that formalize the notion that causal inference is inherently future-oriented, which we call ``future causal effects." We locate the estimands outside the time range of the current study and show how each of these paths -- the more serious and less serious ones -- may be used to identify the future causal effects and under what type of assumptions. Across fields, three broad strategies emerge for making causal claims about the future: structural or parameter invariance (e.g., policy-invariant deep parameters); statistical transport or reweighting of effects across populations; and explicit modeling of heterogeneity or dynamics. Our future-looking estimands sit at the intersection of these traditions.
+
+\subsection{Related work}
+
+Recent advances in causal inference for panel data and difference-in-differences provide the backbone for our setting. Surveys by \citet{arkhangelskyCausalModelsLongitudinal2024} and \citet{dechaisemartinTwowayFixedEffects2023} clarify how heterogeneity and dynamics enter identification and estimation; the group-time and staggered-adoption literature \citep{callawayDifferenceindifferencesMultipleTime2021,sunEstimatingDynamicTreatment2021,rothEfficientEstimationStaggered2023,bakerDifferenceinDifferencesDesignsPractitioners2025} addresses inference for backward-looking effects when treatment timing varies. Work on testing parallel trends and time homogeneity---including the limitations of conventional pre-trend tests \citep{freyaldenhovenPreeventTrendsPanel2019}, the pitfalls of conditioning on passing such tests \citep{rothPretestCautionEventstudy2022}, inference under bounded trend violations \citep{rambachanMoreCredibleApproach2023}, and equivalence tests for pre-trends \citep{detteTestingEquivalencePreTrends2024}---connects directly to the testable implications of our time-homogeneity assumptions. These lines of work focus on identification and inference for effects in the observed window; we instead target estimands that are relevant for current or future policy decisions.
+
+The disconnect between typical estimands (ATT, group-time effects) and policy-relevant or future causal questions has been formalized in several ways. \citet{heckmanPolicyRelevantTreatmentEffects2001} define policy-relevant treatment effects for counterfactual policy changes; \citet{sasakiEstimationInferencePolicy2023} provide estimation and inference for such parameters. \citet{forastiereForecastingCausalEffects2025} formalize forecasting the causal effect of \emph{re-implementing} an intervention at a future time; we focus on the effect of the policy in the current or next period ($p+1$)---continuing or repealing for current adopters, adopting or not for non-adopters---and potentially beyond. \citet{gischeForecastingCausalEffects2021} distinguish forecasting the causal effect of an intervention from predicting future outcomes; we similarly distinguish backward-looking estimands (e.g., the ATT in the observed window) from forward-looking, policy-relevant estimands such as the FATT and FATU at time $p+1$.
+
+External validity and transportability are central to our concern that backward-looking estimands may not inform current decisions. \citet{egamiElementsExternalValidity2023} provide a framework for design and analysis; \citet{pearlExternalValidityCalculus2022} and \citet{bareinboimTransportabilityCausalEffects2012} give graphical and identification results for transporting causal effects. The literature on generalizing from randomized trials to target populations \citep{coleGeneralizingEvidenceRandomized2010,tiptonImprovingGeneralizationsExperiments2013} and on robustness to external validity bias \citep{devauxQuantifyingRobustnessExternal2022} is closely related. \citet{khosrowiExtrapolationCausalEffects2019} and \citet{khosrowiExtrapolatingExperimentsConfidently2023} examine the assumptions and uncertainties underlying extrapolation; \citet{manskiPublicPolicyUncertain2013} advocates bounded identification when extrapolation is weak. \citet{shpitserCounterfactualGraphicalModels2013} extend transportability to longitudinal settings.
+
+The Lucas Critique and the question of policy invariance underlie our discussion of when effects can be taken as stable over time. \citet{lucasjrEconometricPolicyEvaluation1976} argues that policy evaluation requires parameters that are invariant to the policy regime; \citet{ericssonExogeneityCointegrationEconomic1998} and \citet{estrellaAreDeepParameters1999} formalize and test such invariance. Structural and parametric approaches to extrapolation---including \citet{heckmanStructuralEquationsTreatment2005} on policy-invariant parameters, \citet{pearlExternalValidityCalculus2022} on transportability, and \citet{brodersenInferringCausalImpact2015} on Bayesian structural time series---show how functional assumptions enable extrapolation across regimes or time periods.
+
+Philosophical work on causal invariance and extrapolation \citep{cartwrightHuntingCausesUsing2007} and empirical evidence on heterogeneous treatment effects in policy and program evaluation \citep{gablerDealingHeterogeneityTreatment2009,cintronHeterogeneousTreatmentEffects2022} further motivate the need to be explicit about which effects are policy-relevant and under what assumptions they can be identified from historical data.
+
+Our future-looking estimands sit at the intersection of three strategies for making causal claims about the future: structural or parameter invariance, statistical transport or reweighting, and explicit modeling of heterogeneity or dynamics.
+
+% \begin{itemize}
+%     \item Classical causal inference imagines a stable treatment.
+%     \item The effect of a drug may vary with patient characteristics, but we implicitly assume when we run clinical trials that the effect of the drug will not typically change just because of the passage of time. It doesn't matter when the clinical trial is run, it will still inform the effectiveness of the drug today.
+%     \item Policies are different -- their effects may change over time for lots of reasons... implementation, enforcement, public behavior, etc.
+%     \item Recent advances in causal inference for panel data (the typical approach for studying policies) have been directly targeted at addressing issues of time heterogeneity.
+%     \item However, there is a contradiction at the heart of these analyses: if the effects of the policy can change unrestrictedly over time, the classical paradigm completely breaks down. Causal effects based on historical data cannot be immediately used to infer the effect of the policy today, the only time we really care about.
+%     \item We propose two ways of resolving this contradiction: either take time heterogeneity more or less seriously.
+%     \item Less seriously: assume some form of time homogeneity that identifies the effect of the policy today with something that can be estimated with historical data. This is the spirit in which most estimated policy effects appear to be interpreted today: if the causal effect on historical data is found to be positive, it is assumed that the effect of the law today will be broadly positive.
+%     \item More seriously: model how the policy changes over time and extrapolate policy effects to today.
+%     \item Something about how we define new causal effects and why that's needed for this paper.
+% \end{itemize}
+
+\section{Setting and context}\label{context}
+
+Suppose we measure an indicator of a policy $A_{it}$, a possibly affected outcome $Y_{it}$, and time-invariant covariates $\bX_i$ for $i = 1, ..., n$ units (often the units are geographic entities, like states, counties, etc.) and $t = 1, ..., p$ timepoints. For ease of exposition, we take $A_{it}$ to be a policy, but all that follows applies equally to other types of interventions. Define the counterfactual value that $Y_{it}$ would take if the policy were set, possibly contrary to fact, to $A_{it} = a$ as $Y_{it}(a)$. We assume no interference: each unit's potential outcomes depend only on that unit's treatment, so $Y_{it}(a)$ is well-defined. Let $\cO = \{\bX_i, \bY_{i}(0), \bY_{i}(1), \bA_{i}\}_{i = 1, ..., n} \sim \P$ where $\bY_i(a) = \{\bY_{it}(a)\}_{t = 1, ..., p}$ and $\bA_i = (A_{it})_{t = 1,.., p}$. We extend the setting to future time periods when defining future estimands below. The distribution of data at time $t$ is $\P_t$. For integer $k \geq 1$, we write $\P_{p+k}$ for the distribution of $(\bX_i, Y_{i,p+k}(0), Y_{i,p+k}(1), A_{i,p+k})$ in the same superpopulation $k$ periods ahead (i.e., the marginal at $t = p+k$ of the joint distribution governing the process through $p+k$); $\P_{p+1}$ is the case $k=1$. 
+
+It is typical (though not necessary) in such studies to take the target of estimation to be the average treatment effect on the treated (ATT). The ATT may be defined as
+\begin{align*}
+    \theta = \E_\P\{Y_{it}(1) - Y_{it}(0) | A_{it} = 1\}.
+\end{align*}
+One virtue of the ATT is that $Y_{it}(1)$ is always observed under the conditioning event $A_{it} = 1$, so identification of the ATT is facilitated by only requiring causal inference machinery to estimate $\E_\P\{Y_{it}(0) | A_{it} = 1\}$.
+
+In the presence of heterogeneity -- especially heterogeneity in how policy effects change over time -- there have been proposals to instead decompose the ATT into separate sub-ATTs, with an example being referred to as group-time ATTs \citep{sunEstimatingDynamicTreatment2021}.
+\begin{align*}
+    \theta_{gt} = \E_{\P_t}\{Y_{it}(1) - Y_{it}(0) | A_{it} = 1, G_{i} = g\}
+\end{align*}
+where $G_i = \min_t tI\{A_{it} = 1\}$, the time when the policy first occurred, and $\P_t$ is the distribution of the data at time $t$: $\cO_t = \{\bX_i, Y_{it}(0), Y_{it}(1), A_{it}\}_{i = 1, ..., n} \sim \P_t$. This is important to solve some infelicities with trying to estimate $\theta$ directly with a single linear model \citep{sunEstimatingDynamicTreatment2021} and to draw attention to the fact that causal effects may both vary across calendar time and have different effects as implementation continues -- i.e., effects may differ in the first year of implementation from the fifth year, say. These sub-ATTs are typically then aggregated up into an overall effect estimate across groups/times.
+
+\subsection{Identification of the backward-looking ATT}
+The results in Sections 4 and 5 assume that the researcher has secured identification of the ATT $\theta$ and, where relevant, the group-time ATTs $\theta_{gt}$, under some design. For example, under parallel trends in difference-in-differences, $\theta_{gt}$ is identified from the observed data \citep{callawayDifferenceindifferencesMultipleTime2021,sunEstimatingDynamicTreatment2021}; under unconfoundedness or other designs, different identification formulas apply. We do not restrict the first-stage identification strategy: it may be difference-in-differences, synthetic control, or another approach. The contribution of this paper is to show when and how these backward-looking estimands coincide with or can be used to identify the policy-relevant FATT (and related future estimands), given either time homogeneity assumptions (Section 4) or a parametric model for dynamics (Section 5). Thus the full identification argument has two steps: (a) under the researcher's design, $\theta$ or $\theta_{gt}$ are identified from observables; (b) under the extrapolation assumptions we state below, the FATT is identified from $\theta$ or $\theta_{gt}$.
+
+However, regardless of how they are aggregated, these effects are typically not directly relevant to current policy or decisionmaking \citep{egamiElementsExternalValidity2023,khosrowiExtrapolationCausalEffects2019}. These ATTs necessarily correspond to what has happened \textit{in the past}. While assessing the effects of policies in the past may have some utility -- e.g., for electoral purposes -- for a decisionmaker considering implementing a new policy or repealing a policy that is currently on the books, these backward-looking estimands are not germane without further assumptions. 
+
+% We suggest that an example of a more relevant estimand is the future average treatment effect on the untreated (FATU)
+% \begin{align*}
+%     \omega_{p+1} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 0\}.
+% \end{align*}
+% The future ATU corresponds to the average value of the outcome if all units that currently (as of the end of the study period) did not have the policy were to implement it in time $p+1$ compared to if they remained without the policy. This estimand is relevant for any policymakers who are considering whether this policy might be right for their unit. Unlike the ATT and sub-ATTs above, none of the counterfactuals are observed, and in fact we lack any direct knowledge of the distribution of $\P_{p+1}$. 
+
+% This disconnect between policy-relevant quantities and typical estimands like the ATT has largely been implicit in the policy analysis and causal inference literatures. We argue that settling for backwards-looking ATTs to inform future policy implementation is like looking for one's keys under the streetlight. Below we define a range of novel potentially forward-looking, policy-relevant estimands, we discuss under what circumstances these novel estimands correspond to commonly-used backwards-looking estimands like the ATT, and we further outline under what assumptions these novel estimands may be identified when they do not correspond to backwards-looking estimands.
+
+\section{Estimands}
+We require more policy-relevant estimands that are future-looking and correspond to ``future causal effects." These estimands are designed to address actual policy decisions: should we implement or repeal this policy? We define them for a generic horizon $k \geq 1$ (i.e., $k$ periods ahead); conditioning on treatment status is at the end of the study period $p$ (e.g., effect for current adopters or non-adopters at horizon $k$).
+
+Let 
+\begin{align*}
+    \tau_{i,p+k} = Y_{i,p+k}(1) - Y_{i,p+k}(0)
+\end{align*} 
+be the future individual treatment effect (FITE) for unit $i$ at horizon $k$. The FITE is arguably the most relevant quantity for a citizen or policymaker belonging to unit $i$. For example, state lawmakers in California may likely be interested most in the FITE for California. The fact that individual treatment effects are not as a rule identifiable does not change the fact that it may be what is of primary importance. Do note also that none of the future causal effects we will discuss in this section are identifiable from the observed data without further assumptions. 
+
+Given the difficulties with estimating individual treatment effects, we may consider an alternative, the future average treatment effect among similar units (FATS). Given a distance measure $\rho$, we can define:
+\begin{align*}
+    \tau_{i,p+k}(\eta; \rho) = \E_{\P_{p+k}}\left\{Y_{j,p+k}(1) - Y_{j,p+k}(0) | \rho(\bX_i, \bX_j) \leq \eta \right\}
+\end{align*} 
+i.e., the average treatment effect at $p+k$ among units $j$ such that $\rho(\bX_i, \bX_j) \leq \eta$; similarity is defined by distance in covariate space. (The backward-looking analog is the ATS: the average effect among units in that same set of units, under $\P_t$.) For example, policymakers in Massachusetts may be interested in the treatment effect among states in New England, or New York policymakers may be interested in the effect among other high-population states.
+
+When policymakers do not have a unit-specific focus, other treatment effects may be of interest. Consider the future-looking analogs of typical backward-looking estimands at horizon $k$:
+\begin{align*}
+    \tau_{p+k} &= \E_{\P_{p+k}}\{Y_{i,p+k}(1) - Y_{i,p+k}(0)\} & (FATE)\\
+    \theta_{p+k} &= \E_{\P_{p+k}}\{Y_{i,p+k}(1) - Y_{i,p+k}(0) | A_{ip} = 1\} & (FATT)\\
+     \omega_{p+k} &= \E_{\P_{p+k}}\{Y_{i,p+k}(1) - Y_{i,p+k}(0) | A_{ip} = 0\} & (FATU)
+\end{align*}
+The FATE encodes the average outcome at time $p+k$ if all units implemented or continued the policy compared to if all units discontinued or remained without the policy. The FATE is similar to the average treatment effect (ATE), and considers the most extreme counterfactual scenario of all implementing units versus none. The FATT encodes the difference in average outcome for units with the policy implemented at time $p$ (the end of the study period)
+if they continued the policy compared to if they discontinued the policy at time $p+k$. The FATT is analogous to the ATT and is targeted at the effect of repealing the policy. The FATU similarly encodes the difference in average outcome among units without the policy at time $p$ if they newly implemented the policy compared to if they remained without at time $p+k$. The FATU is most relevant to policymakers considering whether they should implement the policy. 
+
+Unlike the ATT and sub-ATTs above, none of the counterfactuals are observed. In fact, unlike for any backward-looking estimand, we lack any direct knowledge of the distribution of $\P_{p+k}$. We therefore require additional machinery to connect the observed data to the policy-relevant distribution $\P_{p+k}$. We outline below two different options: either taking time heterogeneity \textit{less} seriously -- by making time homogeneity assumptions -- or taking it \textit{more} seriously and formally modeling how policy effects change. \textbf{In the remainder of the paper we take $k=1$ (one period ahead);} extension to $k > 1$ is analogous and noted where it differs. 
+
+\section{Taking dynamic effects less seriously: time homogeneity assumptions}
+
+There is such a rich and growing literature on estimation of the ATT and sub-ATTs \citep{wangAdvancesDifferenceindifferencesMethods2024a,sunEstimatingDynamicTreatment2021} that researchers may be interested in still using these tools to estimate forward-looking, policy-relevant estimands. Here, we outline in what cases this may be justified. We take as given that the researcher's design (e.g., parallel trends in DiD) has secured identification of the backward-looking $\theta$ or $\theta_{gt}$; the assumptions below are \emph{extrapolation} assumptions that connect those quantities to the FATT.
+
+\subsection{Connecting the FATT to the ATT}
+We now consider what assumptions would be required to identify the FATT by the ATT. First, we could require homogeneity in effects that would rule out dynamic treatment effects:
+\begin{assumption}[Strict ATT time homogeneity]
+    $\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) | A_{it} = 1\} = \E_{\P_s}\{Y_{is}(1) - Y_{is}(0) | A_{is} = 1\}, \text{ for all } s, t$.\label{strict-time-homogeneity}
+\end{assumption}
+This assumption states that ATTs are time-invariant: the ATT at time $t$ is the same as at time $s$ for all $s, t$. 
+We further need to place moderate limits on the between-state heterogeneity:
+\begin{assumption}[Limited between-state ATT heterogeneity]
+    $\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1\}$\label{p-to-p-plus-one-heterogeneity}
+\end{assumption}
+Assumption \ref{p-to-p-plus-one-heterogeneity} limits the between-state heterogeneity such that the treatment effect among states who had implemented the law at the end of the study period (at time $p$) is the same as the treatment effect among states who will have implemented the law in the future (at time $p+1$). In most cases, these two groups of states are nearly identical: most states that implemented the law at time $p$ keep it through to $p+1$, and most states do not newly implement the law at time $p+1$. So this assumption is generally relatively weak.
+
+Under Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}, we have 
+\begin{align*}
+    \theta = \theta_{p+1}.
+\end{align*}
+
+\begin{proposition}[Identification of the FATT under time homogeneity]
+Suppose the backward-looking ATT $\theta$ is identified from the observed data under the researcher's design (e.g., parallel trends in difference-in-differences). Under Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}, the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \theta$.
+\end{proposition}
+
+\begin{remark}
+    Because of the symmetry of their definitions, similar assumptions -- with $A_{it} = 0$ replacing $A_{it} = 1$ and other similar replacements -- would yield identification of the FATU with the ATU
+        $\omega = \E_\P\{Y_{it}(1) - Y_{it}(0) | A_{it} = 0\}$.
+\end{remark}
+
+\begin{remark}
+    Assumption \ref{strict-time-homogeneity} has testable implications. For any $s, t$ for which $\E_{\P_s}\{Y_{is}(1) - Y_{is}(0) | A_{is} = 1\}$ and $\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) | A_{it} = 1\}$ are identifiable from the observable data, it may be tested whether they are equal. If differences between different time-specific treatment effects are small, that would lend credence to Assumption \ref{strict-time-homogeneity}. In contrast, Assumption \ref{p-to-p-plus-one-heterogeneity} is \emph{untestable}: it concerns $\P_{p+1}$, for which we have no direct information in the observed data. Identification of the FATT under this path therefore rests on an extrapolation from period $p$ to $p+1$---a form of transportability across time \citep{pearlExternalValidityCalculus2022,egamiElementsExternalValidity2023}---and can only be supported by substantive reasoning or indirect checks. Similar to the assessment of parallel trends in difference-in-differences \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a}, we may examine whether there are any large differences between $\E_{\P_{t+1}}\{Y_{i,t+1}(1) - Y_{i,t+1}(0) | A_{it} = 1\}$ and $\E_{\P_{t+1}}\{Y_{i,t+1}(1) - Y_{i,t+1}(0) | A_{i,t+1} = 1\}$ for any $t \in \{0, ..., p-1\}$ for which these effects are identified, as indirect evidence about stability of the composition of the treated group over time.
+\end{remark}
+
+\subsection{Connecting other forward-looking estimands to backward-looking estimands}
+
+If we are willing to further restrict between-state heterogeneity, then we can find equivalence between other effects and the ATT. Consider assuming that there is no between-state heterogeneity in treatment effects at time $p+1$:
+\begin{assumption}[No future between-state ITE heterogeneity]
+    $\tau_{i,p+1} = \tau_{j,p+1}$ for all $i,j.$\label{strict-between-homogeneity}
+\end{assumption}
+Under Assumptions \ref{strict-time-homogeneity} and \ref{strict-between-homogeneity}, we have for all $i, \rho, \eta$,
+\begin{align*}
+    \theta = \omega_{p+1} = \tau_{p+1} = \tau_{i,p+1}(\eta; \rho) = \tau_{i,p+1}.
+\end{align*}
+Under these (restrictive) assumptions, all of the proposed forward-looking estimands are equivalent to the backward-looking ATT.
+
+
+    Often this assumption of strict ITE homogeneity may not be believable. While this may preclude using methods for estimating the ATT to identify these future-looking estimands, it does not preclude using corresponding backward-looking versions of these estimands under weaker assumptions. For example, under assumptions analogous to Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}, one has that $\tau_{p+1} = \tau \equiv \E_\P\{Y_{it}(1) - Y_{it}(0)\}$ by removing the conditioning on $A_{it} = 1$ from Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}. We state this in some generality in the following assumptions.
+\begin{assumption}[Strict time homogeneity under $\cC_t$]
+    $\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) | \cC_t\} = \E_{\P_s}\{Y_{is}(1) - Y_{is}(0) | \cC_s\}$, for some conditioning event $\cC_t$ defined on $\P_t$ and all $s, t \in \{1, ..., p+1\}$.\label{general-strict-time-homogeneity}
+\end{assumption}
+\begin{assumption}[Limited between-state heterogeneity under $\cC_t$]
+    $\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | \cC_p\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | \cC_{p+1}\}$\label{general-p-to-p-plus-one-heterogeneity}
+\end{assumption}
+Under Assumptions \ref{general-strict-time-homogeneity} and \ref{general-p-to-p-plus-one-heterogeneity}, taking $\cC_t = \{A_{it} = 0\}$ yields equivalence between the backward-looking ATU and the FATU; taking $\cC_t = \emptyset$ yields equivalence between the backward-looking ATE and the FATE; and taking $\cC_t = \{\rho(\bX_i, \bX_j) \leq \eta\}$ yields equivalence between the backward-looking ATS and the FATS (Assumption \ref{general-p-to-p-plus-one-heterogeneity} not required for the FATS).
+
+\subsection{Connecting the FATT to sub-ATTs}
+Assumption \ref{strict-time-homogeneity} (and Assumption \ref{general-strict-time-homogeneity}) restricts treatment effects to be constant over time. A great deal of recent literature in causal inference for panel data has explicitly rejected this assumption, positing that treatment effects may vary over time in multiple ways \citep{sunEstimatingDynamicTreatment2021,brownDynamicTreatmentEffect2025}. Proposals for group-time effects $\theta_{gt}$ have attempted to capture variation in treatment effects by when the treatment was first implemented (by encoding this information in $G_i = g$) and also allowing treatment effects to vary dynamically over time thereafter. 
+
+One way to weaken Assumption \ref{strict-time-homogeneity} is to only require homogeneity within groups:
+\begin{assumption}[Strict withing-group ATT time homogeneity]
+    $\theta_{gt} = \theta_{gs} \equiv \theta_{g\cdot}$, for all $s, t \in \{1, ..., p+1\}$.\label{within-group-strict-time-homogeneity}
+\end{assumption}
+\begin{assumption}[Limited within-group between-state ATT heterogeneity]
+    $\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1, G_i = g\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1, G_i = g\}$\label{within-group-p-to-p-plus-one-heterogeneity}
+\end{assumption}
+Under Assumptions \ref{within-group-strict-time-homogeneity} and \ref{within-group-p-to-p-plus-one-heterogeneity}, we have that
+\begin{align*}
+    \theta_{p+1} = \sum_g\P(G_i = g | A_{ip} = 1)\theta_{g\cdot}.
+\end{align*}
+We assume that $G_i$ is a function of $A_i$ (e.g., time of first adoption), so that $\P(G_i=g|A_{ip}=1)$ is the distribution of cohorts among units treated by period $p$.
+This states that, if within-group ATTs are not dynamic -- i.e., they do not change over time -- then a convex combination of group-specific ATTs may be used to extrapolate forward in time to time $p+1$. 
+
+\section{Taking dynamic effects more seriously: formal modeling}
+
+Much of the recent panel data literature with staggered adoption has either explicitly \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a,brownDynamicTreatmentEffect2025} or implicitly \citep{stockIdentificationEstimationDynamic2018} taken the view that assuming time homogeneity is too restrictive. Acknowledgment of the perverse effects of time heterogeneity in two-way fixed effects models \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a} spurred much of the recent literature on staggered adoption in difference-in-differences. However, unrestricted time heterogeneity renders future-looking estimands like the FATT inestimable and undercuts policy relevance of any estimated quantities. Instead, the heterogeneity of treatment effects must be restricted so that information from the observed data may be used to extrapolate to the future time period \citep{khosrowiExtrapolationCausalEffects2019,khosrowiExtrapolatingExperimentsConfidently2023,maebaExtrapolationTreatmentEffect2024}. An alternative would be to report bounds or conduct sensitivity analysis without imposing a functional form \citep{manskiPublicPolicyUncertain2013}; the parametric path we take here trades that generality for point identification and extrapolation. Researchers should prefer this section's approach (Path 2) over the time-homogeneity path in Section~4 when they are unwilling to assume that within-group effects are constant over time but are willing to specify how effects evolve (e.g., as a function of event time).
+
+To this end, to estimate the FATT, researchers must parameterize the time-varying ATTs or sub-ATTs in terms of time \citep{brownDynamicTreatmentEffect2025,maebaExtrapolationTreatmentEffect2024}. For example, one could specify
+\begin{align*}
+    \theta_{gt} = f(g, t; \bgamma), \qquad t = 1, ..., p+1; g \in \cG
+\end{align*}
+where $f(\cdot ; \bgamma)$ is a known function of a finite-dimensional parameter $\bgamma \in \R^d$. The parameter $\bgamma$ is identified from the observed group-time ATTs $\theta_{gt}$ for $t \leq p$, $g \in \cG$, whenever the mapping from $\bgamma$ to $(\theta_{gt})_{g,t}$ (restricted to $t \leq p$) is injective, so that $\bgamma$ is uniquely determined by fitting the model to the identified $\theta_{gt}$. A common choice is to model effects as a function of event time $k = t - g$, e.g., $\theta_{gt} = h_g(k; \bgamma)$ with $h_g$ linear or quadratic in $k$; then $f(g,t;\bgamma) = h_g(t-g;\bgamma)$. Then the FATT may be identified as
+\begin{align*}
+    \theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma).
+\end{align*}
+
+\begin{proposition}[Identification of the FATT under parametric dynamics]
+Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose $\theta_{gt} = f(g,t;\bgamma)$ with $\bgamma$ uniquely determined by $(\theta_{gt})_{g,t,\, t \leq p}$. Then the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma)$.
+\end{proposition}
+
+\subsection{Semiparametric estimation and EIF}
+We do not commit to a specific identification or first-stage estimation strategy. We assume that the group-time ATTs $\theta_{gt}$ are identified under the researcher's chosen design (e.g., difference-in-differences, synthetic control, or other methods); we do not restrict the identification strategy. We further assume that for each $(g,t)$, the researcher has access to an estimator $\widehat{\theta}_{gt}$ that is asymptotically linear with influence function $\phi_{gt}$: $\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \phi_{gt,i} + o_{\P}(1)$. Such estimators exist in the literature for various designs \citep{callawayDifferenceindifferencesMultipleTime2021} and may be constructed with or without cross-fitting; our results hold for any such first-stage estimators.
+
+The contribution of this subsection is to derive the efficient influence function (EIF) for the policy-relevant FATT $\theta_{p+1}$ as a functional of the group-time ATTs and their influence functions, so that any asymptotically linear estimators of $\theta_{gt}$ yield an asymptotically linear estimator of $\theta_{p+1}$ with limiting variance given by the propagated EIF.
+
+\paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). By linearity, the EIF for $\psi_1 = \theta_{p+1}$ is
+\begin{align*}
+    \phi_{\psi_1} = \sum_g \omega_g \, \phi_{\theta_{g\cdot}} \; + \; \sum_g \theta_{g\cdot} \phi_{\omega_g},
+\end{align*}
+where $\phi_{\omega_g}$ is the influence function of the estimator of $\omega_g$ (e.g., for the empirical proportion among units with $A_{ip}=1$, unit $i$ contributes $\mathbf{1}\{G_i=g, A_{ip}=1\}/\P(A_{ip}=1) - \omega_g$); if $\omega_g$ is known, the second sum vanishes. Thus any asymptotically linear estimators of $\theta_{g\cdot}$ yield an asymptotically linear estimator of $\psi_1$ with the stated influence function.
+
+\paragraph{Path 2 (extrapolation).} Under $\theta_{gt} = f(g,t;\bgamma)$, we have $\theta_{p+1} = \Psi(\theta, \omega) = \sum_g \omega_g f(g, p+1; \bgamma)$, where $\bgamma$ is a smooth functional of $\theta = (\theta_{g,t})_{g,t}$. Take as given the EIF $\phi_{gt}$ for each $\theta_{gt}$ from whatever first-stage the researcher uses. By the chain rule, the EIF for $\psi_2 = \theta_{p+1}$ is
+\begin{align*}
+    \phi_{\psi_2} = \frac{\partial \Psi}{\partial \theta} \phi_{\theta} + \frac{\partial \Psi}{\partial \omega} \phi_{\omega},
+\end{align*}
+with the obvious vectorization over $(g,t)$ and, if $\omega_g$ is estimated, an additional term $\sum_g f(g,p+1;\bgamma) \phi_{\omega_g}$. The Jacobian $\frac{\partial \Psi}{\partial \theta}$ is the row vector with entries $\frac{\partial \Psi}{\partial \theta_{gt}} = \frac{\partial \Psi}{\partial \bgamma}^\top \frac{\partial \bgamma}{\partial \theta_{gt}}$, where $\frac{\partial \Psi}{\partial \bgamma} = \sum_g \omega_g \frac{\partial f(g,p+1;\bgamma)}{\partial \bgamma}$; thus stacking the $\phi_{gt}$ and multiplying by this row gives the contribution from the first-stage. Within the model that restricts $\theta_{gt} = f(g,t;\bgamma)$, this $\phi$ is the efficient influence function for $\theta_{p+1}$.
+
+\begin{proposition}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]
+Under the assumptions of Path 1 or Path 2 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$ or $\phi_{\psi_2}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.
+\end{proposition}
+
+\paragraph{Variance and asymptotics.} The semiparametric variance bound is $\sigma^2 = \E[\phi^2]$. Under standard regularity conditions, $\sqrt{n}(\widehat{\psi} - \psi) = n^{-1/2}\sum_{i=1}^n \phi_i + o_{\P}(1)$, so $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$. The variance may be estimated by $\widehat{\sigma}^2/n$ with $\widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2$ (or the sample variance of $\widehat{\phi}_i$); Wald confidence intervals are $\widehat{\psi} \pm z_{\alpha/2} \widehat{\sigma}/\sqrt{n}$. The estimated $\widehat{\phi}_i$ is a plug-in that uses $\widehat{\theta}_{gt}$, $\widehat{\bgamma}$, and possibly $\widehat{\omega}_g$; under standard regularity, this does not affect the first-order limit distribution. If the researcher uses flexible (e.g., machine-learning) estimation when forming $\widehat{\theta}_{p+1}$ (e.g., when estimating $\bgamma$ or $\omega_g$), $K$-fold cross-fitting can relax Donsker requirements: the aggregation or extrapolation step (estimate $\bgamma$ or $\omega_g$ on folds $\cI_{-k}$, evaluate the EIF on $\cI_k$) is cross-fit; only rate conditions (e.g., $o_{\P}(n^{-1/4})$) are needed. The paper does not require cross-fitting for the first-stage $\widehat{\theta}_{gt}$; the results hold for any asymptotically linear first-stage. A limitation of the parametric extrapolation approach is that bias and inference can be sensitive to the choice of $f$: if the temporal model is misspecified, $\widehat{\theta}_{p+1}$ need not be consistent for the FATT. In practice, researchers may compare several specifications (e.g., linear vs quadratic in event time) or report sensitivity of the extrapolated estimate to the choice of $f$; formal treatment of post-selection inference or misspecification is beyond this paper's scope.
+
+\section{Discussion}
+
+We have argued that policy analysis with panel data faces a tension: methods that allow dynamic, group-time effects address important identification concerns but produce backward-looking estimands that do not directly answer whether to maintain or adopt a policy now or next period. We resolve this by defining future causal effects (FATT, FATU, FATE, FATS) and offering two identification paths. \textbf{Path 1 (time homogeneity):} Under strict within-group time homogeneity and limited between-state heterogeneity, the FATT is identified by the backward-looking ATT or by a convex combination of group-specific ATTs; the researcher can use standard group-time or ATT estimators and aggregate. \textbf{Path 2 (extrapolation):} When effects are allowed to vary with event time (or calendar time), the FATT is identified by fitting a parametric model $f(g,t;\bgamma)$ to the identified group-time ATTs and extrapolating to $p+1$. The choice between paths is substantive: Path 1 is appropriate when stability of effects over time is plausible (and can be partly checked); Path 2 is appropriate when the researcher is willing to model dynamics and to accept sensitivity to the choice of $f$.
+
+Several limitations deserve emphasis. Identification of the FATT in both paths relies on the distribution $\P_{p+1}$ (and, for Path 2, on the extrapolation model holding at $p+1$), which is not directly observable. We have focused on a single future period ($k=1$); extension to multiple horizons $k>1$ is conceptually straightforward but adds assumptions on how far the model can be projected. Inference uses the propagated efficient influence function, which is valid under correct specification of the first-stage and, for Path 2, of $f$; misspecification can bias the extrapolated estimate and distort inference.
+
+Natural next steps include sensitivity analysis for violations of time homogeneity or of the extrapolation model, formal treatment of model selection or multiple specifications, and applications that compare Path 1 and Path 2 on the same data and discuss which assumptions are more plausible in context.
+
+When researchers are unwilling to impose a parametric $f$, an alternative to point-identifying the FATT is to forego point identification and report bounds under weak assumptions---for example, that future effects lie in a bounded or monotone class---as in the partial-identification and sensitivity literature \citep{manskiPublicPolicyUncertain2013}. That approach yields an interval that contains the FATT rather than a single number. Path 2 can be interpreted as assuming that the fitted parameter $\bgamma$ encodes structure that is invariant to the time period, so that extrapolation to $p+1$ is valid so long as this structure holds; this connects to the literature on policy-invariant parameters and transportability \citep{heckmanStructuralEquationsTreatment2005,pearlExternalValidityCalculus2022}. In practice, researchers can also compare several specifications of $f$ (e.g., linear vs quadratic in event time) and report how the extrapolated FATT and its interval change, as noted in Section~5.
+
+\bibliographystyle{plainnat}
+\bibliography{heterogeneous-policy-effects}
+
+\end{document}

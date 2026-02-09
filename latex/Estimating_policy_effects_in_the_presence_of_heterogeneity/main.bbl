@@ -1,0 +1,280 @@
+\begin{thebibliography}{36}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Arkhangelsky and
+  Imbens(2024)]{arkhangelskyCausalModelsLongitudinal2024}
+Dmitry Arkhangelsky and Guido Imbens.
+\newblock Causal models for longitudinal and panel data: {{A}} survey.
+\newblock \emph{The Econometrics Journal}, 27\penalty0 (3):\penalty0 C1--C61,
+  2024.
+
+\bibitem[Baker et~al.(2025)Baker, Callaway, Cunningham, {Goodman-Bacon}, and
+  Sant'Anna]{bakerDifferenceinDifferencesDesignsPractitioners2025}
+Andrew Baker, Brantly Callaway, Scott Cunningham, Andrew {Goodman-Bacon}, and
+  Pedro H.~C. Sant'Anna.
+\newblock Difference-in-{{Differences Designs}}: {{A Practitioner}}'s
+  {{Guide}}, June 2025.
+
+\bibitem[Bareinboim and
+  Pearl(2012)]{bareinboimTransportabilityCausalEffects2012}
+Elias Bareinboim and Judea Pearl.
+\newblock Transportability of causal effects: {{Completeness}} results.
+\newblock In \emph{Proceedings of the {{AAAI Conference}} on {{Artificial
+  Intelligence}}}, volume~26, pages 698--704, 2012.
+
+\bibitem[Brodersen et~al.(2015)Brodersen, Gallusser, Koehler, Remy, and
+  Scott]{brodersenInferringCausalImpact2015}
+Kay~H. Brodersen, Fabian Gallusser, Jim Koehler, Nicolas Remy, and Steven~L.
+  Scott.
+\newblock Inferring causal impact using {{Bayesian}} structural time-series
+  models.
+\newblock 2015.
+
+\bibitem[Brown and Butts(2025)]{brownDynamicTreatmentEffect2025}
+Nicholas~L. Brown and Kyle Butts.
+\newblock Dynamic treatment effect estimation with interactive fixed effects
+  and short panels.
+\newblock \emph{Journal of Econometrics}, 250:\penalty0 106013, 2025.
+
+\bibitem[Callaway and
+  Sant'Anna(2021)]{callawayDifferenceindifferencesMultipleTime2021}
+Brantly Callaway and Pedro~HC Sant'Anna.
+\newblock Difference-in-differences with multiple time periods.
+\newblock \emph{Journal of econometrics}, 225\penalty0 (2):\penalty0 200--230,
+  2021.
+
+\bibitem[Cartwright(2007)]{cartwrightHuntingCausesUsing2007}
+Nancy Cartwright.
+\newblock \emph{Hunting Causes and Using Them: {{Approaches}} in Philosophy and
+  Economics}.
+\newblock Cambridge University Press, 2007.
+
+\bibitem[Cintron et~al.(2022)Cintron, Adler, Gottlieb, Hagan, Tan, Vlahov,
+  Glymour, and Matthay]{cintronHeterogeneousTreatmentEffects2022}
+Dakota~W. Cintron, Nancy~E. Adler, Laura~M. Gottlieb, Erin Hagan, May~Lynn Tan,
+  David Vlahov, Madellena~Maria Glymour, and Ellicott~C. Matthay.
+\newblock Heterogeneous treatment effects in social policy studies: {{An}}
+  assessment of contemporary articles in the health and social sciences.
+\newblock \emph{Annals of epidemiology}, 70:\penalty0 79--88, June 2022.
+\newblock ISSN 1047-2797.
+\newblock \doi{10.1016/j.annepidem.2022.04.009}.
+
+\bibitem[Cole and Stuart(2010)]{coleGeneralizingEvidenceRandomized2010}
+Stephen~R. Cole and Elizabeth~A. Stuart.
+\newblock Generalizing evidence from randomized clinical trials to target
+  populations: The {{ACTG}} 320 trial.
+\newblock \emph{American journal of epidemiology}, 172\penalty0 (1):\penalty0
+  107--115, 2010.
+
+\bibitem[De~Chaisemartin and
+  {d'Haultfoeuille}(2023)]{dechaisemartinTwowayFixedEffects2023}
+Cl{\'e}ment De~Chaisemartin and Xavier {d'Haultfoeuille}.
+\newblock Two-way fixed effects and differences-in-differences with
+  heterogeneous treatment effects: {{A}} survey.
+\newblock \emph{The econometrics journal}, 26\penalty0 (3):\penalty0 C1--C30,
+  2023.
+
+\bibitem[Dette and Schumann(2024)]{detteTestingEquivalencePreTrends2024}
+Holger Dette and Martin Schumann.
+\newblock Testing for {{Equivalence}} of {{Pre-Trends}} in
+  {{Difference-in-Differences Estimation}}.
+\newblock \emph{Journal of Business \& Economic Statistics}, 42\penalty0
+  (4):\penalty0 1289--1301, October 2024.
+\newblock ISSN 0735-0015, 1537-2707.
+\newblock \doi{10.1080/07350015.2024.2308121}.
+
+\bibitem[Devaux and Egami(2022)]{devauxQuantifyingRobustnessExternal2022}
+Martin Devaux and Naoki Egami.
+\newblock Quantifying robustness to external validity bias.
+\newblock \emph{Available at SSRN 4213753}, 2022.
+
+\bibitem[Egami and Hartman(2023)]{egamiElementsExternalValidity2023}
+Naoki Egami and Erin Hartman.
+\newblock Elements of external validity: {{Framework}}, design, and analysis.
+\newblock \emph{American Political Science Review}, 117\penalty0 (3):\penalty0
+  1070--1088, 2023.
+
+\bibitem[Ericsson et~al.(1998)Ericsson, Hendry, and
+  Mizon]{ericssonExogeneityCointegrationEconomic1998}
+Neil~R. Ericsson, David~F. Hendry, and Grayham~E. Mizon.
+\newblock Exogeneity, {{Cointegration}}, and {{Economic Policy Analysis}}.
+\newblock \emph{Journal of Business \& Economic Statistics}, 16\penalty0
+  (4):\penalty0 370--387, October 1998.
+\newblock ISSN 0735-0015, 1537-2707.
+\newblock \doi{10.1080/07350015.1998.10524778}.
+
+\bibitem[Estrella and Fuhrer(1999)]{estrellaAreDeepParameters1999}
+Arturo Estrella and Jeffrey~C. Fuhrer.
+\newblock Are" deep" parameters stable?: {{The}} lucas critique as an empirical
+  hypothesis.
+\newblock Technical report, Federal Reserve Bank of Boston Boston, MA, 1999.
+
+\bibitem[Forastiere et~al.(2025)Forastiere, Li, and
+  Baccini]{forastiereForecastingCausalEffects2025}
+Laura Forastiere, Fan Li, and Michela Baccini.
+\newblock Forecasting {{Causal Effects}} of {{Future Interventions}}:
+  {{Confounding}} and {{Transportability Issues}}, July 2025.
+
+\bibitem[Freyaldenhoven et~al.(2019)Freyaldenhoven, Hansen, and
+  Shapiro]{freyaldenhovenPreeventTrendsPanel2019}
+Simon Freyaldenhoven, Christian Hansen, and Jesse~M. Shapiro.
+\newblock Pre-event trends in the panel event-study design.
+\newblock \emph{American Economic Review}, 109\penalty0 (9):\penalty0
+  3307--3338, 2019.
+
+\bibitem[Gabler et~al.(2009)Gabler, Duan, Liao, Elmore, Ganiats, and
+  Kravitz]{gablerDealingHeterogeneityTreatment2009}
+Nicole~B Gabler, Naihua Duan, Diana Liao, Joann~G Elmore, Theodore~G Ganiats,
+  and Richard~L Kravitz.
+\newblock Dealing with heterogeneity of treatment effects: Is the literature up
+  to the challenge?
+\newblock \emph{Trials}, 10:\penalty0 43, June 2009.
+\newblock ISSN 1745-6215.
+\newblock \doi{10.1186/1745-6215-10-43}.
+
+\bibitem[Gische et~al.(2021)Gische, West, and
+  Voelkle]{gischeForecastingCausalEffects2021}
+Christian Gische, Stephen~G. West, and Manuel~C. Voelkle.
+\newblock Forecasting {{Causal Effects}} of {{Interventions}} versus
+  {{Predicting Future Outcomes}}.
+\newblock \emph{Structural Equation Modeling: A Multidisciplinary Journal},
+  28\penalty0 (3):\penalty0 475--492, May 2021.
+\newblock ISSN 1070-5511, 1532-8007.
+\newblock \doi{10.1080/10705511.2020.1780598}.
+
+\bibitem[Heckman and Vytlacil(2001)]{heckmanPolicyRelevantTreatmentEffects2001}
+James~J Heckman and Edward Vytlacil.
+\newblock Policy-{{Relevant Treatment Effects}}.
+\newblock \emph{American Economic Review}, 91\penalty0 (2):\penalty0 107--111,
+  May 2001.
+\newblock ISSN 0002-8282.
+\newblock \doi{10.1257/aer.91.2.107}.
+
+\bibitem[Heckman and Vytlacil(2005)]{heckmanStructuralEquationsTreatment2005}
+James~J. Heckman and Edward Vytlacil.
+\newblock Structural {{Equations}}, {{Treatment Effects}}, and {{Econometric
+  Policy Evaluation1}}.
+\newblock \emph{Econometrica}, 73\penalty0 (3):\penalty0 669--738, May 2005.
+\newblock ISSN 0012-9682, 1468-0262.
+\newblock \doi{10.1111/j.1468-0262.2005.00594.x}.
+
+\bibitem[Khosrowi(2019)]{khosrowiExtrapolationCausalEffects2019}
+Donal Khosrowi.
+\newblock Extrapolation of causal effects -- hopes, assumptions, and the
+  extrapolator's circle.
+\newblock \emph{Journal of Economic Methodology}, 26\penalty0 (1):\penalty0
+  45--58, January 2019.
+\newblock ISSN 1350-178X, 1469-9427.
+\newblock \doi{10.1080/1350178X.2018.1561078}.
+
+\bibitem[Khosrowi(2023)]{khosrowiExtrapolatingExperimentsConfidently2023}
+Donal Khosrowi.
+\newblock Extrapolating from experiments, confidently.
+\newblock \emph{European Journal for Philosophy of Science}, 13\penalty0
+  (2):\penalty0 18, March 2023.
+\newblock ISSN 1879-4920.
+\newblock \doi{10.1007/s13194-023-00520-1}.
+
+\bibitem[Lucas~Jr(1976)]{lucasjrEconometricPolicyEvaluation1976}
+Robert~E. Lucas~Jr.
+\newblock Econometric policy evaluation: {{A}} critique.
+\newblock In \emph{Carnegie-{{Rochester}} Conference Series on Public Policy},
+  volume~1, pages 19--46. North-Holland, 1976.
+
+\bibitem[Maeba(2024)]{maebaExtrapolationTreatmentEffect2024}
+Kensuke Maeba.
+\newblock Extrapolation of {{Treatment Effect Estimates Across Contexts}} and
+  {{Policies}}: {{An Application}} to {{Cash Transfer Experiments}}, March
+  2024.
+
+\bibitem[Manski(2013)]{manskiPublicPolicyUncertain2013}
+Charles~F. Manski.
+\newblock \emph{Public Policy in an Uncertain World: Analysis and Decisions}.
+\newblock Harvard University Press, 2013.
+
+\bibitem[Pearl and Bareinboim(2022)]{pearlExternalValidityCalculus2022}
+Judea Pearl and Elias Bareinboim.
+\newblock External {{Validity}}: {{From}} {{{\emph{Do}}}} -{{Calculus}} to
+  {{Transportability Across Populations}}.
+\newblock In Hector Geffner, Rina Dechter, and Joseph~Y. Halpern, editors,
+  \emph{Probabilistic and {{Causal Inference}}}, pages 451--482. ACM, New York,
+  NY, USA, 1 edition, February 2022.
+\newblock ISBN 978-1-4503-9586-1.
+\newblock \doi{10.1145/3501714.3501741}.
+
+\bibitem[Rambachan and Roth(2023)]{rambachanMoreCredibleApproach2023}
+Ashesh Rambachan and Jonathan Roth.
+\newblock A more credible approach to parallel trends.
+\newblock \emph{Review of Economic Studies}, 90\penalty0 (5):\penalty0
+  2555--2591, 2023.
+
+\bibitem[Roth(2022)]{rothPretestCautionEventstudy2022}
+Jonathan Roth.
+\newblock Pretest with caution: {{Event-study}} estimates after testing for
+  parallel trends.
+\newblock \emph{American Economic Review: Insights}, 4\penalty0 (3):\penalty0
+  305--322, 2022.
+
+\bibitem[Roth and Sant'Anna(2023)]{rothEfficientEstimationStaggered2023}
+Jonathan Roth and Pedro H.~C. Sant'Anna.
+\newblock Efficient {{Estimation}} for {{Staggered Rollout Designs}}.
+\newblock \emph{Journal of Political Economy Microeconomics}, 1\penalty0
+  (4):\penalty0 669--709, November 2023.
+\newblock ISSN 2832-9368, 2832-9376.
+\newblock \doi{10.1086/726581}.
+
+\bibitem[Sasaki and Ura(2023)]{sasakiEstimationInferencePolicy2023}
+Yuya Sasaki and Takuya Ura.
+\newblock Estimation and inference for policy relevant treatment effects.
+\newblock \emph{Journal of Econometrics}, 234\penalty0 (2):\penalty0 394--450,
+  2023.
+
+\bibitem[Shpitser(2013)]{shpitserCounterfactualGraphicalModels2013}
+Ilya Shpitser.
+\newblock Counterfactual {{Graphical Models}} for {{Longitudinal Mediation
+  Analysis With Unobserved Confounding}}.
+\newblock \emph{Cognitive Science}, 37\penalty0 (6):\penalty0 1011--1035,
+  August 2013.
+\newblock ISSN 0364-0213, 1551-6709.
+\newblock \doi{10.1111/cogs.12058}.
+
+\bibitem[Stock and Watson(2018)]{stockIdentificationEstimationDynamic2018}
+James~H. Stock and Mark~W. Watson.
+\newblock Identification and estimation of dynamic causal effects in
+  macroeconomics using external instruments.
+\newblock \emph{The Economic Journal}, 128\penalty0 (610):\penalty0 917--948,
+  2018.
+
+\bibitem[Sun and Abraham(2021)]{sunEstimatingDynamicTreatment2021}
+Liyang Sun and Sarah Abraham.
+\newblock Estimating dynamic treatment effects in event studies with
+  heterogeneous treatment effects.
+\newblock \emph{Journal of Econometrics}, 225\penalty0 (2):\penalty0 175--199,
+  December 2021.
+\newblock ISSN 0304-4076.
+\newblock \doi{10.1016/j.jeconom.2020.09.006}.
+
+\bibitem[Tipton(2013)]{tiptonImprovingGeneralizationsExperiments2013}
+Elizabeth Tipton.
+\newblock Improving {{Generalizations From Experiments Using Propensity Score
+  Subclassification}}: {{Assumptions}}, {{Properties}}, and {{Contexts}}.
+\newblock \emph{Journal of Educational and Behavioral Statistics}, 38\penalty0
+  (3):\penalty0 239--266, June 2013.
+\newblock ISSN 1076-9986, 1935-1054.
+\newblock \doi{10.3102/1076998612441947}.
+
+\bibitem[Wang et~al.(2024)Wang, Hamad, and
+  White]{wangAdvancesDifferenceindifferencesMethods2024a}
+Guangyi Wang, Rita Hamad, and Justin~S. White.
+\newblock Advances in {{Difference-in-differences Methods}} for {{Policy
+  Evaluation Research}}.
+\newblock \emph{Epidemiology (Cambridge, Mass.)}, 35\penalty0 (5):\penalty0
+  628--637, September 2024.
+\newblock ISSN 1044-3983.
+\newblock \doi{10.1097/EDE.0000000000001755}.
+
+\end{thebibliography}

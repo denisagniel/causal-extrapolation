@@ -1,6 +1,6 @@
 # extrapolateATT: Semiparametric extrapolation of dynamic causal effects
 
-This project contains an R package (`package/`) and a small simulation/demo suite (`sims/`) that implement semiparametric extrapolation of future average treatment effects (ATTs) using efficient influence functions (EIFs).
+This project contains an R package (`package/`) and a small simulation/demo suite (`sims/`) that implement semiparametric extrapolation of future average treatment effects (ATTs) using efficient influence functions (EIFs). The semiparametric theory and EIF propagation are described in Section 5.1 of the paper in `latex/Estimating_policy_effects_in_the_presence_of_heterogeneity`.
 
 Workflow overview:
 - Estimate group–time ATTs (τ_gt) and EIFs using `did` via `estimate_group_time_ATT()`.
@@ -25,4 +25,6 @@ See `vignettes/` for an end-to-end example (to be expanded).
 
 
 # causal-extrapolation
+
+
 

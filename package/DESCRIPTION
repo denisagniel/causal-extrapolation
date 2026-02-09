@@ -1,0 +1,39 @@
+Package: extrapolateATT
+Title: Semiparametric Extrapolation of Future ATTs with Influence Functions
+Version: 0.0.0.9000
+Authors@R: c(
+    person(given = "Your", family = "Name", role = c("aut", "cre"),
+           email = "you@example.com")
+)
+Description: Estimate group-time average treatment effects (ATTs) with the 'did'
+    package, extrapolate to future time points via user-specified temporal models
+    h_g(·), propagate efficient influence functions (EIFs) by chain rule, optionally
+    integrate conditional effects over a target covariate distribution, and compute
+    standard errors and confidence intervals. The semiparametric theory and EIF
+    propagation (Section 5.1) are described in the accompanying paper in
+    latex/Estimating_policy_effects_in_the_presence_of_heterogeneity.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: R (>= 4.1)
+Imports:
+    dplyr,
+    tibble,
+    tidyr,
+    purrr,
+    ggplot2,
+    rlang,
+    stats,
+    numDeriv,
+    did
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+
+
+
+
+

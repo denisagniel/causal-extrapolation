@@ -1,0 +1,14 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.github$
+^sims$
+^vignettes/.*\.Rmd$
+^README\.md$
+^docs$
+^LICENSE$
+^sem\.plan\.md$
+
+
+
+
+
