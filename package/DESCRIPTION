@@ -4,7 +4,7 @@ Version: 0.0.0.9000
 Authors@R: c(
     person(given = "Your", family = "Name", role = c("aut", "cre"),
            email = "you@example.com")
-)
+ )
 Description: Estimate group-time average treatment effects (ATTs) with the 'did'
     package, extrapolate to future time points via user-specified temporal models
     h_g(·), propagate efficient influence functions (EIFs) by chain rule, optionally

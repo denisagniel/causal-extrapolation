@@ -4,6 +4,7 @@
 \usepackage{color, xcolor}
 \usepackage{setspace}
 \usepackage{natbib}
+\usepackage{booktabs}
 \title{What we estimate when we estimate dynamic causal effects in panel data}
 \date{\today}
 \input{common-defs}
@@ -239,6 +240,41 @@ Under the assumptions of Path 1 or Path 2 above, suppose the first-stage estimat
 \end{proposition}
 
 \paragraph{Variance and asymptotics.} The semiparametric variance bound is $\sigma^2 = \E[\phi^2]$. Under standard regularity conditions, $\sqrt{n}(\widehat{\psi} - \psi) = n^{-1/2}\sum_{i=1}^n \phi_i + o_{\P}(1)$, so $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$. The variance may be estimated by $\widehat{\sigma}^2/n$ with $\widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2$ (or the sample variance of $\widehat{\phi}_i$); Wald confidence intervals are $\widehat{\psi} \pm z_{\alpha/2} \widehat{\sigma}/\sqrt{n}$. The estimated $\widehat{\phi}_i$ is a plug-in that uses $\widehat{\theta}_{gt}$, $\widehat{\bgamma}$, and possibly $\widehat{\omega}_g$; under standard regularity, this does not affect the first-order limit distribution. If the researcher uses flexible (e.g., machine-learning) estimation when forming $\widehat{\theta}_{p+1}$ (e.g., when estimating $\bgamma$ or $\omega_g$), $K$-fold cross-fitting can relax Donsker requirements: the aggregation or extrapolation step (estimate $\bgamma$ or $\omega_g$ on folds $\cI_{-k}$, evaluate the EIF on $\cI_k$) is cross-fit; only rate conditions (e.g., $o_{\P}(n^{-1/4})$) are needed. The paper does not require cross-fitting for the first-stage $\widehat{\theta}_{gt}$; the results hold for any asymptotically linear first-stage. A limitation of the parametric extrapolation approach is that bias and inference can be sensitive to the choice of $f$: if the temporal model is misspecified, $\widehat{\theta}_{p+1}$ need not be consistent for the FATT. In practice, researchers may compare several specifications (e.g., linear vs quadratic in event time) or report sensitivity of the extrapolated estimate to the choice of $f$; formal treatment of post-selection inference or misspecification is beyond this paper's scope.
+
+\section{Simulations}
+
+Policy-relevant questions concern the FATT at $p+1$, whereas standard panel-data methods target backward-looking objects such as the ATT or group-time effects over the observed window. We use simulations to show when and how the two paths---time homogeneity (Path~1) and parametric extrapolation (Path~2)---succeed or fail to identify the FATT, and that EIF-based inference is valid when the model is correct. All designs use $q=3$ groups, $p=5$ periods, $n=500$ units, and 1000 replicates.
+
+\subsection{Data generation}
+
+We consider $q$ cohorts (groups) and calendar times $1,\ldots,p$. For each group $g$, we observe group-time effects $\theta_{gt}$ for $t \ge g$ (post-treatment only), with event time $k = t - g$. The true effects $\theta_{gt}$ are generated from one of three specifications in event time: (i)~constant within group, $\theta_{gt} = \theta_{g\cdot}$; (ii)~linear, $\theta_{gt} = \alpha_g + \beta_g k$; (iii)~quadratic, $\theta_{gt} = \alpha_g + \beta_g k + \delta_g k^2$. The strength of dynamics is thus controlled by the slope (and curvature) in event time. We take the role of a first-stage that has produced estimates $\widehat{\theta}_{gt}$ and their influence functions. For simplicity we set $\widehat{\theta}_{gt} = \theta_{gt} + \varepsilon_{gt}$ with $\varepsilon_{gt} \sim N(0,\sigma_\tau^2)$ and construct EIF vectors so that the variance of each cell estimator matches $\sigma_\tau^2$; aggregation and extrapolation then use the EIF propagation in Section~5. The simulations therefore focus on the aggregation and extrapolation step rather than on a specific difference-in-differences or other first-stage. The true FATT at $p+1$ is $\theta_{p+1} = \sum_g \omega_g \theta_{g,p+1}$; we use equal group weights $\omega_g = 1/q$. The true backward-looking ATT is the (equal-weight) average of $\theta_{gt}$ over observed $(g,t)$.
+
+The first simulation illustrates that the \emph{target} of estimation matters: the same data can support an unbiased estimate of the backward-looking ATT while that number diverges from the FATT when effects evolve with event time.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/section1_backward_vs_fatt}
+\caption{True backward-looking ATT and true FATT at $p+1$ as a function of the slope of the effect in event time (linear DGP). When the slope is non-zero, the two estimands differ; interpreting the backward-looking ATT as the policy-relevant effect is misleading.}
+\label{fig:backward-vs-fatt}
+\end{figure}
+When the slope in event time is non-zero, the two curves in Figure~\ref{fig:backward-vs-fatt} separate; interpreting the backward-looking ATT as the policy-relevant effect is then misleading. This motivates the need for either time-homogeneity assumptions (Path~1) or explicit extrapolation (Path~2).
+
+Path~1 assumes within-group time homogeneity and forms $\widehat{\theta}_{p+1} = \sum_g \omega_g \bar{\theta}_{g\cdot}$, where $\bar{\theta}_{g\cdot}$ is the average of $\widehat{\theta}_{gt}$ over $t$ for group $g$.
+\input{sim_tables/section2}
+Scenario A (constant effects within group) shows small bias and coverage near 95\%, consistent with Section~4. Scenario B (linear dynamics) shows substantial bias and coverage collapsing to zero for the FATT---Path~1 then estimates a different object (the constant-within-group extrapolant) and is invalid for the FATT. This underscores that Path~1 is only appropriate when time homogeneity is plausible.
+
+Path~2 fits a parametric model $f(g,t;\widehat{\bgamma})$ to $\widehat{\theta}_{gt}$ and extrapolates to $p+1$.
+\input{sim_tables/section3}
+Correct specification (linear DGP, linear fit) yields low bias and nominal coverage. Misspecification (quadratic DGP, linear fit) introduces bias and can distort coverage; fitting the correct quadratic model restores performance. This illustrates that Path~2 trades robustness for point identification and that the choice of $f$ matters in practice.
+
+Under correct specification, the EIF-based variance and Wald intervals from Section~5 should achieve nominal coverage.
+\input{sim_tables/section4}
+The variance ratio near one and coverage near 95\% and 90\% confirm that the propagated EIF delivers valid inference when the first-stage and (for Path~2) the extrapolation model are correct.
+
+On a single DGP with mild dynamics, we compare both paths.
+\input{sim_tables/section5}
+Path~2 reduces bias for the FATT relative to Path~1 when effects evolve with event time; Path~1's simplicity is attractive when dynamics are absent, but when they are present, extrapolation can improve alignment with the policy-relevant FATT.
+
+Taken together, the simulations reinforce the paper's message: the target of estimation (FATT vs backward-looking ATT) matters; Path~1 and Path~2 each have their place depending on whether the researcher is willing to assume time homogeneity or to model dynamics; and EIF-based inference is well-calibrated under correct specification.
 
 \section{Discussion}
 
