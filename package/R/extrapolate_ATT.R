@@ -1,8 +1,9 @@
 #' Extrapolate future ATTs and propagate EIFs
 #'
-#' Applies a user-provided temporal model h_g(·) and its Jacobian ∂h_g/∂τ_{g,1:p}
-#' to each group's observed τ̂_{g,1:p} to obtain τ̂_{g,p+m}, and propagates EIFs
-#' via the chain rule. Optionally aggregates to overall τ̂_{p+m} with group weights ω_g.
+#' Applies a user-provided temporal model \code{h_g(·)} and its Jacobian \code{dh_g/dtau}
+#' to each group's observed \code{tau_hat} values to obtain future ATT estimates,
+#' and propagates EIFs via the chain rule. Optionally aggregates to overall future
+#' ATT with group weights \code{omega_g}.
 #'
 #' @param gt_object An object produced by `estimate_group_time_ATT()`.
 #' @param h_fun A function factory taking (times, future_time, ...) and returning
@@ -24,12 +25,32 @@
 #' - tau_future, phi_future if aggregated (per_group = FALSE)
 #' @export
 extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL, future_value = NULL, omega = NULL, per_group = TRUE, time_scale = c("calendar", "event"), ...) {
-  stopifnot(inherits(gt_object, "gt_object"))
+  # Input validation
+  validate_gt_object(gt_object, name = "gt_object")
   time_scale <- match.arg(time_scale)
-  if (!is.null(future_time) && is.null(future_value)) future_value <- future_time
-  if (is.null(future_value)) stop("Provide future_value (calendar time or event time).")
+
+  # Handle deprecated future_time argument
+  if (!is.null(future_time) && is.null(future_value)) {
+    future_value <- future_time
+  }
+
+  if (is.null(future_value)) {
+    stop("future_value is required (calendar time or event time depending on time_scale)", call. = FALSE)
+  }
+  validate_scalar(future_value, name = "future_value")
+
+  # Validate omega if provided and aggregation requested
+  if (!per_group && is.null(omega)) {
+    stop("omega is required when per_group = FALSE (aggregation requested)", call. = FALSE)
+  }
+
   groups <- gt_object$groups
   n <- gt_object$n
+
+  # Validate omega dimensions if provided
+  if (!is.null(omega)) {
+    validate_group_weights(omega, n_groups = length(groups), name = "omega", warn_sum = TRUE)
+  }
 
   # Build per-group vectors of tau_{g,1:p}
   df <- gt_object$data
@@ -57,6 +78,15 @@ extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL,
   for (k in seq_along(groups)) {
     gk <- groups[k]
     idx <- by_g_idx[[as.character(gk)]]
+
+    # Check for NULL group (shouldn't happen but be defensive)
+    if (is.null(idx) || length(idx) == 0) {
+      stop(sprintf(
+        "Group %s not found in data. Available groups: %s",
+        gk, paste(names(by_g_idx), collapse = ", ")
+      ), call. = FALSE)
+    }
+
     sub <- df_ord[idx, ]
     times_vec <- sub$ord_time
     tau_vec <- sub$tau_hat
@@ -81,8 +111,7 @@ extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL,
   out <- list(tau_g_future = tib, phi_g_future = phi_g_future)
 
   if (!per_group) {
-    if (is.null(omega)) stop("Provide omega group weights to aggregate.")
-    if (length(omega) != length(groups)) stop("omega must have length equal to number of groups.")
+    # omega validation already done at top of function
     tau_future <- sum(omega * tib$tau_future)
     phi_future <- Reduce(`+`, Map(function(w, phi) w * phi, omega, phi_g_future))
     out$tau_future <- tau_future

@@ -1,5 +1,9 @@
 #' Integrate extrapolated conditional ATT over a target covariate distribution
 #'
+#' **EXPERIMENTAL/INCOMPLETE:** This function is a placeholder for future
+#' functionality. Full conditional integration tau_(p+m)(X) requires a model
+#' mapping covariates to conditional ATTs, which is not yet implemented.
+#'
 #' Given per-unit conditional extrapolated EIF contributions or per-group averages,
 #' integrate over a target covariate distribution F_X* using either observed target
 #' sample `x_target` (finite-pop average) or a Monte Carlo `sampler()`.
@@ -13,7 +17,7 @@
 #' @param id_target Optional vector of ids for target units.
 #'
 #' @return A list with integrated estimate `tau_star` and EIF vector `phi_star`.
-#' @export
+#' @keywords internal
 integrate_covariates <- function(extrap_object, x_target = NULL, sampler = NULL, weights = NULL, id_target = NULL) {
   # Simplest path: treat existing EIF vector as already per-target unit and average.
   if (!is.null(extrap_object$phi_future) && is.null(x_target) && is.null(sampler)) {
@@ -32,7 +36,12 @@ integrate_covariates <- function(extrap_object, x_target = NULL, sampler = NULL,
       return(list(tau_star = tau_star, phi_star = phi_star))
     }
   }
-  stop("For conditional integration, supply either aggregated phi_future/tau_future, or implement a mapping τ_{p+m}(X).")
+  stop(
+    "Conditional integration beyond simple aggregation is not yet implemented.
+Full implementation requires a model tau_(p+m)(X) mapping covariates to conditional ATTs.
+For now, use extrapolate_ATT() with per_group = FALSE for weighted aggregation.",
+    call. = FALSE
+  )
 }
 
 

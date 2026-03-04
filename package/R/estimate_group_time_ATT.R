@@ -22,24 +22,59 @@
 #'
 #' @export
 estimate_group_time_ATT <- function(data, y, g, t, x = NULL, cluster = NULL, ...) {
-  # NSE handling
-  y <- rlang::ensym(y); g <- rlang::ensym(g); t <- rlang::ensym(t)
-  if (!is.null(cluster)) cluster <- rlang::ensym(cluster)
+  # Input validation
+  if (!is.data.frame(data)) {
+    stop("data must be a data.frame or tibble", call. = FALSE)
+  }
 
   df <- tibble::as_tibble(data)
   n <- nrow(df)
 
+  if (n == 0) {
+    stop("data is empty (0 rows)", call. = FALSE)
+  }
+
+  # NSE handling
+  y <- rlang::ensym(y)
+  g <- rlang::ensym(g)
+  t <- rlang::ensym(t)
+  if (!is.null(cluster)) cluster <- rlang::ensym(cluster)
+
+  # Validate required columns exist
+  y_name <- rlang::as_name(y)
+  g_name <- rlang::as_name(g)
+  t_name <- rlang::as_name(t)
+
+  required_cols <- c(y_name, g_name, t_name)
+  missing_cols <- setdiff(required_cols, names(df))
+
+  if (length(missing_cols) > 0) {
+    stop(sprintf(
+      "data is missing required columns: %s. Available columns: %s",
+      paste(missing_cols, collapse = ", "),
+      paste(names(df), collapse = ", ")
+    ), call. = FALSE)
+  }
+
   # Minimal example using did::att_gt; users must supply columns needed by did
   # including treatment timing (e.g., G == cohort) and D indicator as per did docs.
   if (!requireNamespace("did", quietly = TRUE)) {
-    stop("Package 'did' is required. Please install it.")
+    stop("Package 'did' is required. Please install it.", call. = FALSE)
+  }
+
+  # Handle cluster argument
+  if (!is.null(cluster)) {
+    warning(
+      "cluster argument is not yet implemented; using default 'did' variance estimation",
+      call. = FALSE
+    )
   }
 
   # We attempt a flexible call; users can pass ... to att_gt
-  att <- did::att_gt(yname = rlang::as_name(y),
-                     tname = rlang::as_name(t),
+  att <- did::att_gt(yname = y_name,
+                     tname = t_name,
                      idname = NULL,
-                     gname = rlang::as_name(g),
+                     gname = g_name,
                      data = df,
                      ...)
   # Extract estimates and EIFs using helper
