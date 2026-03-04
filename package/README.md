@@ -70,12 +70,14 @@ integrated <- integrate_covariates(
 
 | Method | Package | Converter | Status |
 |--------|---------|-----------|--------|
-| Callaway & Sant'Anna | `did` | `as_gt_object.AGGTEobj()` | ✅ Built-in |
-| Sun & Abraham | `fixest` | `as_gt_object.fixest()` | ✅ Built-in |
-| Manual format | — | `as_gt_object.data.frame()` | ✅ Built-in |
-| Borusyak et al. | `didimputation` | `as_gt_object.did_imputation()` | 📋 Stub (guide to manual) |
-| Gardner | `did2s` | `as_gt_object.did2s()` | 📋 Stub (guide to manual) |
-| De Chaisemartin & d'Haultfoeuille | `DIDmultiplegt` | `as_gt_object.DIDmultiplegt()` | 📋 Stub (guide to manual) |
+| Callaway & Sant'Anna | `did` | `as_gt_object.AGGTEobj()` | ✅ Full support |
+| Sun & Abraham | `fixest` | `as_gt_object.fixest()` | ✅ Full support |
+| Borusyak et al. | `didimputation` | `as_gt_object.did_imputation()` | ✅ Full support |
+| Gardner | `did2s` | `as_gt_object.did2s()` | ✅ Full support |
+| De Chaisemartin & d'Haultfoeuille | `DIDmultiplegt` | `as_gt_object.DIDmultiplegt()` | ✅ Full support |
+| Manual format | — | `as_gt_object.data.frame()` | ✅ Full support |
+
+**All major DiD methods are now fully supported with dedicated converters!**
 
 ### Using Multiple Methods
 
@@ -123,7 +125,94 @@ extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
 propagation uses delta method approximation. For exact EIF propagation,
 use `did::att_gt()`.
 
-#### Method 3: Custom Estimates (Manual Format)
+#### Method 3: Borusyak et al. (didimputation)
+
+```r
+library(didimputation)
+
+# Estimate with imputation-based DiD
+result <- did_imputation(
+  data = your_data,
+  yname = "outcome",
+  gname = "cohort",
+  tname = "year",
+  idname = "unit",
+  horizon = TRUE  # Get event-study estimates
+)
+
+# Convert to standardized format
+# Single cohort (all treated at same time)
+gt_obj <- as_gt_object(
+  result,
+  cohort_timing = 2010,  # Treatment year
+  base_time = 2010       # k=0 corresponds to 2010
+)
+
+# OR: Multiple cohorts (staggered treatment)
+cohort_info <- data.frame(
+  cohort = c(2010, 2011, 2012),
+  first_treat_time = c(2010, 2011, 2012)
+)
+gt_obj <- as_gt_object(result, cohort_timing = cohort_info)
+
+# Extrapolate
+extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
+```
+
+#### Method 4: Gardner (did2s)
+
+```r
+library(did2s)
+
+# Two-stage DiD with event-study
+result <- did2s(
+  data = your_data,
+  yname = "outcome",
+  first_stage = ~ 0 | unit + year,
+  second_stage = ~ i(rel_year, ref = c(-1, Inf)),  # Event-study
+  treatment = "treated",
+  cluster_var = "unit"
+)
+
+# Convert (returns fixest object with rel_year coefficients)
+gt_obj <- as_gt_object(
+  result,
+  cohort_timing = 2010,
+  base_time = 2010
+)
+
+# Extrapolate
+extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
+```
+
+#### Method 5: De Chaisemartin & d'Haultfoeuille (DIDmultiplegt)
+
+```r
+library(DIDmultiplegt)
+
+# Dynamic treatment effects
+result <- did_multiplegt(
+  df = your_data,
+  Y = "outcome",
+  G = "unit",
+  T = "year",
+  D = "treatment",
+  dynamic = 5,     # 5 dynamic effects
+  placebo = 2      # 2 placebo tests
+)
+
+# Convert (extracts effect_0, effect_1, ..., placebo_1, ...)
+gt_obj <- as_gt_object(
+  result,
+  cohort_timing = 2010,
+  base_time = 2010
+)
+
+# Extrapolate
+extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
+```
+
+#### Method 6: Custom Estimates (Manual Format)
 
 If you have group-time ATT estimates from any method:
 
@@ -153,7 +242,7 @@ gt_obj <- as_gt_object(
 extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
 ```
 
-#### Method 4: Direct Construction
+#### Method 7: Direct Construction
 
 For maximum control:
 
