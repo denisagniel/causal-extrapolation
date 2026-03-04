@@ -48,20 +48,22 @@ path1_aggregate <- function(gt_object, omega) {
   if (length(phi_rows) != nrow(df)) stop("Length of phi must match rows of data.")
   if (length(omega) != length(groups)) stop("omega must have length equal to number of groups.")
 
-  tau_g <- numeric(length(groups))
-  phi_g <- vector("list", length(groups))
-  names(phi_g) <- groups
-
-  for (i in seq_along(groups)) {
+  results <- purrr::map(seq_along(groups), \(i) {
     g <- groups[i]
     idx <- which(df$g == g)
-    tau_g[i] <- mean(df$tau_hat[idx])
+    tau_mean <- mean(df$tau_hat[idx])
 
     # EIF for group mean = mean of EIFs over cells in that group (equal weight)
     # Use fast_cbind_list for efficient matrix construction
     phi_mat <- fast_cbind_list(phi_rows[idx])
-    phi_g[[i]] <- as.numeric(rowMeans(phi_mat))
-  }
+    phi_mean <- as.numeric(rowMeans(phi_mat))
+
+    list(tau = tau_mean, phi = phi_mean)
+  })
+
+  tau_g <- purrr::map_dbl(results, "tau")
+  phi_g <- purrr::map(results, "phi")
+  names(phi_g) <- groups
 
   agg <- aggregate_groups(tau_g, phi_g, omega)
   list(

@@ -26,7 +26,7 @@ did_extract_gt <- function(did_obj, ids = NULL) {
   if (is.null(did_obj$inffunc)) stop("att_gt$inffunc not found; update 'did' or check call options.")
   IF <- did_obj$inffunc
   if (ncol(IF) != nrow(data)) stop("Mismatch between inffunc columns and group-time rows.")
-  phi <- lapply(seq_len(nrow(data)), function(j) as.numeric(IF[, j]))
+  phi <- purrr::map(seq_len(nrow(data)), \(j) as.numeric(IF[, j]))
   list(data = data, phi = phi)
 }
 

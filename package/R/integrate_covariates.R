@@ -27,7 +27,7 @@
 #' The function:
 #' 1. Estimates beta by fitting conditional model to observed group-time ATTs
 #' 2. Integrates m(x; beta) over target distribution
-#' 3. Propagates EIF via chain rule (Jacobian through beta estimation)
+#' 3. Propagates EIF via full Jacobian chain rule through beta estimation
 #'
 #' @return A list with:
 #'   \item{tau_future}{Scalar FATT estimate}
@@ -103,21 +103,21 @@ integrate_covariates <- function(gt_object,
   }
 
   # Step 1: Estimate beta from group-time ATTs
-  # For linear model tau(X) = alpha + beta * X, group-time ATT = alpha + beta * E[X|G=g]
-  # So theta_gt = alpha + beta * X_mean[g]
-  # Estimate beta via least squares: theta_g = alpha + beta * X_mean_g
   beta_hat <- estimate_beta_from_groups(df, x_group, conditional_model)
 
-  # Step 2: Integrate over target distribution
+  # Step 2: Compute Jacobian components for EIF propagation
+  jacobian_info <- compute_jacobian_linear(df, x_group, beta_hat)
+
+  # Step 3: Integrate over target distribution with full EIF
   if (!is.null(x_target)) {
     result <- integrate_finite_population(
       gt_object, conditional_model, beta_hat,
-      x_target, weights
+      x_target, weights, jacobian_info
     )
   } else {
     result <- integrate_monte_carlo(
       gt_object, conditional_model, beta_hat,
-      sampler, n_mc
+      sampler, n_mc, jacobian_info
     )
   }
 
@@ -156,11 +156,49 @@ estimate_beta_from_groups <- function(df, x_group, conditional_model) {
 }
 
 
-#' Integrate over finite-population target sample (internal)
+#' Compute Jacobian for linear-in-covariates model (internal)
+#'
+#' Computes ∂β/∂θ_gt for each group-time cell using the implicit function theorem.
+#' For linear model tau(X) = alpha + beta_X * X, and theta_gt = alpha + beta_X * mu_g.
+#'
+#' @return List with H_inv (inverse Hessian), cell_gradients (gradient per cell),
+#'   and cell_info (data frame mapping cells to groups)
+#' @keywords internal
+compute_jacobian_linear <- function(df, x_group, beta_hat) {
+  # Merge df with x_group to get mu_X for each cell
+  cell_data <- dplyr::left_join(df, x_group, by = "g")
+
+  # For linear model: theta_gt = alpha + beta_X * mu_g
+  # Weighted least squares minimizes: Σ w_gt (θ_gt - α - β_X μ_g)²
+  # Use equal weights for simplicity (could use inverse variance if available)
+  w_gt <- rep(1, nrow(df))
+
+  # Hessian: H = Σ w_gt * [1, mu_g]' * [1, mu_g]
+  # For p parameters, this is p x p matrix
+  X_design <- cbind(1, cell_data$X_mean)  # n_cells x 2 matrix
+  H <- t(X_design) %*% diag(w_gt) %*% X_design  # 2 x 2
+
+  # Invert Hessian (with safety check)
+  H_inv <- safe_matrix_inverse(H)
+
+  # Gradient for each cell: ∇_gt = w_gt * [1, mu_g]'
+  cell_gradients <- lapply(seq_len(nrow(df)), function(j) {
+    w_gt[j] * c(1, cell_data$X_mean[j])
+  })
+
+  list(
+    H_inv = H_inv,
+    cell_gradients = cell_gradients,
+    cell_data = cell_data
+  )
+}
+
+
+#' Integrate over finite-population target sample with full EIF (internal)
 #'
 #' @keywords internal
 integrate_finite_population <- function(gt_object, conditional_model, beta,
-                                        x_target, weights) {
+                                        x_target, weights, jacobian_info) {
   n_target <- nrow(x_target)
   if (is.null(weights)) {
     weights <- rep(1 / n_target, n_target)
@@ -174,23 +212,37 @@ integrate_finite_population <- function(gt_object, conditional_model, beta,
   # Weighted average
   tau_future <- sum(weights * tau_target)
 
-  # EIF propagation (simplified):
-  # Full derivation requires Jacobian through beta estimation.
-  # For now, use simplified EIF that assumes beta is known (oracle-like).
-  # This gives correct point estimate; variance will be slightly underestimated.
+  # --- Full EIF propagation via Jacobian chain rule ---
   #
-  # True EIF: phi_i = d(tau_future)/d(theta_gt) * phi_{gt,i}
-  # where d(tau_future)/d(theta_gt) comes from chain rule through beta.
+  # EIF: phi_i = Σ_{g,t} (∂Ψ₃/∂θ_gt) * φ_{gt,i}
+  # where ∂Ψ₃/∂θ_gt = (∂Ψ₃/∂β)' * (∂β/∂θ_gt)
   #
-  # Simplified: treat beta as fixed, so EIF is just aggregation variance.
-  # This is conservative (underestimates variance by ignoring beta uncertainty).
+  # Step 1: Compute ∂Ψ₃/∂β
+  # For linear model tau(X) = alpha + beta_X * X:
+  # Ψ₃ = (1/n*) Σ_i [alpha + beta_X * X_i*]
+  # ∂Ψ₃/∂alpha = 1
+  # ∂Ψ₃/∂beta_X = mean(X_target)
 
-  # For finite-population: each target unit contributes 1/n_target weight
-  # Variance comes from sampling target X (negligible if target is fixed)
-  # + estimation variance from beta (to be added in full implementation)
+  dPsi_dbeta <- c(1, mean(x_target[[1]]))  # [1, mean(X*)]
 
-  # Placeholder: use gt_object's average EIF as conservative estimate
-  phi_future <- Reduce(`+`, gt_object$phi) / length(gt_object$phi)
+  # Step 2: Compute ∂β/∂θ_gt for each cell via chain rule
+  # ∂β/∂θ_gt = H^(-1) * ∇_gt
+  H_inv <- jacobian_info$H_inv
+  cell_gradients <- jacobian_info$cell_gradients
+
+  # Step 3: Compute Jacobian weight for each cell
+  # w_gt = (∂Ψ₃/∂β)' * H^(-1) * ∇_gt
+  jacobian_weights <- vapply(cell_gradients, function(nabla_gt) {
+    as.numeric(t(dPsi_dbeta) %*% H_inv %*% nabla_gt)
+  }, numeric(1))
+
+  # Step 4: Weighted sum of EIF vectors
+  # phi_future_i = Σ_j w_j * φ_j,i
+  n <- gt_object$n
+  phi_future <- numeric(n)
+  for (j in seq_along(gt_object$phi)) {
+    phi_future <- phi_future + jacobian_weights[j] * gt_object$phi[[j]]
+  }
 
   list(
     tau_future = tau_future,
@@ -201,11 +253,11 @@ integrate_finite_population <- function(gt_object, conditional_model, beta,
 }
 
 
-#' Integrate via Monte Carlo sampling (internal)
+#' Integrate via Monte Carlo sampling with full EIF (internal)
 #'
 #' @keywords internal
 integrate_monte_carlo <- function(gt_object, conditional_model, beta,
-                                  sampler, n_mc) {
+                                  sampler, n_mc, jacobian_info) {
   # Generate MC draws
   x_draws <- sampler(n_mc)
 
@@ -215,12 +267,23 @@ integrate_monte_carlo <- function(gt_object, conditional_model, beta,
   # MC average
   tau_future <- mean(tau_draws)
 
-  # EIF: similar to finite-population but with MC integration error
-  # MC error is O(1/sqrt(n_mc)), typically faster than O(1/sqrt(n)) from beta estimation
-  # For large n_mc, MC error is negligible
+  # --- Full EIF propagation (same as finite-population) ---
+  # MC integration error is O(1/sqrt(n_mc)), negligible for large n_mc
 
-  # Placeholder EIF (conservative, as above)
-  phi_future <- Reduce(`+`, gt_object$phi) / length(gt_object$phi)
+  dPsi_dbeta <- c(1, mean(x_draws[[1]]))  # [1, mean(X)]
+
+  H_inv <- jacobian_info$H_inv
+  cell_gradients <- jacobian_info$cell_gradients
+
+  jacobian_weights <- vapply(cell_gradients, function(nabla_gt) {
+    as.numeric(t(dPsi_dbeta) %*% H_inv %*% nabla_gt)
+  }, numeric(1))
+
+  n <- gt_object$n
+  phi_future <- numeric(n)
+  for (j in seq_along(gt_object$phi)) {
+    phi_future <- phi_future + jacobian_weights[j] * gt_object$phi[[j]]
+  }
 
   list(
     tau_future = tau_future,
@@ -233,16 +296,17 @@ integrate_monte_carlo <- function(gt_object, conditional_model, beta,
 
 #' Extract Path 3 result for downstream use
 #'
-#' @param integrated_result Result from integrate_covariates()
+#' @param x Result from integrate_covariates()
+#' @param ... Additional arguments (ignored)
 #' @export
 print.integrated_att <- function(x, ...) {
   cat("Integrated ATT (Path 3: Covariate Integration)\n")
   cat("------------------------------------------------\n")
-  cat(sprintf("Estimate: %.4f\n", x$tau_future))
-  cat(sprintf("Strategy: %s\n", x$strategy))
-  cat(sprintf("N integrated: %d\n", x$n_integrated))
+  cat(stringr::str_glue("Estimate: {format(x$tau_future, digits = 4, nsmall = 4)}\n"))
+  cat(stringr::str_glue("Strategy: {x$strategy}\n"))
+  cat(stringr::str_glue("N integrated: {x$n_integrated}\n"))
   if (!is.null(x$beta)) {
-    cat(sprintf("Beta: [%s]\n", paste(round(x$beta, 4), collapse = ", ")))
+    cat(stringr::str_glue("Beta: [{stringr::str_c(round(x$beta, 4), collapse = ', ')}]\n"))
   }
   invisible(x)
 }

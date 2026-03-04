@@ -47,7 +47,8 @@ aggregate_groups <- function(values_g, eif_list, omega) {
 
   # Perform aggregation
   value <- sum(omega * values_g)
-  phi <- Reduce(`+`, Map(function(w, phi_vec) w * phi_vec, omega, eif_list))
+  phi <- purrr::map2(omega, eif_list, \(w, phi_vec) w * phi_vec) |>
+    purrr::reduce(`+`)
 
   list(value = value, phi = phi)
 }

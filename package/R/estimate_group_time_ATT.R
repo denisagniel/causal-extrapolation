@@ -49,10 +49,9 @@ estimate_group_time_ATT <- function(data, y, g, t, x = NULL, cluster = NULL, ...
   missing_cols <- setdiff(required_cols, names(df))
 
   if (length(missing_cols) > 0) {
-    stop(sprintf(
-      "data is missing required columns: %s. Available columns: %s",
-      paste(missing_cols, collapse = ", "),
-      paste(names(df), collapse = ", ")
+    stop(stringr::str_glue(
+      "data is missing required columns: {stringr::str_c(missing_cols, collapse = ', ')}. ",
+      "Available columns: {stringr::str_c(names(df), collapse = ', ')}"
     ), call. = FALSE)
   }
 

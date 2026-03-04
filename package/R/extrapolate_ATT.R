@@ -159,20 +159,14 @@ extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL,
   phi_ord <- phi_rows[ord]
   by_g_idx <- split(seq_len(nrow(df_ord)), df_ord$g)
 
-  tau_g_future <- vector("list", length(groups))
-  names(tau_g_future) <- groups
-  phi_g_future <- vector("list", length(groups))
-  names(phi_g_future) <- groups
-
-  for (k in seq_along(groups)) {
+  results <- purrr::map(seq_along(groups), \(k) {
     gk <- groups[k]
     idx <- by_g_idx[[as.character(gk)]]
 
     # Check for NULL group (shouldn't happen but be defensive)
     if (is.null(idx) || length(idx) == 0) {
-      stop(sprintf(
-        "Group %s not found in data. Available groups: %s",
-        gk, paste(names(by_g_idx), collapse = ", ")
+      stop(stringr::str_glue(
+        "Group {gk} not found in data. Available groups: {stringr::str_c(names(by_g_idx), collapse = ', ')}"
       ), call. = FALSE)
     }
 
@@ -193,9 +187,17 @@ extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL,
       # compute gradient wrt each component around current tau_vec
       dh_vec <- as.numeric(numDeriv::grad(function(z) h_fun(times_vec, future_value, ...)(z), x = tau_vec))
     }
-    tau_g_future[[k]] <- h_factory(tau_vec)
-    phi_g_future[[k]] <- as.numeric(phi_mat %*% dh_vec)
-  }
+
+    list(
+      tau = h_factory(tau_vec),
+      phi = as.numeric(phi_mat %*% dh_vec)
+    )
+  })
+
+  tau_g_future <- purrr::map(results, "tau")
+  names(tau_g_future) <- groups
+  phi_g_future <- purrr::map(results, "phi")
+  names(phi_g_future) <- groups
 
   tib <- tibble::tibble(g = groups, tau_future = as.numeric(unlist(tau_g_future)))
   out <- list(tau_g_future = tib, phi_g_future = phi_g_future)
@@ -203,7 +205,8 @@ extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL,
   if (!per_group) {
     # omega validation already done at top of function
     tau_future <- sum(omega * tib$tau_future)
-    phi_future <- Reduce(`+`, Map(function(w, phi) w * phi, omega, phi_g_future))
+    phi_future <- purrr::map2(omega, phi_g_future, \(w, phi) w * phi) |>
+      purrr::reduce(`+`)
     out$tau_future <- tau_future
     out$phi_future <- phi_future
   }

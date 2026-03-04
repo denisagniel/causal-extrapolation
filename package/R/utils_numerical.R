@@ -23,9 +23,8 @@ safe_matrix_inverse <- function(X, tol = 1e-8) {
 
   # Check minimum observations
   if (n < p) {
-    stop(sprintf(
-      "Insufficient observations for matrix inversion: need at least %d observations, got %d",
-      p, n
+    stop(stringr::str_glue(
+      "Insufficient observations for matrix inversion: need at least {p} observations, got {n}"
     ))
   }
 
@@ -35,14 +34,13 @@ safe_matrix_inverse <- function(X, tol = 1e-8) {
   cond_num <- kappa(XtX, exact = TRUE)
 
   if (cond_num > 1/tol || is.infinite(cond_num)) {
-    stop(sprintf(
-      "Matrix X'X is near-singular or singular (condition number = %.2e).
+    stop(stringr::str_glue(
+      "Matrix X'X is near-singular or singular (condition number = {format(cond_num, scientific = TRUE, digits = 2)}).
 Possible causes:
   - Repeated time values (creates exact linear dependence)
-  - Insufficient distinct observations (need at least p = %d distinct times)
+  - Insufficient distinct observations (need at least p = {p} distinct times)
   - Poorly scaled time values (try centering/scaling)
-  - Numerical instability",
-      cond_num, p
+  - Numerical instability"
     ))
   }
 

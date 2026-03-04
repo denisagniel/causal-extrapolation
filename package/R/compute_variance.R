@@ -44,9 +44,8 @@ compute_variance <- function(phi, estimate = NULL, level = 0.95, center = TRUE) 
   # Handle NA values explicitly
   if (any(is.na(phi))) {
     n_na <- sum(is.na(phi))
-    warning(sprintf(
-      "phi contains %d NA value(s); these will be removed before variance computation",
-      n_na
+    warning(stringr::str_glue(
+      "phi contains {n_na} NA value(s); these will be removed before variance computation"
     ), call. = FALSE)
     phi <- phi[!is.na(phi)]
   }
@@ -55,9 +54,8 @@ compute_variance <- function(phi, estimate = NULL, level = 0.95, center = TRUE) 
 
   # Need at least 2 observations for variance
   if (n < 2) {
-    stop(sprintf(
-      "Insufficient non-NA observations in phi for variance computation (need at least 2, got %d)",
-      n
+    stop(stringr::str_glue(
+      "Insufficient non-NA observations in phi for variance computation (need at least 2, got {n})"
     ), call. = FALSE)
   }
 
