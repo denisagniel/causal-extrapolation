@@ -158,38 +158,54 @@ estimate_beta_from_groups <- function(df, x_group, conditional_model) {
 
 #' Compute Jacobian for linear-in-covariates model (internal)
 #'
-#' Computes ∂β/∂θ_gt for each group-time cell using the implicit function theorem.
-#' For linear model tau(X) = alpha + beta_X * X, and theta_gt = alpha + beta_X * mu_g.
+#' Computes ∂β/∂θ_g for each group using the implicit function theorem.
+#' Beta is estimated from GROUP-level means theta_g (not cell-level theta_gt).
+#' For linear model tau(X) = alpha + beta_X * X, and theta_g = alpha + beta_X * mu_g.
 #'
-#' @return List with H_inv (inverse Hessian), cell_gradients (gradient per cell),
-#'   and cell_info (data frame mapping cells to groups)
+#' @return List with H_inv (inverse Hessian), group_gradients (gradient per group),
+#'   group_data (data frame with group-level info), and group_cell_map (mapping cells to groups)
 #' @keywords internal
 compute_jacobian_linear <- function(df, x_group, beta_hat) {
-  # Merge df with x_group to get mu_X for each cell
-  cell_data <- dplyr::left_join(df, x_group, by = "g")
+  # Step 1: Aggregate to group level (mirroring estimate_beta_from_groups)
+  group_means <- df %>%
+    dplyr::group_by(g) %>%
+    dplyr::summarize(
+      theta_g_mean = mean(tau_hat),
+      n_cells = dplyr::n(),
+      .groups = "drop"
+    )
 
-  # For linear model: theta_gt = alpha + beta_X * mu_g
-  # Weighted least squares minimizes: Σ w_gt (θ_gt - α - β_X μ_g)²
-  # Use equal weights for simplicity (could use inverse variance if available)
-  w_gt <- rep(1, nrow(df))
+  # Merge with group-level covariates
+  group_data <- dplyr::left_join(group_means, x_group, by = "g")
 
-  # Hessian: H = Σ w_gt * [1, mu_g]' * [1, mu_g]
-  # For p parameters, this is p x p matrix
-  X_design <- cbind(1, cell_data$X_mean)  # n_cells x 2 matrix
-  H <- t(X_design) %*% diag(w_gt) %*% X_design  # 2 x 2
+  # Step 2: Compute Hessian at GROUP level
+  # Beta is fit to q groups, not q×p cells
+  X_design_group <- cbind(1, group_data$X_mean)  # q x 2 matrix
+  w_g <- rep(1, nrow(group_data))  # Equal weights per group
 
-  # Invert Hessian (with safety check)
-  H_inv <- safe_matrix_inverse(H)
+  H <- t(X_design_group) %*% diag(w_g) %*% X_design_group  # 2 x 2
+  # H is already X'X, so just invert directly (safe_matrix_inverse would compute (X'X)'(X'X)^-1)
+  H_inv <- solve(H)
 
-  # Gradient for each cell: ∇_gt = w_gt * [1, mu_g]'
-  cell_gradients <- lapply(seq_len(nrow(df)), function(j) {
-    w_gt[j] * c(1, cell_data$X_mean[j])
+  # Step 3: Gradient for each GROUP: ∇_g = w_g * [1, mu_g]'
+  group_gradients <- lapply(seq_len(nrow(group_data)), function(j) {
+    w_g[j] * c(1, group_data$X_mean[j])
   })
+
+  # Step 4: Create mapping from cells to groups for EIF aggregation
+  group_cell_map <- df %>%
+    dplyr::select(g, t) %>%
+    dplyr::mutate(cell_idx = dplyr::row_number()) %>%
+    dplyr::left_join(
+      group_data %>% dplyr::select(g, n_cells),
+      by = "g"
+    )
 
   list(
     H_inv = H_inv,
-    cell_gradients = cell_gradients,
-    cell_data = cell_data
+    group_gradients = group_gradients,
+    group_data = group_data,
+    group_cell_map = group_cell_map
   )
 }
 
@@ -214,8 +230,11 @@ integrate_finite_population <- function(gt_object, conditional_model, beta,
 
   # --- Full EIF propagation via Jacobian chain rule ---
   #
-  # EIF: phi_i = Σ_{g,t} (∂Ψ₃/∂θ_gt) * φ_{gt,i}
-  # where ∂Ψ₃/∂θ_gt = (∂Ψ₃/∂β)' * (∂β/∂θ_gt)
+  # EIF: phi_i = Σ_g (∂Ψ₃/∂θ_g) * φ_{g,i}
+  # where:
+  #   - θ_g = (1/p_g) Σ_t θ_{gt} is the group-level mean
+  #   - φ_{g,i} = (1/p_g) Σ_t φ_{gt,i} is the group-level EIF
+  #   - ∂Ψ₃/∂θ_g = (∂Ψ₃/∂β)' * (∂β/∂θ_g)
   #
   # Step 1: Compute ∂Ψ₃/∂β
   # For linear model tau(X) = alpha + beta_X * X:
@@ -225,23 +244,43 @@ integrate_finite_population <- function(gt_object, conditional_model, beta,
 
   dPsi_dbeta <- c(1, mean(x_target[[1]]))  # [1, mean(X*)]
 
-  # Step 2: Compute ∂β/∂θ_gt for each cell via chain rule
-  # ∂β/∂θ_gt = H^(-1) * ∇_gt
+  # Step 2: Compute ∂β/∂θ_g for each GROUP via implicit function theorem
+  # ∂β/∂θ_g = H^(-1) * ∇_g
   H_inv <- jacobian_info$H_inv
-  cell_gradients <- jacobian_info$cell_gradients
+  group_gradients <- jacobian_info$group_gradients
 
-  # Step 3: Compute Jacobian weight for each cell
-  # w_gt = (∂Ψ₃/∂β)' * H^(-1) * ∇_gt
-  jacobian_weights <- vapply(cell_gradients, function(nabla_gt) {
-    as.numeric(t(dPsi_dbeta) %*% H_inv %*% nabla_gt)
+  # Step 3: Compute Jacobian weight for each GROUP
+  # w_g = (∂Ψ₃/∂β)' * H^(-1) * ∇_g
+  jacobian_weights_group <- vapply(group_gradients, function(nabla_g) {
+    as.numeric(t(dPsi_dbeta) %*% H_inv %*% nabla_g)
   }, numeric(1))
 
-  # Step 4: Weighted sum of EIF vectors
-  # phi_future_i = Σ_j w_j * φ_j,i
+  # Step 4: Aggregate cell-level EIF to group-level EIF
+  # φ_{g,i} = (1/n_cells_g) Σ_{t in group g} φ_{gt,i}
   n <- gt_object$n
+  q <- length(unique(jacobian_info$group_cell_map$g))
+  phi_group_list <- vector("list", q)
+
+  for (g_idx in seq_len(q)) {
+    # Get all cells in this group
+    cell_indices <- which(jacobian_info$group_cell_map$g == g_idx)
+    n_cells_g <- length(cell_indices)
+
+    # Average EIF vectors across cells within group
+    phi_g <- numeric(n)
+    for (cell_idx in cell_indices) {
+      phi_g <- phi_g + gt_object$phi[[cell_idx]]
+    }
+    phi_g <- phi_g / n_cells_g  # Average
+
+    phi_group_list[[g_idx]] <- phi_g
+  }
+
+  # Step 5: Weighted sum of GROUP-level EIF vectors
+  # phi_future_i = Σ_g w_g * φ_{g,i}
   phi_future <- numeric(n)
-  for (j in seq_along(gt_object$phi)) {
-    phi_future <- phi_future + jacobian_weights[j] * gt_object$phi[[j]]
+  for (g_idx in seq_len(q)) {
+    phi_future <- phi_future + jacobian_weights_group[g_idx] * phi_group_list[[g_idx]]
   }
 
   list(
@@ -267,22 +306,40 @@ integrate_monte_carlo <- function(gt_object, conditional_model, beta,
   # MC average
   tau_future <- mean(tau_draws)
 
-  # --- Full EIF propagation (same as finite-population) ---
+  # --- Full EIF propagation at GROUP level (same as finite-population) ---
   # MC integration error is O(1/sqrt(n_mc)), negligible for large n_mc
 
   dPsi_dbeta <- c(1, mean(x_draws[[1]]))  # [1, mean(X)]
 
   H_inv <- jacobian_info$H_inv
-  cell_gradients <- jacobian_info$cell_gradients
+  group_gradients <- jacobian_info$group_gradients
 
-  jacobian_weights <- vapply(cell_gradients, function(nabla_gt) {
-    as.numeric(t(dPsi_dbeta) %*% H_inv %*% nabla_gt)
+  jacobian_weights_group <- vapply(group_gradients, function(nabla_g) {
+    as.numeric(t(dPsi_dbeta) %*% H_inv %*% nabla_g)
   }, numeric(1))
 
+  # Aggregate cell-level EIF to group-level
   n <- gt_object$n
+  q <- length(unique(jacobian_info$group_cell_map$g))
+  phi_group_list <- vector("list", q)
+
+  for (g_idx in seq_len(q)) {
+    cell_indices <- which(jacobian_info$group_cell_map$g == g_idx)
+    n_cells_g <- length(cell_indices)
+
+    phi_g <- numeric(n)
+    for (cell_idx in cell_indices) {
+      phi_g <- phi_g + gt_object$phi[[cell_idx]]
+    }
+    phi_g <- phi_g / n_cells_g
+
+    phi_group_list[[g_idx]] <- phi_g
+  }
+
+  # Weighted sum of group-level EIF vectors
   phi_future <- numeric(n)
-  for (j in seq_along(gt_object$phi)) {
-    phi_future <- phi_future + jacobian_weights[j] * gt_object$phi[[j]]
+  for (g_idx in seq_len(q)) {
+    phi_future <- phi_future + jacobian_weights_group[g_idx] * phi_group_list[[g_idx]]
   }
 
   list(

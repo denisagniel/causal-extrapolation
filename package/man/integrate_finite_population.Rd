@@ -2,17 +2,18 @@
 % Please edit documentation in R/integrate_covariates.R
 \name{integrate_finite_population}
 \alias{integrate_finite_population}
-\title{Integrate over finite-population target sample (internal)}
+\title{Integrate over finite-population target sample with full EIF (internal)}
 \usage{
 integrate_finite_population(
   gt_object,
   conditional_model,
   beta,
   x_target,
-  weights
+  weights,
+  jacobian_info
 )
 }
 \description{
-Integrate over finite-population target sample (internal)
+Integrate over finite-population target sample with full EIF (internal)
 }
 \keyword{internal}

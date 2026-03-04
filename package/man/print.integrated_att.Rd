@@ -7,7 +7,9 @@
 \method{print}{integrated_att}(x, ...)
 }
 \arguments{
-\item{integrated_result}{Result from integrate_covariates()}
+\item{x}{Result from integrate_covariates()}
+
+\item{...}{Additional arguments (ignored)}
 }
 \description{
 Extract Path 3 result for downstream use

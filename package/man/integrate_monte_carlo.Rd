@@ -2,11 +2,18 @@
 % Please edit documentation in R/integrate_covariates.R
 \name{integrate_monte_carlo}
 \alias{integrate_monte_carlo}
-\title{Integrate via Monte Carlo sampling (internal)}
+\title{Integrate via Monte Carlo sampling with full EIF (internal)}
 \usage{
-integrate_monte_carlo(gt_object, conditional_model, beta, sampler, n_mc)
+integrate_monte_carlo(
+  gt_object,
+  conditional_model,
+  beta,
+  sampler,
+  n_mc,
+  jacobian_info
+)
 }
 \description{
-Integrate via Monte Carlo sampling (internal)
+Integrate via Monte Carlo sampling with full EIF (internal)
 }
 \keyword{internal}

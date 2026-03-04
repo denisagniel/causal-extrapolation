@@ -62,7 +62,7 @@ The function:
 \enumerate{
 \item Estimates beta by fitting conditional model to observed group-time ATTs
 \item Integrates m(x; beta) over target distribution
-\item Propagates EIF via chain rule (Jacobian through beta estimation)
+\item Propagates EIF via full Jacobian chain rule through beta estimation
 }
 }
 \examples{
