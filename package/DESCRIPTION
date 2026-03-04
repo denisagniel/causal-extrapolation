@@ -28,5 +28,6 @@ Imports:
 Suggests:
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown
+    rmarkdown,
+    fixest
 Config/testthat/edition: 3

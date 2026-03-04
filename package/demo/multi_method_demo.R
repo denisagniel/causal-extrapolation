@@ -58,10 +58,83 @@ cat("Extrapolated ATTs:\n")
 print(extrap$tau_g_future)
 
 # ==============================================================================
-# Example 2: Manual Format with EIF (Custom Method)
+# Example 2: Sun & Abraham (fixest package)
 # ==============================================================================
 
-cat("\n\n=== Example 2: Manual Format (Custom Method with EIF) ===\n\n")
+cat("\n\n=== Example 2: Sun & Abraham (fixest::sunab) ===\n\n")
+
+# Create mock fixest::sunab output
+# In practice, this would be: feols(y ~ x + sunab(cohort, year) | unit + year, data)
+
+mock_fixest <- structure(
+  list(
+    coefficients = c(
+      "cohort::2010:time::2012" = 0.4,
+      "cohort::2010:time::2013" = 0.55,
+      "cohort::2010:time::2014" = 0.65,
+      "cohort::2011:time::2012" = 0.35,
+      "cohort::2011:time::2013" = 0.45
+    ),
+    se = c(0.09, 0.11, 0.13, 0.08, 0.10),
+    nobs = 200,
+    vcov = diag(5) * c(0.09, 0.11, 0.13, 0.08, 0.10)^2
+  ),
+  class = c("fixest", "fixest_model")
+)
+
+cat("Mock fixest::sunab estimates (cohort-time interactions):\n")
+print(mock_fixest$coefficients)
+
+# Convert to gt_object
+# Note: fixest doesn't provide EIF, but we can create mock EIF for demonstration
+# In practice, use SE-only mode when delta-method variance is implemented (Phase 4.1)
+set.seed(789)
+mock_fixest_eif <- lapply(1:5, function(j) rnorm(200))
+
+# For now, manually add EIF to demonstrate functionality
+gt_obj_fixest <- as_gt_object(
+  data.frame(
+    g = c(2010, 2010, 2010, 2011, 2011),
+    t = c(2012, 2013, 2014, 2012, 2013),
+    tau_hat = as.numeric(mock_fixest$coefficients)
+  ),
+  phi = mock_fixest_eif,
+  n = 200,
+  meta = list(source = "fixest::sunab", method = "Sun & Abraham (2021)")
+)
+
+cat("\n✓ Converted fixest::sunab output to gt_object\n")
+cat("Source:", gt_obj_fixest$meta$source, "\n")
+cat("Method:", gt_obj_fixest$meta$method, "\n")
+cat("Has EIF:", !is.null(gt_obj_fixest$phi), "\n")
+cat("(Note: mock EIF for demonstration; fixest doesn't provide EIF natively)\n")
+
+cat("\nGroup-time ATT estimates:\n")
+print(gt_obj_fixest$data)
+
+# Extrapolate
+cat("\n--- Extrapolating to event time k* = 5 ---\n\n")
+
+extrap_fixest <- extrapolate_ATT(
+  gt_obj_fixest,
+  h_fun = hg_linear,
+  dh_fun = dh_linear,
+  future_value = 5,
+  time_scale = "event",
+  per_group = TRUE
+)
+
+cat("Extrapolated ATTs:\n")
+print(extrap_fixest$tau_g_future)
+
+cat("\nNote: fixest uses delta method for variance (approximate).\n")
+cat("For exact EIF propagation, use did::att_gt().\n")
+
+# ==============================================================================
+# Example 3: Manual Format with EIF (Custom Method)
+# ==============================================================================
+
+cat("\n\n=== Example 3: Manual Format (Custom Method with EIF) ===\n\n")
 
 # Suppose you have group-time ATT estimates from a custom method
 # AND you have influence functions
@@ -116,7 +189,7 @@ print(extrap_custom$tau_g_future)
 # Example 3: Using new_gt_object (Direct Constructor)
 # ==============================================================================
 
-cat("\n\n=== Example 3: Direct Construction with new_gt_object() ===\n\n")
+cat("\n\n=== Example 4: Direct Construction with new_gt_object() ===\n\n")
 
 # For maximum control, use new_gt_object directly
 set.seed(789)
@@ -154,7 +227,7 @@ print(gt_obj_manual$meta)
 # Example 4: Backward Compatibility
 # ==============================================================================
 
-cat("\n\n=== Example 4: Backward Compatibility ===\n\n")
+cat("\n\n=== Example 5: Backward Compatibility ===\n\n")
 cat("The existing estimate_group_time_ATT() function still works unchanged.\n")
 cat("It now uses the new converter infrastructure internally.\n\n")
 

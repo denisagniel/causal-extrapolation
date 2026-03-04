@@ -71,9 +71,11 @@ integrated <- integrate_covariates(
 | Method | Package | Converter | Status |
 |--------|---------|-----------|--------|
 | Callaway & Sant'Anna | `did` | `as_gt_object.AGGTEobj()` | ✅ Built-in |
+| Sun & Abraham | `fixest` | `as_gt_object.fixest()` | ✅ Built-in |
 | Manual format | — | `as_gt_object.data.frame()` | ✅ Built-in |
-| Sun & Abraham | `fixest` | `as_gt_object.fixest()` | 🔲 Future |
-| Borusyak et al. | `didimputation` | `as_gt_object.did_imputation()` | 🔲 Future |
+| Borusyak et al. | `didimputation` | `as_gt_object.did_imputation()` | 📋 Stub (guide to manual) |
+| Gardner | `did2s` | `as_gt_object.did2s()` | 📋 Stub (guide to manual) |
+| De Chaisemartin & d'Haultfoeuille | `DIDmultiplegt` | `as_gt_object.DIDmultiplegt()` | 📋 Stub (guide to manual) |
 
 ### Using Multiple Methods
 
@@ -99,7 +101,29 @@ gt_obj <- as_gt_object(did_result)
 extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
 ```
 
-#### Method 2: Custom Estimates (Manual Format)
+#### Method 2: Sun & Abraham (fixest)
+
+```r
+library(fixest)
+
+# Estimate with sunab (interaction-weighted)
+res <- feols(
+  y ~ x + sunab(cohort, year) | unit + year,
+  data = your_data
+)
+
+# Convert to standardized format
+gt_obj <- as_gt_object(res)
+
+# Extrapolate
+extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
+```
+
+**Note:** fixest doesn't expose influence functions by default, so variance
+propagation uses delta method approximation. For exact EIF propagation,
+use `did::att_gt()`.
+
+#### Method 3: Custom Estimates (Manual Format)
 
 If you have group-time ATT estimates from any method:
 
@@ -129,7 +153,7 @@ gt_obj <- as_gt_object(
 extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
 ```
 
-#### Method 3: Direct Construction
+#### Method 4: Direct Construction
 
 For maximum control:
 
