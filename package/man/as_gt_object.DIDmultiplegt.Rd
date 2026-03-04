@@ -2,95 +2,161 @@
 % Please edit documentation in R/from_didmultiplegt.R
 \name{as_gt_object.DIDmultiplegt}
 \alias{as_gt_object.DIDmultiplegt}
-\title{Convert DIDmultiplegt output to gt_object (stub)}
+\title{Convert DIDmultiplegt output to gt_object}
 \usage{
-\method{as_gt_object}{DIDmultiplegt}(x, ...)
+\method{as_gt_object}{DIDmultiplegt}(x, cohort_timing = NULL, base_time = NULL, ...)
 }
 \arguments{
-\item{x}{Result from \code{DIDmultiplegt::did_multiplegt()}}
+\item{x}{Result from \code{DIDmultiplegt::did_multiplegt()} with \code{dynamic = TRUE}.}
 
-\item{...}{Additional arguments (currently unused)}
+\item{cohort_timing}{Data frame with columns \code{cohort} (g) and optionally
+\code{first_treat_time}. If a single cohort, can be a scalar. Required to map
+event-study estimates to (cohort, time) format.}
+
+\item{base_time}{Scalar. The time period corresponding to relative time 0.
+Required if \code{cohort_timing} is not provided or doesn't have timing info.}
+
+\item{...}{Additional arguments (currently unused).}
 }
 \value{
-This function currently throws an informative error.
+Object of class \code{gt_object}. See \code{?new_gt_object} for structure.
 }
 \description{
-Placeholder converter for the DIDmultiplegt package (De Chaisemartin &
-d'Haultfoeuille 2020). Full implementation not yet available. Use manual
-format instead.
+S3 method to convert output from \code{DIDmultiplegt::did_multiplegt()}
+(De Chaisemartin & d'Haultfoeuille 2020) into the standardized \code{gt_object}
+format.
 }
 \details{
-\subsection{About DIDmultiplegt}{
+\subsection{De Chaisemartin & d'Haultfoeuille (2020) Method}{
 
-The \code{DIDmultiplegt} package (De Chaisemartin & d'Haultfoeuille, 2020)
-implements several difference-in-differences estimators for designs with
-multiple groups and time periods. It handles staggered treatment adoption
-and provides diagnostics for treatment effect heterogeneity.
+The \code{DIDmultiplegt} package implements several DiD estimators for multiple
+groups and periods. With \code{dynamic = TRUE}, it returns dynamic treatment
+effects by relative time.
 
-\strong{Key features:}
+\strong{Key feature:} Returns effects by \strong{relative time} to treatment
+(event-study format), along with pre-trends tests and diagnostics.
+}
+
+\subsection{Event-Study to (Cohort, Time) Mapping}{
+
+\code{DIDmultiplegt} with \code{dynamic = TRUE} returns:
 \itemize{
-\item Handles staggered adoption with multiple treatment periods
-\item Robust to dynamic treatment effects and heterogeneity
-\item Provides tests for treatment effect homogeneity
-\item Dynamic effects via \code{dynamic = TRUE} option
+\item \code{effect_0}: Effect in treatment period (k=0)
+\item \code{effect_1}: Effect 1 period after treatment (k=1)
+\item \code{effect_2}: Effect 2 periods after treatment (k=2)
+\item etc.
 }
 
-\strong{Reference:} De Chaisemartin, C. & d'Haultfoeuille, X. (2020). "Two-Way
-Fixed Effects Estimators with Heterogeneous Treatment Effects." American
-Economic Review, 110(9): 2964-96.
+And optionally:
+\itemize{
+\item \code{placebo_1}: Placebo 1 period before (k=-1)
+\item \code{placebo_2}: Placebo 2 periods before (k=-2)
+\item etc.
 }
 
-\subsection{How to use DIDmultiplegt with extrapolateATT}{
+These are \strong{relative times}. To use with extrapolateATT, we need
+\strong{(cohort, calendar time)} format.
 
-To extract group-time ATTs, you need to use the dynamic effects option:
-\subsection{Step 1: Run DIDmultiplegt with dynamic effects}{
+\strong{Mapping logic:}
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{library(DIDmultiplegt)
+\if{html}{\out{<div class="sourceCode">}}\preformatted{For cohort g treated at time g:
+  effect_0 (k=0) → calendar time t = g
+  effect_1 (k=1) → calendar time t = g + 1
+  effect_2 (k=2) → calendar time t = g + 2
+  ...
+}\if{html}{\out{</div>}}
+}
 
-# Estimate with dynamic effects
-result <- did_multiplegt(
-  df = your_data,
+\subsection{Usage Scenarios}{
+\subsection{Scenario 1: Single Cohort}{
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{result <- did_multiplegt(
+  df = data,
   Y = "outcome",
   G = "unit",
   T = "year",
   D = "treatment",
-  dynamic = 5,           # Number of dynamic effects
-  placebo = 2            # Placebo periods (optional)
+  dynamic = 5,     # 5 dynamic effects
+  placebo = 2      # 2 placebo tests
 )
-}\if{html}{\out{</div>}}
-}
 
-\subsection{Step 2: Extract dynamic effect estimates}{
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# DIDmultiplegt returns effect by relative time
-# You need to map these to (group, time) space
-
-# Extract estimates (exact structure depends on output format)
-dynamic_effects <- result$dynamic_effects
-relative_times <- result$relative_times
-
-# Convert to group-time format
-# This requires knowledge of treatment timing for each group
-gt_data <- data.frame(
-  g = ...,         # Cohort (treatment timing)
-  t = ...,         # Calendar time
-  tau_hat = ...,   # Dynamic effect estimate
-  se = ...         # Standard error (if available)
-)
-}\if{html}{\out{</div>}}
-}
-
-\subsection{Step 3: Convert to gt_object}{
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{library(extrapolateATT)
-
+# Provide cohort and base time
 gt_obj <- as_gt_object(
-  gt_data,
-  n = nrow(your_data),
-  meta = list(
-    source = "DIDmultiplegt",
-    method = "De Chaisemartin & d'Haultfoeuille (2020)"
-  )
+  result,
+  cohort_timing = 2010,  # All treated in 2010
+  base_time = 2010       # effect_0 corresponds to 2010
+)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Scenario 2: Multiple Cohorts}{
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{result <- did_multiplegt(..., dynamic = 5)
+
+# Provide cohort timing data
+cohort_info <- data.frame(
+  cohort = c(2010, 2011, 2012),
+  first_treat_time = c(2010, 2011, 2012)
+)
+
+gt_obj <- as_gt_object(result, cohort_timing = cohort_info)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Scenario 3: Manual Format}{
+
+For complex designs:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Extract dynamic effects
+effects <- c(
+  result$placebo_2,  # k = -2
+  result$placebo_1,  # k = -1
+  result$effect_0,   # k = 0
+  result$effect_1,   # k = 1
+  result$effect_2    # k = 2
+)
+
+# Map to (g, t) based on treatment timing
+gt_data <- data.frame(
+  g = ...,  # cohort
+  t = ...,  # calendar time
+  tau_hat = effects
+)
+
+gt_obj <- as_gt_object(gt_data, n = nrow(original_data))
+}\if{html}{\out{</div>}}
+}
+
+}
+
+\subsection{Requirements}{
+\itemize{
+\item \code{x} must be from \code{DIDmultiplegt::did_multiplegt()} with \code{dynamic > 0}
+\item Must provide either \code{cohort_timing} or both cohort_timing + base_time
+\item Returns SE-only (no EIF); variance propagation will use delta method
+}
+}
+}
+\examples{
+\dontrun{
+library(DIDmultiplegt)
+
+# Dynamic effects
+result <- did_multiplegt(
+  df = df,
+  Y = "outcome",
+  G = "unit",
+  T = "year",
+  D = "treatment",
+  dynamic = 5,
+  placebo = 2
+)
+
+# Convert (single cohort)
+gt_obj <- as_gt_object(
+  result,
+  cohort_timing = 2010,
+  base_time = 2010
 )
 
 # Extrapolate
@@ -98,50 +164,9 @@ extrap <- extrapolate_ATT(
   gt_obj,
   h_fun = hg_linear,
   dh_fun = dh_linear,
-  future_value = 5,
+  future_value = 8,
   time_scale = "event"
 )
-}\if{html}{\out{</div>}}
-}
-
-}
-
-\subsection{Note on Event Study Format}{
-
-DIDmultiplegt returns effects by \strong{relative time} (event study), not by
-(group, time) pairs. To use with extrapolateATT:
-\itemize{
-\item If you have a single treatment cohort: relative time = event time (k)
-\item If you have multiple cohorts: you need to map relative times to calendar
-times for each cohort separately
-}
-}
-
-\subsection{Contributing}{
-
-A full converter implementation would be welcome! To contribute:
-\enumerate{
-\item Study the DIDmultiplegt output structure (especially with \code{dynamic = TRUE})
-\item Implement logic to map relative time effects to (group, time) space
-\item Implement \code{as_gt_object.DIDmultiplegt()} following the pattern in
-\code{R/from_did.R}
-\item Add tests in \code{tests/testthat/test-from_didmultiplegt.R}
-\item Submit a pull request
-}
-
-See \code{?as_gt_object} and \code{?new_gt_object} for the required output format.
-}
-}
-\examples{
-\dontrun{
-# This will error with helpful instructions
-library(DIDmultiplegt)
-result <- did_multiplegt(..., dynamic = 5)
-gt_obj <- as_gt_object(result)  # Error with instructions
-
-# Instead, extract and format manually:
-gt_estimates <- data.frame(g = ..., t = ..., tau_hat = ...)
-gt_obj <- as_gt_object(gt_estimates, n = sample_size)
 }
 
 }

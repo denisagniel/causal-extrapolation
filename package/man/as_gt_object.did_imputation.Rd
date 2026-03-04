@@ -2,83 +2,137 @@
 % Please edit documentation in R/from_didimputation.R
 \name{as_gt_object.did_imputation}
 \alias{as_gt_object.did_imputation}
-\title{Convert didimputation output to gt_object (stub)}
+\title{Convert didimputation output to gt_object}
 \usage{
-\method{as_gt_object}{did_imputation}(x, ...)
+\method{as_gt_object}{did_imputation}(x, cohort_timing = NULL, base_time = NULL, ...)
 }
 \arguments{
-\item{x}{Result from \code{didimputation::did_imputation()}}
+\item{x}{Result from \code{didimputation::did_imputation()} with \code{horizon = TRUE}.}
 
-\item{...}{Additional arguments (currently unused)}
+\item{cohort_timing}{Data frame with columns \code{cohort} (g) and optionally
+\code{first_treat_time}. If a single cohort, can be a scalar. Required to map
+event-study estimates to (cohort, time) format.}
+
+\item{base_time}{Scalar. The time period corresponding to event time 0.
+Required if \code{cohort_timing} is not provided or doesn't have timing info.}
+
+\item{...}{Additional arguments (currently unused).}
 }
 \value{
-This function currently throws an informative error.
+Object of class \code{gt_object}. See \code{?new_gt_object} for structure.
 }
 \description{
-Placeholder converter for the didimputation package (Borusyak et al. 2021).
-Full implementation not yet available. Use manual format instead.
+S3 method to convert output from \code{didimputation::did_imputation()}
+(Borusyak et al. 2021) into the standardized \code{gt_object} format.
 }
 \details{
-\subsection{About didimputation}{
+\subsection{Borusyak, Jaravel, & Spiess (2021) Method}{
 
-The \code{didimputation} package (Borusyak, Jaravel, & Spiess, 2021) implements
-an imputation-based estimator for difference-in-differences with staggered
-treatment adoption. It imputes counterfactual outcomes for treated units
-using not-yet-treated units as controls.
+The didimputation package implements an imputation-based estimator for DiD.
+It estimates counterfactual outcomes Y(0) using not-yet-treated units and
+computes treatment effects as Y(1) - Ŷ(0).
 
-\strong{Key features:}
+\strong{Key feature:} With \code{horizon = TRUE}, returns event-study estimates by
+relative time (0 = treatment period, 1 = one period after, etc.).
+}
+
+\subsection{Event-Study to (Cohort, Time) Mapping}{
+
+\code{didimputation} returns effects by \strong{relative time} (event-study format).
+To use with extrapolateATT, we need \strong{(cohort, calendar time)} format.
+
+\strong{Mapping logic:}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{For cohort g treated at time g:
+  Event time k=0 → calendar time t = g
+  Event time k=1 → calendar time t = g + 1
+  Event time k=2 → calendar time t = g + 2
+  ...
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Usage Scenarios}{
+\subsection{Scenario 1: Single Cohort}{
+
+If all units treated at the same time:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{result <- did_imputation(..., horizon = TRUE)
+
+# Provide cohort and base time
+gt_obj <- as_gt_object(
+  result,
+  cohort_timing = 2010,  # All treated in 2010
+  base_time = 2010       # Event time 0 = 2010
+)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Scenario 2: Multiple Cohorts}{
+
+If treatment is staggered:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{result <- did_imputation(..., horizon = TRUE)
+
+# Provide cohort timing data
+cohort_info <- data.frame(
+  cohort = c(2010, 2011, 2012),
+  first_treat_time = c(2010, 2011, 2012)
+)
+
+gt_obj <- as_gt_object(result, cohort_timing = cohort_info)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Scenario 3: Manual Format}{
+
+If mapping is complex, use manual format:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Extract event-study results
+es_results <- result  # data.frame from didimputation
+
+# Map to (g, t) manually based on your design
+gt_data <- data.frame(
+  g = ...,  # cohort
+  t = ...,  # calendar time
+  tau_hat = es_results$estimate
+)
+
+gt_obj <- as_gt_object(gt_data, n = your_sample_size)
+}\if{html}{\out{</div>}}
+}
+
+}
+
+\subsection{Requirements}{
 \itemize{
-\item Handles staggered adoption with heterogeneous treatment effects
-\item Imputation-based approach (differs from regression-based methods)
-\item Robust to dynamic treatment effects
+\item \code{x} must be from \code{didimputation::did_imputation()} with \code{horizon = TRUE}
+\item Must provide either \code{cohort_timing} or both cohort_timing + base_time
+\item Returns SE-only (no EIF); variance propagation will use delta method
 }
-
-\strong{Reference:} Borusyak, K., Jaravel, X., & Spiess, J. (2021). "Revisiting
-Event Study Designs: Robust and Efficient Estimation." arXiv:2108.12419.
 }
+}
+\examples{
+\dontrun{
+library(didimputation)
 
-\subsection{How to use didimputation with extrapolateATT}{
-
-Until a full converter is implemented, you can use the manual format:
-\subsection{Step 1: Run didimputation}{
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{library(didimputation)
-
-# Your DiD estimation
-did_result <- did_imputation(
-  data = your_data,
+# Single cohort example
+result <- did_imputation(
+  data = df,
   yname = "outcome",
   gname = "cohort",
   tname = "year",
-  idname = "unit"
+  idname = "unit",
+  horizon = TRUE
 )
-}\if{html}{\out{</div>}}
-}
 
-\subsection{Step 2: Extract group-time estimates}{
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Extract cohort-specific estimates by time
-# (Exact method depends on didimputation output structure)
-gt_estimates <- data.frame(
-  g = ...,         # Cohort/group
-  t = ...,         # Time period
-  tau_hat = ...,   # Group-time ATT estimate
-  se = ...         # Standard error (if available)
-)
-}\if{html}{\out{</div>}}
-}
-
-\subsection{Step 3: Convert to gt_object}{
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{library(extrapolateATT)
-
+# Convert (single cohort, all treated in 2010)
 gt_obj <- as_gt_object(
-  gt_estimates,
-  n = nrow(your_data),  # Sample size
-  meta = list(source = "didimputation")
+  result,
+  cohort_timing = 2010,
+  base_time = 2010
 )
 
-# Now extrapolate
+# Extrapolate
 extrap <- extrapolate_ATT(
   gt_obj,
   h_fun = hg_linear,
@@ -86,36 +140,6 @@ extrap <- extrapolate_ATT(
   future_value = 5,
   time_scale = "event"
 )
-}\if{html}{\out{</div>}}
-}
-
-}
-
-\subsection{Contributing}{
-
-A full converter implementation would be welcome! To contribute:
-\enumerate{
-\item Study the didimputation output structure
-\item Implement \code{as_gt_object.did_imputation()} following the pattern in
-\code{R/from_did.R} or \code{R/from_fixest.R}
-\item Extract group-time ATTs and (if available) influence functions
-\item Add tests in \code{tests/testthat/test-from_didimputation.R}
-\item Submit a pull request
-}
-
-See \code{?as_gt_object} and \code{?new_gt_object} for the required output format.
-}
-}
-\examples{
-\dontrun{
-# This will error with helpful instructions
-library(didimputation)
-result <- did_imputation(...)
-gt_obj <- as_gt_object(result)  # Error with instructions
-
-# Instead, use manual format:
-gt_estimates <- data.frame(g = ..., t = ..., tau_hat = ...)
-gt_obj <- as_gt_object(gt_estimates, n = sample_size)
 }
 
 }

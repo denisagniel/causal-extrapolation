@@ -2,122 +2,168 @@
 % Please edit documentation in R/from_did2s.R
 \name{as_gt_object.did2s}
 \alias{as_gt_object.did2s}
-\title{Convert did2s output to gt_object (stub)}
+\title{Convert did2s output to gt_object}
 \usage{
-\method{as_gt_object}{did2s}(x, ...)
+\method{as_gt_object}{did2s}(
+  x,
+  cohort_timing = NULL,
+  base_time = NULL,
+  extract_eif = FALSE,
+  ...
+)
 }
 \arguments{
-\item{x}{Result from \code{did2s::did2s()}}
+\item{x}{Result from \code{did2s::did2s()} with event-study specification
+(e.g., \code{second_stage = ~ i(rel_year, ref = c(-1, Inf))}).}
 
-\item{...}{Additional arguments (currently unused)}
+\item{cohort_timing}{Data frame with columns \code{cohort} (g) and optionally
+\code{first_treat_time}. If a single cohort, can be a scalar. Required to map
+event-study estimates to (cohort, time) format.}
+
+\item{base_time}{Scalar. The time period corresponding to relative time 0.
+Required if \code{cohort_timing} is not provided or doesn't have timing info.}
+
+\item{extract_eif}{Attempt to extract influence functions? Default TRUE.
+Likely unavailable (did2s returns fixest without EIF).}
+
+\item{...}{Additional arguments passed to \code{as_gt_object.fixest()}.}
 }
 \value{
-This function currently throws an informative error.
+Object of class \code{gt_object}. See \code{?new_gt_object} for structure.
 }
 \description{
-Placeholder converter for the did2s package (Gardner 2022).
-Full implementation not yet available. Use manual format instead.
+S3 method to convert output from \code{did2s::did2s()} (Gardner 2022) into the
+standardized \code{gt_object} format. The \code{did2s} package implements two-stage
+difference-in-differences and returns a fixest object with event-study
+coefficients.
 }
 \details{
-\subsection{About did2s}{
+\subsection{Gardner (2022) Two-Stage DiD}{
 
-The \code{did2s} package (Gardner, 2022) implements a two-stage difference-in-
-differences estimator for staggered treatment adoption. The two-stage
-approach:
+The \code{did2s} package implements a two-stage estimator:
 \enumerate{
-\item \strong{Stage 1:} Estimate unit and time fixed effects using untreated observations
-\item \strong{Stage 2:} Estimate treatment effects on residuals
+\item \strong{Stage 1:} Estimate unit and time fixed effects using untreated obs
+\item \strong{Stage 2:} Estimate treatment effects on residuals (returns fixest)
 }
 
-\strong{Key features:}
+\strong{Key feature:} Returns a fixest object from stage 2, typically with
+event-study specification using \code{i(rel_year, ref = ...)}.
+}
+
+\subsection{Event-Study to (Cohort, Time) Mapping}{
+
+\code{did2s} with event-study returns coefficients like:
 \itemize{
-\item Handles staggered adoption with heterogeneous treatment effects
-\item Two-stage approach robust to treatment effect heterogeneity
-\item Returns fixest object from stage 2
+\item \verb{rel_year::-2} (2 periods before treatment)
+\item \verb{rel_year::0} (treatment period)
+\item \verb{rel_year::1} (1 period after treatment)
+\item etc.
 }
 
-\strong{Reference:} Gardner, J. (2022). "Two-stage differences in differences."
-arXiv:2207.05943.
+These are \strong{relative times}. To use with extrapolateATT, we need
+\strong{(cohort, calendar time)} format.
+
+\strong{Mapping logic:}
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{For cohort g treated at time g:
+  rel_year = 0 → calendar time t = g
+  rel_year = 1 → calendar time t = g + 1
+  rel_year = 2 → calendar time t = g + 2
+  ...
+}\if{html}{\out{</div>}}
 }
 
-\subsection{How to use did2s with extrapolateATT}{
+\subsection{Usage Scenarios}{
+\subsection{Scenario 1: Single Cohort}{
 
-The \code{did2s} package returns a fixest object. You may be able to use the
-fixest converter directly if the output structure is compatible:
-\subsection{Option 1: Try fixest converter}{
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{library(did2s)
-
-# Run did2s estimation
-result <- did2s(
-  data = your_data,
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{result <- did2s(
+  data = df,
   yname = "outcome",
   first_stage = ~ 0 | unit + year,
-  second_stage = ~ i(cohort, year, ref = 0),
-  treatment = "treatment_var",
+  second_stage = ~ i(rel_year, ref = c(-1, Inf)),
+  treatment = "treated",
   cluster_var = "unit"
 )
 
-# Try fixest converter (if output structure matches)
-gt_obj <- as_gt_object(result)  # May work if sunab-like format
+# Provide cohort and base time
+gt_obj <- as_gt_object(
+  result,
+  cohort_timing = 2010,  # All treated in 2010
+  base_time = 2010       # rel_year=0 corresponds to 2010
+)
 }\if{html}{\out{</div>}}
 }
 
-\subsection{Option 2: Manual format}{
+\subsection{Scenario 2: Try as fixest}{
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Extract event-study estimates from did2s output
+Since \code{did2s} returns a fixest object, the fixest converter might work
+directly if coefficients follow a recognizable pattern:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{result <- did2s(...)
+
+# Try fixest converter (may work for some specifications)
+gt_obj <- as_gt_object.fixest(result)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Scenario 3: Manual Format}{
+
+For complex designs:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Extract coefficients
 coefs <- coef(result)
 ses <- se(result)
 
-# Parse coefficient names to get (cohort, time) pairs
-# This depends on your second_stage specification
-
+# Parse names and map to (g, t)
 gt_data <- data.frame(
-  g = ...,         # Cohort
-  t = ...,         # Time
-  tau_hat = ...,   # Coefficient
-  se = ...         # Standard error
+  g = ...,  # cohort
+  t = ...,  # calendar time
+  tau_hat = coefs
 )
 
-# Convert to gt_object
-gt_obj <- as_gt_object(
-  gt_data,
-  n = nrow(your_data),
-  meta = list(source = "did2s", method = "Gardner (2022)")
-)
-
-# Extrapolate
-extrap <- extrapolate_ATT(gt_obj, h_fun = hg_linear, ...)
+gt_obj <- as_gt_object(gt_data, n = nobs(result))
 }\if{html}{\out{</div>}}
 }
 
 }
 
-\subsection{Contributing}{
-
-A dedicated converter implementation would be welcome! To contribute:
-\enumerate{
-\item Determine if did2s output is compatible with fixest converter
-\item If not, implement \code{as_gt_object.did2s()} following the pattern in
-\code{R/from_fixest.R}
-\item Handle coefficient name parsing for event-study specifications
-\item Add tests in \code{tests/testthat/test-from_did2s.R}
-\item Submit a pull request
+\subsection{Requirements}{
+\itemize{
+\item \code{x} must be from \code{did2s::did2s()} with event-study second_stage
+\item Must provide either \code{cohort_timing} or both cohort_timing + base_time
+\item Returns SE-only (no EIF); variance propagation will use delta method
 }
-
-See \code{?as_gt_object} and \code{?new_gt_object} for the required output format.
 }
 }
 \examples{
 \dontrun{
-# This will error with helpful instructions
 library(did2s)
-result <- did2s(...)
-gt_obj <- as_gt_object(result)  # May work if fixest-compatible
 
-# If not, use manual format:
-gt_estimates <- data.frame(g = ..., t = ..., tau_hat = ...)
-gt_obj <- as_gt_object(gt_estimates, n = sample_size)
+# Event-study specification
+result <- did2s(
+  data = df,
+  yname = "outcome",
+  first_stage = ~ 0 | unit + year,
+  second_stage = ~ i(rel_year, ref = c(-1, Inf)),
+  treatment = "treated",
+  cluster_var = "unit"
+)
+
+# Convert (single cohort)
+gt_obj <- as_gt_object(
+  result,
+  cohort_timing = 2010,
+  base_time = 2010
+)
+
+# Extrapolate
+extrap <- extrapolate_ATT(
+  gt_obj,
+  h_fun = hg_linear,
+  dh_fun = dh_linear,
+  future_value = 5,
+  time_scale = "event"
+)
 }
 
 }
