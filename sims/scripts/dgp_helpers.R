@@ -118,3 +118,73 @@ add_noise_and_eif <- function(theta_gt, n, sigma_tau = 0.1, sigma_phi = 0.2, see
   class(obj) <- c("gt_object", "extrapolateATT")
   obj
 }
+
+# ============================================================================
+# Path 3: Covariate-driven effects (Lucas critique scenario)
+# ============================================================================
+
+#' Generate group-time effects from covariate-driven conditional ATT
+#'
+#' Under Path 3, effects are driven by covariates: tau(X) = alpha + beta * X.
+#' Group-time ATTs arise from integrating over group-specific covariate distributions.
+#' This allows regime change (composition shifts) where temporal patterns break but
+#' the conditional effect tau(X) remains invariant.
+#'
+#' @param q Number of groups.
+#' @param p Last observed calendar time.
+#' @param alpha Intercept of conditional ATT model tau(X) = alpha + beta * X.
+#' @param beta Slope of conditional ATT model.
+#' @param mu_g Length-q vector: mean of X within each group (covariate distribution shifts by group).
+#' @param sigma_X SD of X (homogeneous across groups).
+#' @param seed Optional seed for reproducibility.
+#' @return A tibble with columns g, t, k, theta_gt, plus attributes for the conditional model.
+#' @export
+make_theta_gt_conditional <- function(q, p, alpha = 2.0, beta = 1.5,
+                                      mu_g = NULL, sigma_X = 1.0, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  if (is.null(mu_g)) mu_g <- seq(-1, 1, length.out = q)
+
+  # For each (g,t), the group-time ATT is:
+  # theta_gt = E[tau(X) | G=g] = alpha + beta * mu_g[g]
+  # Note: No time variation in theta_gt within group under structural stability of tau(X).
+
+  grid <- expand.grid(g = seq_len(q), t = seq_len(p), stringsAsFactors = FALSE)
+  grid <- grid[grid$t >= grid$g, , drop = FALSE]  # Only post-treatment cells
+  grid$k <- grid$t - grid$g
+
+  # Group-time ATT = conditional model integrated over group-specific X distribution
+  grid$theta_gt <- alpha + beta * mu_g[grid$g]
+
+  # Return with attributes for covariate structure
+  result <- tibble::as_tibble(grid)
+  attr(result, "alpha") <- alpha
+  attr(result, "beta") <- beta
+  attr(result, "mu_g") <- mu_g
+  attr(result, "sigma_X") <- sigma_X
+  attr(result, "conditional_model") <- "linear"
+  result
+}
+
+#' True FATT under covariate-driven effects for a target distribution
+#'
+#' @param alpha Intercept of tau(X).
+#' @param beta Slope of tau(X).
+#' @param mu_target Mean of X in the target distribution (e.g., at p+1 or in new population).
+#' @return Scalar true FATT = alpha + beta * mu_target.
+#' @export
+true_fatt_conditional <- function(alpha, beta, mu_target) {
+  alpha + beta * mu_target
+}
+
+#' Generate target covariate sample (finite-population case for Path 3)
+#'
+#' @param n_target Sample size for target population.
+#' @param mu_target Mean of X in target.
+#' @param sigma_X SD of X.
+#' @param seed Optional seed.
+#' @return Tibble with column X (n_target draws from N(mu_target, sigma_X^2)).
+#' @export
+generate_target_covariates <- function(n_target, mu_target, sigma_X = 1.0, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  tibble::tibble(X = stats::rnorm(n_target, mean = mu_target, sd = sigma_X))
+}

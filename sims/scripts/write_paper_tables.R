@@ -104,3 +104,32 @@ writeLines(c(
 ), file.path(sim_tables_dir, "section5.tex"))
 
 message("Wrote sim_tables/section2.tex, section3.tex, section4.tex, section5.tex")
+
+# Section 7: Path 3 (covariate integration) under regime change
+if (file.exists(file.path(results_dir, "section7_path3_covariates.rds"))) {
+  p7 <- readRDS(file.path(results_dir, "section7_path3_covariates.rds"))
+  p1 <- p7$Path1_TimeHomogeneity
+  p2 <- p7$Path2_TemporalExtrapolation
+  p3 <- p7$Path3_CovariateIntegration_Oracle
+  writeLines(c(
+    "\\begin{table}[htbp]",
+    "\\centering",
+    "\\caption{Path 3 under regime change: covariate-driven effects when target distribution shifts. True FATT = ", f(p7$true_fatt), " (target $\\mu=", f(p7$mu_target), "$); backward-looking ATT = ", f(p7$true_backward_att), " (historical $\\bar{\\mu} \\approx 0$). Regime change gap = ", f(p7$regime_change_gap), ". Paths 1 and 2 fail (biased, zero coverage); Path 3 succeeds ($\\tau(X)$ is regime-invariant).}",
+    "\\label{tab:path3}",
+    "\\begin{tabular}{lcccc}",
+    "\\toprule",
+    "Path & True FATT & Bias & RMSE & 95\\% coverage \\\\",
+    "\\midrule",
+    "1: Time homogeneity & ", f(p7$true_fatt), " & ", f(p1$bias), " & ", f(p1$rmse), " & ", pct(p1$coverage), "\\% \\\\",
+    "2: Temporal extrapolation & ", f(p7$true_fatt), " & ", f(p2$bias), " & ", f(p2$rmse), " & ", pct(p2$coverage), "\\% \\\\",
+    "3: Covariate integration & ", f(p7$true_fatt), " & ", f(p3$bias), " & ", f(p3$rmse), " & ", pct(p3$coverage), "\\% \\\\",
+    "\\bottomrule",
+    "\\end{tabular}",
+    "\\end{table}"
+  ), file.path(sim_tables_dir, "section7.tex"))
+  message("Wrote section7.tex")
+} else {
+  message("Section 7 results not found; skipping section7.tex")
+}
+
+message("Section 7 table generation complete.")

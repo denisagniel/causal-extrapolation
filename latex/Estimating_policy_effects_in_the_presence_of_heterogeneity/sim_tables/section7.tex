@@ -1,0 +1,46 @@
+\begin{table}[htbp]
+\centering
+\caption{Path 3 under regime change: covariate-driven effects when target distribution shifts. True FATT = 
+2.750
+ (target $\mu=
+0.500
+$); backward-looking ATT = 
+1.750
+ (historical $\bar{\mu} \approx 0$). Regime change gap = 
+1.000
+. Paths 1 and 2 fail (biased, zero coverage); Path 3 succeeds ($\tau(X)$ is regime-invariant).}
+\label{tab:path3}
+\begin{tabular}{lcccc}
+\toprule
+Path & True FATT & Bias & RMSE & 95\% coverage \\
+\midrule
+1: Time homogeneity & 
+2.750
+ & 
+-0.751
+ & 
+0.751
+ & 
+0.00
+\% \\
+2: Temporal extrapolation & 
+2.750
+ & 
+-0.753
+ & 
+0.757
+ & 
+0.00
+\% \\
+3: Covariate integration & 
+2.750
+ & 
+-0.002
+ & 
+0.155
+ & 
+79.00
+\% \\
+\bottomrule
+\end{tabular}
+\end{table}
