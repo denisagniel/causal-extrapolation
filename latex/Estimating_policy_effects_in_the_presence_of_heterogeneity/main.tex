@@ -11,6 +11,9 @@
 \input{typography-preamble}
 
 \newtheorem{assumption}{Assumption}
+\newtheorem*{proposition*}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem*{lemma*}{Lemma}
 
 \setlength{\topmargin}{-.25in}
 \setlength{\oddsidemargin}{-0.4in}
@@ -149,9 +152,13 @@ Under Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterog
     \theta = \theta_{p+1}.
 \end{align*}
 
-\begin{proposition}[Identification of the FATT under time homogeneity]
+\begin{proposition}[Identification of the FATT under time homogeneity]\label{prop:path1}
 Suppose the backward-looking ATT $\theta$ is identified from the observed data under the researcher's design (e.g., parallel trends in difference-in-differences). Under Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}, the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \theta$.
 \end{proposition}
+
+\begin{proof}
+See Appendix \ref{app:prop1}.
+\end{proof}
 
 \begin{remark}
     Because of the symmetry of their definitions, similar assumptions -- with $A_{it} = 0$ replacing $A_{it} = 1$ and other similar replacements -- would yield identification of the FATU with the ATU
@@ -198,6 +205,7 @@ Under Assumptions \ref{within-group-strict-time-homogeneity} and \ref{within-gro
 \begin{align*}
     \theta_{p+1} = \sum_g\P(G_i = g | A_{ip} = 1)\theta_{g\cdot}.
 \end{align*}
+(Derivation: Appendix \ref{app:lemmas}, Lemma \ref{lem:convex}.)
 We assume that $G_i$ is a function of $A_i$ (e.g., time of first adoption), so that $\P(G_i=g|A_{ip}=1)$ is the distribution of cohorts among units treated by period $p$.
 This states that, if within-group ATTs are not dynamic -- i.e., they do not change over time -- then a convex combination of group-specific ATTs may be used to extrapolate forward in time to time $p+1$. 
 
@@ -214,32 +222,40 @@ where $f(\cdot ; \bgamma)$ is a known function of a finite-dimensional parameter
     \theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma).
 \end{align*}
 
-\begin{proposition}[Identification of the FATT under parametric dynamics]
+\begin{proposition}[Identification of the FATT under parametric dynamics]\label{prop:path2}
 Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose $\theta_{gt} = f(g,t;\bgamma)$ with $\bgamma$ uniquely determined by $(\theta_{gt})_{g,t,\, t \leq p}$. Then the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma)$.
 \end{proposition}
+
+\begin{proof}
+See Appendix \ref{app:prop2}.
+\end{proof}
 
 \subsection{Semiparametric estimation and EIF}
 We do not commit to a specific identification or first-stage estimation strategy. We assume that the group-time ATTs $\theta_{gt}$ are identified under the researcher's chosen design (e.g., difference-in-differences, synthetic control, or other methods); we do not restrict the identification strategy. We further assume that for each $(g,t)$, the researcher has access to an estimator $\widehat{\theta}_{gt}$ that is asymptotically linear with influence function $\phi_{gt}$: $\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \phi_{gt,i} + o_{\P}(1)$. Such estimators exist in the literature for various designs \citep{callawayDifferenceindifferencesMultipleTime2021} and may be constructed with or without cross-fitting; our results hold for any such first-stage estimators.
 
 The contribution of this subsection is to derive the efficient influence function (EIF) for the policy-relevant FATT $\theta_{p+1}$ as a functional of the group-time ATTs and their influence functions, so that any asymptotically linear estimators of $\theta_{gt}$ yield an asymptotically linear estimator of $\theta_{p+1}$ with limiting variance given by the propagated EIF.
 
-\paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). By linearity, the EIF for $\psi_1 = \theta_{p+1}$ is
+\paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). By linearity (see Appendix \ref{app:eif1}), the EIF for $\psi_1 = \theta_{p+1}$ is
 \begin{align*}
     \phi_{\psi_1} = \sum_g \omega_g \, \phi_{\theta_{g\cdot}} \; + \; \sum_g \theta_{g\cdot} \phi_{\omega_g},
 \end{align*}
 where $\phi_{\omega_g}$ is the influence function of the estimator of $\omega_g$ (e.g., for the empirical proportion among units with $A_{ip}=1$, unit $i$ contributes $\mathbf{1}\{G_i=g, A_{ip}=1\}/\P(A_{ip}=1) - \omega_g$); if $\omega_g$ is known, the second sum vanishes. Thus any asymptotically linear estimators of $\theta_{g\cdot}$ yield an asymptotically linear estimator of $\psi_1$ with the stated influence function.
 
-\paragraph{Path 2 (extrapolation).} Under $\theta_{gt} = f(g,t;\bgamma)$, we have $\theta_{p+1} = \Psi(\theta, \omega) = \sum_g \omega_g f(g, p+1; \bgamma)$, where $\bgamma$ is a smooth functional of $\theta = (\theta_{g,t})_{g,t}$. Take as given the EIF $\phi_{gt}$ for each $\theta_{gt}$ from whatever first-stage the researcher uses. By the chain rule, the EIF for $\psi_2 = \theta_{p+1}$ is
+\paragraph{Path 2 (extrapolation).} Under $\theta_{gt} = f(g,t;\bgamma)$, we have $\theta_{p+1} = \Psi(\theta, \omega) = \sum_g \omega_g f(g, p+1; \bgamma)$, where $\bgamma$ is a smooth functional of $\theta = (\theta_{g,t})_{g,t}$. Take as given the EIF $\phi_{gt}$ for each $\theta_{gt}$ from whatever first-stage the researcher uses. By the chain rule (see Appendix \ref{app:eif2}), the EIF for $\psi_2 = \theta_{p+1}$ is
 \begin{align*}
     \phi_{\psi_2} = \frac{\partial \Psi}{\partial \theta} \phi_{\theta} + \frac{\partial \Psi}{\partial \omega} \phi_{\omega},
 \end{align*}
 with the obvious vectorization over $(g,t)$ and, if $\omega_g$ is estimated, an additional term $\sum_g f(g,p+1;\bgamma) \phi_{\omega_g}$. The Jacobian $\frac{\partial \Psi}{\partial \theta}$ is the row vector with entries $\frac{\partial \Psi}{\partial \theta_{gt}} = \frac{\partial \Psi}{\partial \bgamma}^\top \frac{\partial \bgamma}{\partial \theta_{gt}}$, where $\frac{\partial \Psi}{\partial \bgamma} = \sum_g \omega_g \frac{\partial f(g,p+1;\bgamma)}{\partial \bgamma}$; thus stacking the $\phi_{gt}$ and multiplying by this row gives the contribution from the first-stage. Within the model that restricts $\theta_{gt} = f(g,t;\bgamma)$, this $\phi$ is the efficient influence function for $\theta_{p+1}$.
 
-\begin{proposition}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]
+\begin{proposition}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]\label{prop:asymp}
 Under the assumptions of Path 1 or Path 2 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$ or $\phi_{\psi_2}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.
 \end{proposition}
 
-\paragraph{Variance and asymptotics.} The semiparametric variance bound is $\sigma^2 = \E[\phi^2]$. Under standard regularity conditions, $\sqrt{n}(\widehat{\psi} - \psi) = n^{-1/2}\sum_{i=1}^n \phi_i + o_{\P}(1)$, so $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$. The variance may be estimated by $\widehat{\sigma}^2/n$ with $\widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2$ (or the sample variance of $\widehat{\phi}_i$); Wald confidence intervals are $\widehat{\psi} \pm z_{\alpha/2} \widehat{\sigma}/\sqrt{n}$. The estimated $\widehat{\phi}_i$ is a plug-in that uses $\widehat{\theta}_{gt}$, $\widehat{\bgamma}$, and possibly $\widehat{\omega}_g$; under standard regularity, this does not affect the first-order limit distribution. If the researcher uses flexible (e.g., machine-learning) estimation when forming $\widehat{\theta}_{p+1}$ (e.g., when estimating $\bgamma$ or $\omega_g$), $K$-fold cross-fitting can relax Donsker requirements: the aggregation or extrapolation step (estimate $\bgamma$ or $\omega_g$ on folds $\cI_{-k}$, evaluate the EIF on $\cI_k$) is cross-fit; only rate conditions (e.g., $o_{\P}(n^{-1/4})$) are needed. The paper does not require cross-fitting for the first-stage $\widehat{\theta}_{gt}$; the results hold for any asymptotically linear first-stage. A limitation of the parametric extrapolation approach is that bias and inference can be sensitive to the choice of $f$: if the temporal model is misspecified, $\widehat{\theta}_{p+1}$ need not be consistent for the FATT. In practice, researchers may compare several specifications (e.g., linear vs quadratic in event time) or report sensitivity of the extrapolated estimate to the choice of $f$; formal treatment of post-selection inference or misspecification is beyond this paper's scope.
+\begin{proof}
+See Appendix \ref{app:prop3}.
+\end{proof}
+
+\paragraph{Variance and asymptotics.} The semiparametric variance bound is $\sigma^2 = \E[\phi^2]$. Under standard regularity conditions (see Appendix \ref{app:regularity}), $\sqrt{n}(\widehat{\psi} - \psi) = n^{-1/2}\sum_{i=1}^n \phi_i + o_{\P}(1)$, so $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$. The variance may be estimated by $\widehat{\sigma}^2/n$ with $\widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2$ (or the sample variance of $\widehat{\phi}_i$); Wald confidence intervals are $\widehat{\psi} \pm z_{\alpha/2} \widehat{\sigma}/\sqrt{n}$. The estimated $\widehat{\phi}_i$ is a plug-in that uses $\widehat{\theta}_{gt}$, $\widehat{\bgamma}$, and possibly $\widehat{\omega}_g$; under standard regularity, this does not affect the first-order limit distribution. If the researcher uses flexible (e.g., machine-learning) estimation when forming $\widehat{\theta}_{p+1}$ (e.g., when estimating $\bgamma$ or $\omega_g$), $K$-fold cross-fitting can relax Donsker requirements: the aggregation or extrapolation step (estimate $\bgamma$ or $\omega_g$ on folds $\cI_{-k}$, evaluate the EIF on $\cI_k$) is cross-fit; only rate conditions (e.g., $o_{\P}(n^{-1/4})$) are needed. The paper does not require cross-fitting for the first-stage $\widehat{\theta}_{gt}$; the results hold for any asymptotically linear first-stage. A limitation of the parametric extrapolation approach is that bias and inference can be sensitive to the choice of $f$: if the temporal model is misspecified, $\widehat{\theta}_{p+1}$ need not be consistent for the FATT. In practice, researchers may compare several specifications (e.g., linear vs quadratic in event time) or report sensitivity of the extrapolated estimate to the choice of $f$; formal treatment of post-selection inference or misspecification is beyond this paper's scope.
 
 \section{Simulations}
 
@@ -285,6 +301,331 @@ Several limitations deserve emphasis. Identification of the FATT in both paths r
 Natural next steps include sensitivity analysis for violations of time homogeneity or of the extrapolation model, formal treatment of model selection or multiple specifications, and applications that compare Path 1 and Path 2 on the same data and discuss which assumptions are more plausible in context.
 
 When researchers are unwilling to impose a parametric $f$, an alternative to point-identifying the FATT is to forego point identification and report bounds under weak assumptions---for example, that future effects lie in a bounded or monotone class---as in the partial-identification and sensitivity literature \citep{manskiPublicPolicyUncertain2013}. That approach yields an interval that contains the FATT rather than a single number. Path 2 can be interpreted as assuming that the fitted parameter $\bgamma$ encodes structure that is invariant to the time period, so that extrapolation to $p+1$ is valid so long as this structure holds; this connects to the literature on policy-invariant parameters and transportability \citep{heckmanStructuralEquationsTreatment2005,pearlExternalValidityCalculus2022}. In practice, researchers can also compare several specifications of $f$ (e.g., linear vs quadratic in event time) and report how the extrapolated FATT and its interval change, as noted in Section~5.
+
+\appendix
+
+\section{Proofs and Technical Details}
+
+This appendix provides formal proofs of the propositions stated in the main text, derives the efficient influence functions in detail, and enumerates the regularity conditions required for asymptotic inference.
+
+\subsection{Regularity Conditions}\label{app:regularity}
+
+We enumerate the technical assumptions needed for the identification and asymptotic results in Sections 4--5.
+
+\begin{assumption}[Identification of first-stage]\label{RC1}
+Group-time ATTs $\theta_{gt}$ are identified under the researcher's design for all $g \in \cG$, $t \leq p$.
+\end{assumption}
+
+\begin{assumption}[Asymptotic linearity of first-stage]\label{RC2}
+Estimators $\widehat{\theta}_{gt}$ satisfy
+\[
+\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \phi_{gt,i} + o_{\P}(1)
+\]
+with $\E[\phi_{gt,i}] = 0$ and $\E[\phi_{gt,i}^2] < \infty$ for all $g,t$.
+\end{assumption}
+
+\begin{assumption}[Weight identification]\label{RC3}
+Weights $\omega_g = \P(G_i = g | A_{ip} = 1)$ are either known or consistently estimable with influence function $\phi_{\omega_g}$ such that $\sqrt{n}(\widehat{\omega}_g - \omega_g) = n^{-1/2}\sum_i \phi_{\omega_g,i} + o_{\P}(1)$ with $\E[\phi_{\omega_g,i}] = 0$ and $\E[\phi_{\omega_g,i}^2] < \infty$.
+\end{assumption}
+
+\begin{assumption}[Smoothness of $f$]\label{RC4}
+For Path 2, the parametric function $f(g,t;\bgamma)$ is twice continuously differentiable in $\bgamma$ in a neighborhood of the true parameter $\bgamma_0$.
+\end{assumption}
+
+\begin{assumption}[Identifiability of $\bgamma$]\label{RC5}
+The mapping $\bgamma \mapsto (f(g,t;\bgamma))_{g \in \cG, t \leq p}$ is injective (one-to-one) over the parameter space, so that $\bgamma$ is uniquely determined by the observed $(g,t)$ combinations.
+\end{assumption}
+
+\begin{assumption}[Bounded moments]\label{RC6}
+For all $g,t$: $\E[\phi_{gt,i}^4] < \infty$ (finite fourth moments for central limit theorem).
+\end{assumption}
+
+\begin{assumption}[Donsker or rate conditions for cross-fitting]\label{RC7}
+If using flexible or machine-learning first-stage with cross-fitting, the class of functions $\{\phi_{gt,i}(\cdot)\}$ either satisfies Donsker conditions, or the product of convergence rates satisfies $\|\widehat{\theta}_{gt} - \theta_{gt}\| \cdot \|\widehat{\bgamma} - \bgamma\| = o_{\P}(n^{-1/4})$ uniformly over $(g,t)$.
+\end{assumption}
+
+\begin{remark}
+Assumptions \ref{RC1}--\ref{RC3} and \ref{RC6} are standard for semiparametric inference with first-stage estimation. Assumptions \ref{RC4}--\ref{RC5} are specific to Path 2 (parametric extrapolation). Assumption \ref{RC7} relaxes Donsker when using modern machine-learning methods via cross-fitting, following \citet{chernozhukovDoubleDebiasedMachine2018}.
+\end{remark}
+
+\subsection{Proof of Proposition 1}\label{app:prop1}
+
+We restate and prove Proposition 1 from Section 4.
+
+\begin{proposition*}[Identification of the FATT under time homogeneity]
+Under Assumptions \ref{strict-time-homogeneity} (strict time homogeneity) and \ref{p-to-p-plus-one-heterogeneity} (limited between-state heterogeneity), if the backward-looking ATT $\theta$ is identified, then the FATT $\theta_{p+1}$ is identified and equals $\theta$.
+\end{proposition*}
+
+\begin{proof}
+\textit{Roadmap:} We show that under strict time homogeneity the ATT is constant across time, and under limited between-state heterogeneity the FATT can be expressed in terms of this constant ATT.
+
+By definition, the FATT at time $p+1$ is
+\[
+\theta_{p+1} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1\}.
+\]
+
+By Assumption \ref{strict-time-homogeneity} (strict time homogeneity), for any $t$,
+\[
+\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) | A_{it} = 1\} = \theta \quad \text{(constant across time)}.
+\]
+
+Applying this at $t = p+1$,
+\[
+\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1\} = \theta.
+\]
+
+Now apply Assumption \ref{p-to-p-plus-one-heterogeneity} (limited between-state heterogeneity):
+\begin{align*}
+\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1\}
+&= \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1\} \\
+&= \theta.
+\end{align*}
+
+Therefore $\theta_{p+1} = \theta$. Since $\theta$ is identified by assumption (from backward-looking data under the researcher's design), $\theta_{p+1}$ is identified.
+\end{proof}
+
+\begin{remark}
+Assumption \ref{p-to-p-plus-one-heterogeneity} is crucial: it allows swapping the conditioning event from $A_{ip} = 1$ (observed) to $A_{i,p+1} = 1$ (future). Without it, identification would fail because we cannot observe units with $A_{i,p+1} = 1$ at time $p$.
+\end{remark}
+
+\subsection{Proof of Proposition 2}\label{app:prop2}
+
+We restate and prove Proposition 2 from Section 5.
+
+\begin{proposition*}[Identification of the FATT under parametric dynamics]
+Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose $\theta_{gt} = f(g,t;\bgamma)$ with $\bgamma$ uniquely determined by $(\theta_{gt})_{g,t,\, t \leq p}$. Then the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma)$.
+\end{proposition*}
+
+\begin{proof}
+\textit{Roadmap:} We decompose $\theta_{p+1}$ by group, apply the parametric model assumption, and show that $\bgamma$ is identified from observed data.
+
+\textbf{Step 1:} By the law of total probability,
+\begin{align*}
+\theta_{p+1} &= \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1\} \\
+&= \sum_{g \in \cG} \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1, G_i = g\} \P(G_i = g | A_{ip} = 1).
+\end{align*}
+
+\textbf{Step 2:} Define the group-specific FATT at time $p+1$:
+\[
+\theta_{g,p+1} := \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1, G_i = g\}.
+\]
+
+\textbf{Step 3:} Under the parametric model assumption,
+\[
+\theta_{gt} = f(g,t;\bgamma) \quad \text{for all } g, t \text{ (including } t = p+1\text{)}.
+\]
+
+\textbf{Step 4:} The structural assumption that $f(g,t;\bgamma)$ holds at $t = p+1$ (extrapolation validity) combined with limited between-state heterogeneity within groups (analogous to Assumption \ref{within-group-p-to-p-plus-one-heterogeneity} for within-group comparisons) gives
+\[
+\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1, G_i = g\} = \theta_{g,p+1} = f(g,p+1;\bgamma).
+\]
+
+\textbf{Step 5:} By hypothesis, $\bgamma$ is uniquely identified from the observed $(\theta_{gt})_{g \in \cG, t \leq p}$. Since $\theta_{gt}$ are identified (by hypothesis), $\bgamma$ is identified.
+
+\textbf{Step 6:} Substituting into Step 1,
+\[
+\theta_{p+1} = \sum_{g \in \cG} f(g,p+1;\bgamma) \P(G_i = g | A_{ip} = 1).
+\]
+
+Therefore $\theta_{p+1}$ is identified by the observed data (which identifies $\bgamma$ and $\omega_g := \P(G_i = g | A_{ip} = 1)$).
+\end{proof}
+
+\begin{remark}
+The structural assumption that $f(g,t;\bgamma)$ continues to hold at $t = p+1$ is crucial and untestable. It reflects a belief that the dynamic process generating $\theta_{gt}$ for $t \leq p$ persists into the future. Misspecification of $f$ leads to bias (see Simulations in Section 6).
+\end{remark}
+
+\subsection{Derivation of Efficient Influence Functions}\label{app:eif}
+
+\subsubsection{Path 1 EIF}\label{app:eif1}
+
+\textit{Setup:} Under Path 1, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ where:
+\begin{itemize}
+\item $\theta_{g\cdot}$ is the average of $\theta_{gt}$ over observed $t$ (within-group time-averaged effect), and
+\item $\omega_g = \P(G_i = g | A_{ip} = 1)$ (known or estimated).
+\end{itemize}
+
+\textit{Functional form:} Define the functional $\Psi_1(\P) = \sum_g \omega_g(\P) \theta_{g\cdot}(\P)$.
+
+\textbf{Influence function derivation via functional delta method:}
+
+\textbf{(1)} $\theta_{g\cdot}$ is asymptotically linear with influence function $\phi_{\theta_{g\cdot}}$ (an average of $\phi_{gt}$ over $t$ with appropriate weights, or as provided by the first-stage).
+
+\textbf{(2)} $\omega_g$ is estimated from the empirical distribution. For the proportion estimator,
+\[
+\widehat{\omega}_g = \frac{\sum_i 1\{G_i = g, A_{ip} = 1\}}{\sum_i 1\{A_{ip} = 1\}}.
+\]
+The influence function is
+\[
+\phi_{\omega_g,i} = \frac{1\{G_i = g, A_{ip} = 1\} - \omega_g \cdot 1\{A_{ip} = 1\}}{\P(A_{ip} = 1)}.
+\]
+
+\textbf{(3)} By the functional delta method (chain rule for linear functionals),
+\begin{align*}
+\phi_{\psi_1} &= \frac{\partial \Psi_1}{\partial \theta_{g\cdot}} \phi_{\theta_{g\cdot}} + \frac{\partial \Psi_1}{\partial \omega_g} \phi_{\omega_g} \\
+&= \sum_{g} \omega_g \phi_{\theta_{g\cdot}} + \sum_g \theta_{g\cdot} \phi_{\omega_g}.
+\end{align*}
+
+\textbf{(4)} \textit{Efficiency:} Within the nonparametric model (no restrictions on $\theta_{gt}$ beyond time homogeneity), this influence function achieves the semiparametric efficiency bound for estimating $\theta_{p+1}$.
+
+\textbf{Result:} The Path 1 EIF is
+\[
+\phi_{\psi_1,i} = \sum_{g} \omega_g \phi_{\theta_{g\cdot},i} + \sum_g \theta_{g\cdot} \phi_{\omega_g,i}.
+\]
+
+\subsubsection{Path 2 EIF}\label{app:eif2}
+
+\textit{Setup:} Under Path 2, $\theta_{p+1} = \Psi_2(\theta, \omega) = \sum_g \omega_g f(g,p+1;\bgamma)$ where $\bgamma = \bgamma(\theta)$ is defined implicitly by
+\[
+\bgamma = \argmin_{\tilde{\bgamma}} \sum_{g \in \cG, t \leq p} w_{gt} [\theta_{gt} - f(g,t;\tilde{\bgamma})]^2.
+\]
+
+\textit{Functional form:} $\Psi_2$ is a composite functional: $\Psi_2(\theta,\omega) = \sum_g \omega_g f(g,p+1; \bgamma(\theta))$.
+
+\textbf{Influence function derivation:}
+
+\textbf{(1)} Apply the functional delta method to $\Psi_2$:
+\[
+\frac{\partial \Psi_2}{\partial \theta_{gt}} = \frac{\partial \Psi_2}{\partial \bgamma} \otimes \frac{\partial \bgamma}{\partial \theta_{gt}}.
+\]
+
+\textbf{(2)} Compute $\frac{\partial \Psi_2}{\partial \bgamma}$:
+\[
+\frac{\partial \Psi_2}{\partial \bgamma} = \sum_{g} \omega_g \frac{\partial f(g,p+1;\bgamma)}{\partial \bgamma}.
+\]
+
+\textbf{(3)} Compute $\frac{\partial \bgamma}{\partial \theta_{gt}}$ via the implicit function theorem. $\bgamma$ solves the first-order condition
+\[
+\sum_{g \in \cG, t \leq p} w_{gt} [\theta_{gt} - f(g,t;\bgamma)] \frac{\partial f(g,t;\bgamma)}{\partial \bgamma} = 0.
+\]
+
+Differentiating with respect to $\theta_{gt}$,
+\[
+\frac{\partial \bgamma}{\partial \theta_{gt}} = \left[\sum_{g',t' \leq p} w_{g't'} \frac{\partial f(g',t';\bgamma)}{\partial \bgamma} \otimes \frac{\partial f(g',t';\bgamma)}{\partial \bgamma}\right]^{-1} w_{gt} \frac{\partial f(g,t;\bgamma)}{\partial \bgamma}.
+\]
+
+\textbf{(4)} Combining,
+\[
+\phi_{\psi_2,i} = \sum_{g,t \leq p} \left(\frac{\partial \Psi_2}{\partial \bgamma}\right)^\top \left(\frac{\partial \bgamma}{\partial \theta_{gt}}\right) \phi_{gt,i} + \sum_g f(g,p+1;\bgamma) \phi_{\omega_g,i}.
+\]
+
+\textbf{(5)} \textit{Efficiency:} Within the parametric model $\{\theta_{gt} = f(g,t;\bgamma)\}$, this is the semiparametric efficiency bound. Outside the model (misspecification), the estimator is biased but the variance formula remains valid for the limit distribution of the (possibly biased) estimator.
+
+\textbf{Result:} The Path 2 EIF is
+\[
+\phi_{\psi_2,i} = \left(\frac{\partial \Psi}{\partial \theta}\right)^\top \phi_{\theta,i} + \left(\frac{\partial \Psi}{\partial \omega}\right)^\top \phi_{\omega,i},
+\]
+where $\phi_{\theta,i}$ stacks $(\phi_{gt,i})_{g \in \cG, t \leq p}$ and the Jacobian $\frac{\partial \Psi}{\partial \theta}$ includes the chain through $\bgamma$.
+
+\subsection{Proof of Proposition 3}\label{app:prop3}
+
+We restate and prove Proposition 3 from Section 5.1.
+
+\begin{proposition*}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]
+Under the assumptions of Path 1 or Path 2 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$ or $\phi_{\psi_2}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.
+\end{proposition*}
+
+\begin{proof}
+\textit{Roadmap:} We show asymptotic linearity of $\widehat{\theta}_{p+1}$ by applying the delta method to the first-stage estimators, then invoke the CLT.
+
+\textbf{Step 1:} By Assumption \ref{RC2}, first-stage estimators satisfy
+\[
+\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_i \phi_{gt,i} + o_{\P}(1).
+\]
+
+\textbf{Step 2 (Path 1):} $\widehat{\theta}_{p+1} = \sum_g \widehat{\omega}_g \widehat{\theta}_{g\cdot}$. Plug in the influence function from Appendix \ref{app:eif1}:
+\begin{align*}
+\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) &= n^{-1/2}\sum_i \left[\sum_g \omega_g \phi_{\theta_{g\cdot},i} + \sum_g \theta_{g\cdot} \phi_{\omega_g,i}\right] + o_{\P}(1) \\
+&= n^{-1/2}\sum_i \phi_{\psi_1,i} + o_{\P}(1).
+\end{align*}
+
+\textbf{Step 2 (Path 2):} $\widehat{\theta}_{p+1} = \sum_g \widehat{\omega}_g f(g,p+1;\widehat{\bgamma})$. By the implicit function theorem and Assumptions \ref{RC4}--\ref{RC5}, $\widehat{\bgamma}$ is asymptotically linear:
+\[
+\sqrt{n}(\widehat{\bgamma} - \bgamma) = n^{-1/2}\sum_i \left[\frac{\partial \bgamma}{\partial \theta}\right]^\top \phi_{\theta,i} + o_{\P}(1).
+\]
+
+Applying the delta method to $\Psi_2(\widehat{\theta}, \widehat{\omega})$,
+\[
+\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) = n^{-1/2}\sum_i \phi_{\psi_2,i} + o_{\P}(1),
+\]
+where $\phi_{\psi_2,i}$ is from Appendix \ref{app:eif2}.
+
+\textbf{Step 3:} By the central limit theorem (using Assumption \ref{RC6} for finite variance),
+\[
+n^{-1/2}\sum_i \phi_i \leadsto N(0, \E[\phi_i^2]).
+\]
+
+\textbf{Step 4:} Therefore,
+\[
+\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) \leadsto N(0, \sigma^2)
+\]
+where $\sigma^2 = \E[\phi_i^2]$.
+\end{proof}
+
+\begin{remark}
+\textit{Variance estimation:} The variance $\sigma^2$ can be consistently estimated by
+\[
+\widehat{\sigma}^2/n \quad \text{where} \quad \widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2
+\]
+and $\widehat{\phi}_i$ is the plug-in influence function using $\widehat{\theta}_{gt}$, $\widehat{\omega}_g$, $\widehat{\bgamma}$.
+
+\textit{Cross-fitting (Assumption \ref{RC7}):} If using flexible/machine-learning first-stage, $K$-fold cross-fitting ensures that $\|\widehat{\theta}_{gt} - \theta_{gt}\| \cdot \|\widehat{\bgamma} - \bgamma\| = o_{\P}(n^{-1/4})$, which preserves asymptotic linearity even without Donsker conditions. This follows the debiased machine learning framework of \citet{chernozhukovDoubleDebiasedMachine2018}.
+\end{remark}
+
+\subsection{Technical Lemmas}\label{app:lemmas}
+
+\begin{lemma}[Convex combination under within-group homogeneity]\label{lem:convex}
+Under Assumptions \ref{within-group-strict-time-homogeneity} (within-group time homogeneity) and \ref{within-group-p-to-p-plus-one-heterogeneity} (limited within-group between-state heterogeneity),
+\[
+\theta_{p+1} = \sum_{g \in \cG} \P(G_i = g | A_{ip} = 1) \theta_{g\cdot}.
+\]
+\end{lemma}
+
+\begin{proof}
+\textit{Roadmap:} We decompose $\theta_{p+1}$ by group, apply within-group between-state homogeneity to swap conditioning sets, then apply within-group time homogeneity.
+
+By definition,
+\[
+\theta_{p+1} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1\}.
+\]
+
+By the law of total probability,
+\begin{align*}
+\theta_{p+1} &= \sum_{g \in \cG} \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1, G_i = g\} \P(G_i = g | A_{ip} = 1).
+\end{align*}
+
+By Assumption \ref{within-group-p-to-p-plus-one-heterogeneity} (within-group between-state homogeneity),
+\begin{align*}
+\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1, G_i = g\}
+&= \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1, G_i = g\}.
+\end{align*}
+
+By definition, the inner expectation is $\theta_{g,p+1}$ (the group-specific FATT at time $p+1$).
+
+By Assumption \ref{within-group-strict-time-homogeneity} (within-group time homogeneity), $\theta_{g,p+1} = \theta_{g\cdot}$ (constant over time within group).
+
+Therefore,
+\[
+\theta_{p+1} = \sum_{g \in \cG} \theta_{g\cdot} \P(G_i = g | A_{ip} = 1). \qedhere
+\]
+\end{proof}
+
+\begin{lemma}[Injectivity condition for $\bgamma$]\label{lem:injectivity}
+If $f(g,t;\bgamma)$ is linear in $\bgamma$ and the observed $(g,t)$ pairs span the parameter space (sufficient variation in groups and time), then the mapping $\bgamma \mapsto (f(g,t;\bgamma))_{g \in \cG, t \leq p}$ is injective.
+\end{lemma}
+
+\begin{proof}
+\textit{Roadmap:} We show that for a linear-in-event-time model, observing multiple time periods per group yields an overdetermined system with a unique least-squares solution.
+
+Consider $f(g,t;\bgamma) = \alpha_g + \beta_g(t-g)$ where $\bgamma = (\alpha_1,\ldots,\alpha_q, \beta_1,\ldots,\beta_q)$ for $q$ groups.
+
+For each group $g$ treated at time $g$ and observed at times $g, g+1, \ldots, p$, we have at least $(p-g+1)$ observations of $\theta_{gt}$.
+
+With $\geq 2$ observations per group, the system is overdetermined and $\bgamma$ is uniquely identified via least squares, provided the design matrix has full rank.
+
+Formally: the design matrix $X$ with rows $(1, 0, \ldots, 0, t-g, 0, \ldots, 0)$ (indicator for group $g$ in $\alpha$ positions, $t-g$ in $\beta_g$ position) has rank $2q$ provided each group has $\geq 2$ time periods and groups span different treatment times.
+
+Therefore the mapping is injective.
+\end{proof}
 
 \bibliographystyle{plainnat}
 \bibliography{heterogeneous-policy-effects}

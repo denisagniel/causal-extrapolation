@@ -1,0 +1,60 @@
+Panel Causal Inference / DiD Surveys
+Citation	Area	Why It Matters
+Arkhangelsky & Imbens (2024), Causal Models for Longitudinal and Panel Data: A Survey	Panel methods	Integrates modern panel causal estimators and clarifies assumptions about heterogeneity and dynamics.
+De Chaisemartin & d’Haultfœuille (2023), TWFE with Heterogeneous Treatment Effects: A Survey	DiD theory	Explains identification failures under heterogeneity and motivates alternative estimands.
+Lechner (2011), The Estimation of Causal Effects by Difference-in-Differences Methods	Classic survey	Traces DID identification and extensions, useful historical framing.
+Hoffmann & Doblhammer (2021), Approaches for Causal Analysis of Panel Data in Morbidity and Mortality	Off-path (demography)	Shows how other fields reason about longitudinal causality and unobserved heterogeneity.
+Testing Parallel Trends / Time Homogeneity
+Citation	Area	Why It Matters
+Freyaldenhoven, Hansen & Shapiro (2019), Pre-Event Trends in the Panel Event-Study Design	Diagnostics	Shows conventional pre-trend tests can have low power.
+Roth (2022), Pre-test with Caution	Inference	Demonstrates that conditioning on passing pre-trend tests distorts coverage and bias.
+Rambachan & Roth (2023), A More Credible Approach to Parallel Trends	Robust identification	Provides inference under bounded trend violations.
+Dette & Schumann (2023), Testing for Equivalence of Pre-Trends	Formal testing	Proposes equivalence tests that can support—not just fail to reject—parallel trends.
+Future / Policy-Relevant Estimands
+Citation	Area	Why It Matters
+Heckman & Vytlacil (2001), Policy-Relevant Treatment Effects	Policy estimands	Defines effects for counterfactual policy changes rather than observed treatments.
+Sasaki & Ura (2018), Estimation and Inference for PRTE	Modern inference	Provides orthogonal estimation tools for policy-shift parameters.
+Forastiere, Li & Baccini (2024), Forecasting Causal Effects of Future Interventions	Directly aligned	Formalizes estimands for future time windows under structural assumptions.
+Mogstad, Santos & Torgovitsky (2018), Using IV for Policy Relevant Treatment Parameters	IV extrapolation	Shows how IV identifies weighted effects relevant to policy shifts.
+Structural / Parametric Extrapolation
+Citation	Area	Why It Matters
+Heckman & Vytlacil (2005), Structural Equations and Policy Evaluation	Structural econometrics	Models policy-invariant parameters enabling extrapolation across regimes.
+Pearl & Bareinboim (2015), External Validity: From Do-Calculus to Transportability	Graphical theory	Provides identification criteria for transporting causal effects.
+Brodersen et al. (2015), Bayesian Structural Time Series	Applied structural modeling	Parameterizes counterfactual trends to forecast policy impacts.
+Mogstad & Torgovitsky (2017), Identification and Extrapolation with IV	Structural extrapolation	Shows extrapolation requires functional assumptions about treatment response.
+Lucas Critique / Policy Invariance
+Citation	Area	Why It Matters
+Ericsson & Hendry (1998), Exogeneity, Cointegration, and Economic Policy Analysis	Parameter invariance	Formalizes super-exogeneity tests for policy-stable relationships.
+Estrella (1999), Are “Deep” Parameters Stable?	Structural stability	Treats the Lucas critique as a testable econometric hypothesis.
+Rudebusch (2002), Assessing the Lucas Critique in Monetary Policy Models	Applied macro	Evaluates whether policy models remain stable across regimes.
+White & Lu (2010), Avoiding the Lucas Critique	Structural causality	Specifies conditions under which causal parameters remain policy invariant.
+Heterogeneous Treatment Effects (Policy Context)
+Citation	Area	Why It Matters
+Vivalt (2015), Heterogeneous Treatment Effects in Impact Evaluation	Applied micro	Documents large cross-context variation in program impacts.
+Wager & Athey (2018), Causal Forests	Methodological	Enables flexible estimation of conditional treatment effects.
+Imai & Ratkovic (2013), Estimating Treatment Effect Heterogeneity	Program targeting	Frames subgroup discovery as a principled statistical task.
+Heiler & Knaus (2022), Effect or Treatment Heterogeneity?	Estimands	Distinguishes effect heterogeneity from treatment-version heterogeneity.
+External Validity / Selection / Transportability
+Citation	Area	Why It Matters
+Cole & Stuart (2010), Generalizing Evidence from RCTs	Epidemiology	Formalizes weighting approaches to transport trial results.
+Tipton (2013), Improving Generalizations from Experiments	Statistics/education	Provides reweighting estimators for target populations.
+Shpitser (2013), Longitudinal Transportability	Graphical models	Extends transportability theory to time-varying settings.
+Manski (2013), Public Policy in an Uncertain World	Decision theory	Advocates bounded-identification when extrapolation is weak.
+Rothwell (2005), External Validity of RCTs	Clinical critique	Systematically analyzes why trial results often fail to generalize.
+Philosophy of Science (Invariance & Extrapolation)
+Citation	Area	Why It Matters
+Cartwright (2007), Hunting Causes and Using Them	Capacities	Argues causal effects depend on supporting conditions across contexts.
+Woodward (2003), Making Things Happen	Invariance theory	Defines causal relations as those stable under interventions.
+Cartwright & Stegenga (2011), Evidence, Heterogeneity and Heuristics	Evidence transfer	Examines when study evidence applies to new populations.
+Mayo (1996), Error and the Growth of Experimental Knowledge	Severity	Links robustness of inference to warranted extrapolation.
+One Meta Observation (likely useful for your framing)
+
+Across fields, three distinct strategies emerge for making causal claims about the future:
+
+Structural invariance (Lucas, MTE, SCMs)
+
+Statistical transport / reweighting
+
+Explicit modeling of heterogeneity or dynamics
+
+Your proposed future-looking estimands sit very naturally at the intersection of these traditions — which is a strong positioning opportunity.

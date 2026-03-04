@@ -1,1 +1,2761 @@
-Forecasting Causal Effects of Interventions versus Predicting Future Outcomes
+Forecasting Causal Effects of Future Interventions:
+Confounding and Transportability Issues
+Laura Forastiere∗
+, Fan Li ∗
+, and Michela Baccini∗∗
+∗ Department of Biostatistics, Yale University, ∗∗Department of Statistics, Informatics,
+Applications, University of Florence
+Abstract
+Recent developments in causal inference allow us to transport a causal effect of a time-fixed
+treatment from a randomized trial to a target population across space but within the same time
+frame. In contrast to transportability across space, transporting causal effects across time or
+forecasting causal effects of future interventions is more challenging due to time-varying confounders and time-varying effect modifiers. In this article, we seek to formally clarify the causal
+estimands for forecasting causal effects over time and the structural assumptions required to
+identify these estimands. Specifically, we develop a set of novel nonparametric identification
+formulas—g-computation formulas—for these causal estimands, and lay out the conditions required to accurately forecast causal effects from a past observed sample to a future population
+in a future time window. Our overarching objective is to leverage the modern causal inference
+theory to provide a theoretical framework for investigating whether the effects seen in a past
+sample would carry over to a new future population. Throughout the article, a working example
+addressing the effect of public policies or social events on COVID-related deaths is considered
+to contextualize the developments of analytical results.
+1. Introduction
+1.1. Background
+Exposure to biochemical and physical agents in the environment, as well as bacteria or viruses
+circulating within human communities, can produce a wide range of adverse health consequences.
+When, on the basis of epidemiological and/or biological considerations, the harmful effect of such
+agents is recognized or suspected, designing and implementing policies aimed at reducing the population exposure and, in turn, its negative consequences on community health should be considered
+as a priority (Rothman et al. 2011). Once a public health policy (e.g., lockdown, school closure,
+travel ban, vaccination campaign, traffic ban, recycling policy) has been implemented it is crucial to
+conduct a policy evaluation to assess whether the expected results have actually been achieved, and
+to indicate unintended effects or unforeseen results (Brownson et al. 2009; McKenzie et al. 2022). In
+supporting evidence-based policy, it is equally important to evaluate the impact of circumstances,
+events or socio-economic interventions that are likely to increase the exposure to harmful agents (e.g.
+installation of power plants, incinerators or industries, mass events and social gatherings during an
+epidemic).
+Impact assessment, conducted using causal inference methods on data from randomized experiments or observational studies, informs on the effectiveness of public health policies or the
+1
+arXiv:2409.13060v2 [stat.ME] 31 Jul 2025
+detrimental effect of events and interventions (Imbens and Rubin 2015; Hernán and Robins 2020).
+Impact evaluation is typically carried out by comparing two counterfactual conditions, one where
+the intervention or event of interest is present (treatment condition) and one where it is not (control
+condition). Common causal inference methods estimate causal effects by implicitly or explicitly
+imputing what would have happened if units under the control condition were actually assigned to
+treatment and vice versa (Imbens and Rubin 2015).
+Governments and policy-makers often rely on evidence from such evaluations to guide the design and implementation of future policies (Brownson et al. 2009). When a policy is shown to
+be effective, it motivates governments and policy-makers to pursue its implementation and scaleup. Conversely, if evidence indicates that an event or a socio-economic intervention is harmful,
+efforts should be made to prevent its recurrence. However, traditional policy evaluation and health
+assessments of social events and socio-economic interventions are typically conducted on past interventions or observed events within the sampled population and at the time data were collected.
+Thus, they cannot directly inform future interventions or preventions. In fact, they do not address
+a key question: “Will the intervention be effective when applied to the same or another target population in a future implementation? ” This question is central to evaluating any intervention. While
+assessing whether an intervention worked as intended is important, informing decisions about its
+future use is equally critical. Yet, answers to such forward-looking questions often rely on informal,
+qualitative assessments that overlook the possibility that the estimated impact may differ in future
+implementations.
+Oftentimes, effects vary for different types of people and in different contexts. A common concern when generalizing the effect estimated on one sample from a given population to a different
+population is that there may be characteristics or circumstances that differ between the two populations, modifying the treatment effect (Imai et al. 2008). When using the estimated effect of an
+intervention to forecast the effect of implementing the same intervention in a future time, a similar
+concern applies. In fact, even assuming that the population were the same (same individuals living
+in a specific geographical area), the effects estimated from an observed sample in the past may not
+reflect the effects that would be seen if the intervention were implemented in the future.
+Nevertheless, when there is available evidence on the casual health effect of an intervention that
+has already been implemented or of an event that has been observed, policy-makers and scientists
+advising them usually make their decisions based on the informal qualitative assumption that the
+impact observed in the past will be similar in the future. By doing so they rely on the (often
+implicit) assumption that everything will stay the same, including population behaviors and other
+concurrent interventions or events. They may or may not sense that their predictions are susceptible
+to error due to a context change.
+A more quantitative approach to forecasting the effect of a current event or a current implementation of an intervention exists and typically relies on model-based simulations, such as system
+dynamic models or agent-based models. Such model-based simulations have also been used to produce projections of hypothetical scenarios by adjusting specific model parameters. For instance,
+hypothetical scenarios may represent public health policies to reduce social contacts and mitigate
+the spread of an emerging infectious disease, explore different vaccination coverage scenarios, or
+examine interventions to reduce greenhouse gas emissions. By simulating the dynamic phenomenon
+under investigation, with some parameters estimated from the data (or assumed based on substantive knowledge) and other parameters modified to represent hypothetical scenarios, one can predict
+future dynamics under hypothetical interventions, potential future circumstances, human behaviors, or environmental emissions (e.g., Lauer et al. 2020; Yadav and Akhter 2021; Jewell et al. 2020;
+Vicedo-Cabrera et al. 2019). Such model-based projections have been used extensively in environmental epidemiology (e.g., Kendrovski et al. 2017; Baccini et al. 2011; Gasparrini et al. 2017; Rai
+2
+et al. 2022) and infectious diseases epidemiology (e.g., Ferguson et al. 2020; Flaxman et al. 2020;
+Davies et al. 2020; Prem et al. 2020; Di Domenico et al. 2020; Anderson et al. 2020; Tuite et al. 2020;
+Reiner et al. 2021). Although not always, projections often deal to some extent with the problem of
+population characteristics changing over time by assuming hypothetical scenarios of the evolution
+of the population structure, or by estimating a population dynamic model based on the current
+data and using it to predict the population characteristics in the future time window under which
+the intervention is assumed to be implemented (Vicedo-Cabrera et al. 2019; Murray et al. 2017;
+Martinez et al. 2016). Agent-based models, as opposed to system dynamic models, are particularly
+well-suited for this task given their focus on micro-level simulations that can more easily incorporate
+heterogeneity (Sonnenberg and Beck 1993; Marshall and Galea 2015). However, this approach relies
+on the stability of the models, specified for time-varying covariates and outcome, across different
+populations and time, and does not account for the possibility that time-varying characteristics are
+also affected by the hypothesized interventions. Furthermore, the estimation of models underpinning
+such simulation-based projection is not usually conducted under a causal framework; the explicit
+causal estimands under projection and the structural assumptions required for their nonparametric
+identification have not been explicitly characterized in the previous literature.
+1.2. Objectives
+Although little prior work has formally described identification conditions for forecasting causal
+effects into future time periods, a related body of literature addresses the problem of generalizing
+or transporting causal effects from a randomized trial to a target population. This literature—
+typically concerned with point treatments and baseline effect modifiers—–has inspired numerous
+contributions on identifying conditions and developing statistical methods to address the challenge
+of trial participants differing from those in the target population (Cole and Stuart 2010; Stuart
+et al. 2011; Pearl 2015; Tipton 2013; Tipton et al. 2014; Buchanan et al. 2018; Li et al. 2021, 2022a;
+Dahabreh et al. 2020). In this context, generalizability refers to extending inferences from a study
+sample to a target population when the sample is a subset of the population, whereas transportability
+refers to settings where the study sample is not contained within the target population (Westreich
+et al. 2017; Dahabreh and Hernán 2019). In both cases, the target population often has a different
+distribution of baseline effect modifiers compared with individuals in the study sample. Yet the
+central goal for existing generalizability and transportability methods remains to assess what would
+have happened if a point treatment (as opposed to control) were assigned to the target population
+in the same time frame as the one where the experiment was conducted in the trial sample.
+In contrast to the existing problem of extending inferences from a trial to a target populations,
+possibly across space (Cole and Stuart 2010; Tipton 2013; Hartman et al. 2015; O’Muircheartaigh
+and Hedges 2013; Rudolph and van der Laan 2017), transporting causal effects across time is more
+challenging due to time-varying confounders and time-varying effect modifiers. In addition, most
+works on generalizability to a target population are usually concerned with time-fixed treatments.
+Conversely, when forecasting causal effects across time, time-varying treatments (c.f. Section 19 of
+Hernán and Robins (2020)) should also be considered. More importantly, compared to generalizing
+to a target population where we observe the baseline effect modifiers, generalizing to a target
+future time window generally requires assumptions on the evolution of observable time-varying
+characteristics, which is not observed in the future, as well as the evolution of non-observable timevarying factors that may affect causal effects. Therefore, forecasting causal effects into the future
+requires a new theoretical framework to account for time-varying processes and dynamic shifts in
+effect modifiers that may occur beyond the time frame from which the observed data are collected.
+Our primary objective in this article is to provide a potential outcomes framework to forecast3
+ing the casual effect of an intervention, that is, to investigating the extent to which the effects
+seen in a past sample would carry over to a new future population. Specifically, we build on the
+emerging literature on ‘generalizing’ and ‘transporting’ causal effects from randomized trials to a
+target population to lay out the conditions required to accurately forecast causal effects from a past
+observed sample to a future population, provide nonparametric identification results, and discuss
+the conceptual issues associated with such predictions. We first address the evaluation and the
+prediction of the impact of a specific intervention or event that is assumed to affect the exposure
+to a harmful agent. The term evaluation refers to the assessment of the impact of the implemented
+intervention or observed event in the observed sample and in the observed time frame, while the
+term prediction refers to the forecast of the impact of the same intervention or event occurring in
+a future time window. Throughout, we will use the terms ‘prediction’, ‘forecast’, and ‘projection’
+interchangeably. For instance, one could be interested in estimating the effect of COVID-19 restrictions implemented in the spring of 2020, and informing policy-makers on the potential impact of
+implementing these same restrictions in a different stage of the epidemic, when social distancing
+behaviors might have changed. We then extend the framework to the assessment of a hypothetical
+intervention that modifies the exposure level, either by setting it to a specific value or by shifting the
+exposure distribution below a certain threshold. Using the estimated exposure-response function,
+we can evaluate the effect of shifting the distribution of the exposure, and investigate what would
+happen if such a shift were achieved in a future situation with a possibly different exposure-response
+function.
+The remainder of the paper is organized as follows. After introducing the notation in Section 2,
+we discuss in Section 3 the motivating example of COVID-19. In Section 4 we develop a framework
+for assessing and predicting the impact of a point intervention: we first define the causal estimands
+and review the ignorability assumption required to evaluate the effect of the intervention in the
+observed sample; we then introduce the temporal transportability assumptions required to be able
+to carry over the estimated effect to a future time. In Section 5, we extend the framework to settings with time-varying treatments, with and without duration, under the presence or absence of
+time-varying confounders affected by previous treatments. We discuss the implications of the identification conditions and the possible issues that would invalidate them in Section 6. In Section A of
+the Appendix, we extend this framework to hypothetical interventions on the exposure distribution.
+Section 7 concludes the paper with some discussion.
+2. Notation and Set Up
+We consider a sample I of I units, indexed by i = 1, . . . , I, observed over a temporal window T
+of T time points (e.g., days, years), t ∈ T = [1, . . . , T]. To contextualize the notation without loss
+of generality, we can consider the units in the sample as geographical areas (e.g., cities, states, or
+countries). Let U
+obs = {it : i ∈ I, t ∈ T } be the set of observations on the I units in the temporal
+window T . We also assume that the set of units I corresponds to our target population where we
+would like to assess the effect of an intervention.
+Let us denote with Sit ∈ S a continuous (univariate or multivariate) exposure, measured on
+unit i at time t, that is supposed to potentially affect some outcome of interest. We consider an
+intervention that is designed to set the value or shift the distribution of such an exposure. We
+define Zit ∈ {0, 1} as the intervention indicator, being 1 if a specific intervention of interest is
+implemented on the unit i at time t and 0 otherwise. We could also define Zit as the indicator of an
+event that could affect the distribution of the exposure Sit and, in turn, could have an effect on the
+outcome of interest. Thus, throughout, we refer to Zit as the ‘treatment’ indicator and we use the
+4
+terms intervention, event or treatment, interchangeably. We let Zt be the vector of the treatment
+indicators at time t for the target population, Zi = {Zi1, . . . , ZiT } the vector of treatment indicators
+for the area i during the observed time window, and Z the treatment matrix in the whole observed
+sample. Moreover, we denote by Z
+M,L
+it = {Zi,(t−M−L)
+, Zi,(t−M−L+1), . . . , Zi,(t−M)} the treatment
+history for unit i in the time window between t − M − L and t − M, with L, M ≥ 0. Similarly,
+we denote by S
+M,L
+it = {Si,(t−M−L)
+, Si,(t−M−L+1), . . . , Si,(t−M)} the exposure history of i in the same
+time window [t − M − L, t − M].
+We let Y
+obs
+it be the observed outcome for unit i at time t, that is expected to be possibly affected
+by previous exposures and, in turn, by previous treatments. In the case of units being geographical
+areas, the treatment and exposure variables are defined at the area-level, and the outcome variable
+Y
+obs
+it is usually an aggregate function of individual-level outcomes (e.g. daily number of deaths,
+number of hospital admissions). We let Y
+M,L
+it = {Y
+obs
+i,(t−M−L)
+, Y obs
+i,(t−M−L+1), . . . , Y obs
+i,(t−M)
+} be the
+outcome history of unit i in the time window [t−M −L, t−M]. To maintain a causal order between
+variables, we assume that, for each time point t, the outcome is actually measured sometime after
+the exposures are collected or the interventions are implemented, but before time point t + 1.
+To complete the notation specification, we let Xit be a vector of covariates measured on unit i
+during time t. The characteristics collected in Xit could be confounders of the relationship between
+the intervention and the outcome and/or effect modifiers; we do not distinguish between them
+for notational simplicity. The specific role as confounders or modifiers will be explicit as they
+are included in the different conditional sets of the identifying assumptions. We assume that the
+covariates corresponding to time t are collected just prior to the exposures and the implementation
+of the interventions at time t. We let Xi0 be the vector of time-invariant baseline covariates of
+unit i. Finally, we denote by X
+M,L
+it = {Xi,(t−M−L)
+, Xi,(t−M−L+1), . . . , Xi,(t−M)} the collection of
+time-varying covariates of unit i in the time window [t − M − L, t − M].
+Finally, throughout, we use a stochastic (or model-based) perspective to causal inference, where
+all variables including exposures, treatments, outcomes, and covariates, are considered as random
+variables (Hernán and Robins 2020; Li et al. 2022b). However, here our estimands will be conditioned
+on the time-invariant baseline covariates Xi0, as our goal is to forecast on the same locations I the
+effect of an intervention or event observed in the past in a future time window where the distribution
+of time-varying covariates may be different.
+3. A Motivating Example: The Effect of Public Policies or Social
+Events on Covid-related Deaths
+The global COVID-19 pandemic has underscored the critical role of modeling infectious disease
+transmission dynamics, not only to characterize the epidemiological features of the disease and
+assess the current state of an outbreak, but also to forecast its future trajectory. Simulationbased methods have been used to make projections about the impact of possible interventions (e.g.,
+Davies et al. 2020; Prem et al. 2020; Anderson et al. 2020). The outputs of these models have
+helped healthcare systems make operational plans and public health officials make decisions about
+mitigation measures. Predicting the health effects of mitigation actions can further help policy
+makers prioritize investments. For instance, in 2020, model-based forecasts about the spread of
+COVID-19 led to national lockdowns and border closures (Adam 2020b).
+Given the widespread use of model-based projections during the COVID-19 pandemic, we use
+this setting as a motivating example. Suppose that we want to investigate the effect of an intervention or event that could affect the spread of SARS-CoV-2 infections and, in turn, subsequent
+5
+COVID19-related mortality. Suppose that our observed sample is the United States population and
+that the observed temporal window spans from January to July 2020, corresponding to the first
+wave of the SARS-CoV-2 epidemic. We could be interested in the effect of a public policy aimed
+at reducing the number of potential contagious interactions (e.g. the introduction of social distancing measures, gathering restrictions, school closures and distance learning, stay-at-home orders or
+lockdowns), or in the effect of planned or spontaneous social events that could have increased the
+number of potential contagious interactions (e.g. rallies, protests, in-person elections).
+In this setting, the presence or absence of the intervention or event of interest in a given area i
+(e.g., region, county or state) at time t defines the intervention indicator Zit, while the number of
+potentially contagious interactions between infectious and susceptible people in i at time t, is the
+exposure variable Sit, which should be affected intentionally by the intervention or unintentionally
+by social events – Sit is proportional to the effective reproduction number Rt and the number of
+circulating infected individuals in the area (Adam 2020a; Inglesby 2020; Rubin et al. 2020; BrooksPollock et al. 2021). We assume that the outcome of interest Yit is the daily number of COVID-19
+related deaths in the area i at time t. Potential confounders and/or effect modifiers to be included
+in Xit are: variables related to population composition and population health (e.g. percentage
+of elderly, percentage of people with chronic diseases), variables related to local risk factors (e.g.
+air pollution level, temperature, humidity, population density, use of public transportation) and to
+characteristics of the healthcare system (e.g. number of hospital beds, number of intensive care
+beds, indicators of accessibility to care), the epidemic status before time t (e.g. number of notified
+infections), as well as the tendency of the population to engage in risky behaviors or follow public
+health recommendations (e.g., mask wearing).
+During the first wave of the SARS-CoV-2 epidemic, several state-level and national-level restrictions were put in place to slow the spread of infections. Meanwhile, social events that gathered
+large number of people in limited spaces occurred during the same months, whether as a result
+of discontent with the imposed restrictions, as a response to socio-political issues, or as part of
+the national electoral calendar. Researchers from different fields mobilized rapidly to estimate the
+impact that the implemented restrictions and the co-occurring events have had on the epidemic
+dynamics, in order to provide insights into contagion dynamics and inform policy-makers about
+the effectiveness of the implemented measures. Here, the causal question of interest concerns the
+effect of a time-varying exposure or treatment that has been observed in a sample of the population. A methodological framework addressing these issues has already been developed in both
+fields of infectious disease epidemiology and causal inference. To answer these COVID-19-related
+questions, researchers have employed a range of estimation approaches, including mechanistic epidemiological models (e.g., Chinazzi et al. 2020; Zhang et al. 2022) and causal inference methods
+such difference-in-differences (e.g., Palguta et al. 2021; Velias et al. 2022).
+After the summer, with the resumption of the epidemic, it became crucial to use evidence from
+the spring to answer a different question: “Will the policies applied during the spring 2020 have
+the same effect months later, during the second epidemic wave? Or will their impact change? ” A
+prediction of the causal impact of applying the same restrictions in the future, possibly during a
+second wave of COVID-19, was of paramount importance for informing actions to control the second
+outbreak. Similarly, still with reference to the epidemic dynamics, it was of interest to predict the
+impact that social events that had already happened in the past, would have if repeated in the
+future. To answer this kind of research question, one might be tempted to assume that the effects
+estimated for the spring of 2020 would hold constant when the same interventions or events recur in
+the future, as long as they apply to the same population. The problem with this assumption is that
+the context in which new restrictions or elections are implemented may differ meaningfully from
+the context in which they were first applied. Moreover, the altered context could reflect not only
+6
+the natural course of epidemic dynamics but also the cumulative impact of earlier interventions.
+In Section 5.3, we clarify the assumptions needed to identify predicted causal effects and highlight
+potential challenges and possible solutions.
+Furthermore, policy-makers may want to plan new restrictions designed to produce a prespecified reduction in the number of contagious interactions between infected and susceptible. In
+this case, we are dealing with the evaluation of a hypothetical intervention that is assumed to modify
+the distribution of the exposure S. To inform decision-makers, several epidemiologists have used
+epidemiological models to predict the reduction in COVID-19-related morbidity and mortality that
+could result from hypothetical interventions leading to a certain reduction in the average number of
+contagious contacts to a certain value (Di Domenico et al. 2020; Prem et al. 2020; Davies et al. 2020;
+Ferguson et al. 2020; Anderson et al. 2020; Reiner et al. 2021). However, the use of epidemiological
+models to answer these kinds of questions relies on strong parametric assumptions. Moreover, the
+actual aim of these analyses was to predict effect of hypothetical interventions in the future, not
+within the observed temporal window. Therefore, the aforementioned issues related to predictions
+of causal effects remain relevant in this context.
+4. Assessing and Predicting the Impact of an Actual Point Treatment
+We begin by considering the simple scenario where a point-treatment is observed for some units in
+I at time S, with 1 < S < T. For instance, the point treatment could be a protest that occurred
+in some geographical areas in the same day. Here, for the sake of simplicity, we assume that the
+treatment has an immediate effect on the outcome, and we are interested in estimating such a
+short-term effect. In our motivating example, this means that the occurrence of a protest could
+affect COVID-related deaths immediately after the protest.
+4.1. Definition of potential outcomes
+We define YiS(z) as the potential outcome of unit i at time S under a treatment matrix Z collecting
+the treatments for the whole sample equal to z. In this paper, we assume that there is no interference
+between areas, that is, the potential outcome of unit i at time S can only depend at most on the
+treatments at location i, i.e., Zi (Rubin 1980). The no-interference assumption is usually valid
+when population units do not interact with each other or when their interaction does not lead to
+interference mechanisms. In the case of infectious diseases, although the spread of the disease does
+occur through physical interactions invalidating the no-interference assumption across individuals,
+oftentimes we can still assume the absence of interference across geographical areas (Hudgens and
+Halloran 2008). This is the case when the geographical areas in the sample I are confined and
+distant from each other or when there is little movement between areas. During the COVID-19
+emergency in spring 2020, given national travel restrictions and limited movement, it is likely that
+any intervention implemented in one state did not have an effect on the level of contagion in other
+states. For this reason, in our motivational example we use states as units of analysis, indexed by i.
+Under the above no-interference assumption, each potential outcomes can be indexed by the areaspecific treatment vector, i.e., YiS(zi). However, here we consider a point treatment that occurred
+for some units at time S. Therefore, the treatment sequence over time for unit i is of the form
+z = [0, . . . , 0, z, 0, . . . , 0]. In this case, we can simply index the potential outcome at time S only
+by the point treatment at time S, i.e., YiS(z).
+7
+4.2. Actual impact on the observed sample
+Suppose that we want to evaluate the effect of an intervention or event that occurred for some units
+at time S on the outcome measured immediately after. The impact of an intervention or event
+can be defined by several causal estimands. Here, we focus on the average treatment effect on the
+treated (ATT), but other causal estimands could also be of interest, e.g., the average treatment
+effect (ATE) or their ratio counterparts. Formally, the ATT is the average comparison between the
+two potential outcomes under ZiS = 0 and ZiS = 1 across treated units:
+ATT =
+1
+Nobs
+1
+X
+i∈Uobs
+1
+
+E
+h
+YiS(1)|Xi0
+i
+− E
+h
+YiS(0)|Xi0
+i (1)
+where U
+obs
+1 = {i ∈ I : ZiS = 1} is the set of units that received the treatment at time S, and
+Nobs
+1 = |U
+obs
+1
+| is the number of treated units. Under our stochastic perspective, where potential
+outcomes are seen as random variables, the expectations in (1) are taken over the conditional
+distribution of potential outcomes, conditional on each unit’s baseline covariates Xi0. The estiimand
+in (1) can be seen as a finite sample estimand under a stochastic perspectives and again is due to
+our focus on the sample of units I. With reference to the case in which the outcome is a count of
+sanitary events (e.g. number of deaths) and the treatment is a protest, Equation (11) quantifies the
+average change in the number of sanitary events in the areas where protests took place at time S
+that occurred right after the protests and that are attributable solely to the protests.
+4.3. Identification under ignorability
+The fundamental problem to identify the average treatment effect on the treated (Equation (1)) is
+that the potential outcomes YiS(0) are not observed for the units in U
+obs
+1
+. In fact, in the observed
+sample U
+obs we only observe the potential outcome corresponding to the treatment that was actually
+received. In particular, for the estimation of the ATT, we need to impute YiS(0) for the treated
+units in U
+obs
+1
+. This imputation can be done implicitly or explicitly in different ways, depending on
+the identifying assumption that we are willing to make. Different causal inference methods rely on
+different identifying assumptions (e.g., the parallel trend assumption for the difference-in-difference
+estimator) (Hernán and Robins 2020). Here, we briefly review results under the most commonly
+used exchangeability assumption.
+In the presence of control units who did not received the treatment (i.e., the intervention was
+not implemented or the event did not occur), we can impute the potential outcomes YiS(0), missing
+for the treated units, using the distribution of the observed outcomes on the control units. This
+imputation relies on the assumption that treated and control units are exchangeable, that is, the
+distribution of the potential outcome are independent of the actual treatment status. This exchangeability assumption, also called treatment ignorability or unconfoundedness, holds whenever
+the treatment is randomized (Hernán and Robins 2020; Imbens and Rubin 2015). On the other
+hand, in non-randomized observational studies, ignorability may be more plausible conditional on
+covariates. Formally, we write the following assumption.
+Assumption 1 (Treatment Ignorability). The treatment status ZiS at time S is independent of
+potential outcomes given baseline and most recent covariates, i.e.,
+YiS(z) ZiS|XiS, Xi0, z ∈ {0, 1} (2)
+Assuming ignorability within strata of covariates implies assuming that there are no unmeasured
+confounders between exposure and outcome. Note that in this section, for simplicity, in Assumption
+8
+1 we assume that the relationship between the treatment and outcome at time S is only confounded
+at most by baseline covariates, Xi0, and covariates at the same time point S, although measured
+before the treatment and outcome, and not by past trends. In our motivating examples on protests,
+potential confounders of the relationship between the occurrence of a protest and COVID-related
+deaths may include variables related to population size and composition, including political beliefs,
+epidemic status, as well as public health interventions and recommendations together with the
+population compliance information. Note that these variables can also be effect modifiers, especially
+the epidemic status and population behaviors.
+Under Assumption (1), the average potential outcome under the control condition for treated
+units with covariates Xi0 is identified by:
+E
+h
+YiS(0)|ZiS = 1, Xi0
+i
+=
+X
+x
+E
+h
+Y
+obs
+iS |ZiS = 0, XiS = x, Xi0
+i
+fXiS (x|ZiS = 1, Xi0)
+(3)
+Note that the summation can be replaced with an integral in the presence of continuous covariates.
+Thus, the average treatment effect on the treated is identified from the observed data as follows:
+AT T =
+1
+Nobs
+1
+X
+i∈Uobs
+1
+
+E
+h
+Y
+obs
+iS |ZiS = 1, Xi0
+i
+−
+X
+x
+E
+h
+Y
+obs
+iS |ZiS = 0, XiS = x, Xi0
+i
+fXiS (x|ZiS = 1, Xi0)
+
+(4)
+Under Equation (3), different regression methods can be used for the estimation of the ATT (e.g.,
+Hernán and Robins 2020). If we could rule out the presence of unobserved time-varying factors
+affecting the distribution of potential outcomes under control, the conditional expectation in (3)
+could also be identified by borrowing information on the observed outcome across the whole observed
+time window T , where the treatment was not observed.
+4.4. Predicting the impact on future observations
+4.4.1. Causal estimands
+Now, let us assume that we have already estimated the effect of a point intervention or a point
+event observed in I at time S. We now wish to predict the impact of the same point intervention
+or point event if it was replicated on the same population I but at a future time point T + F. We
+recognize that the term ‘prediction’ could lead to some confusion. To clarify, we are not interested in
+forecasting the long-term effect of a treatment or event that we have already observed. Instead, we
+are interested in forecasting the effect of an intervention or an event that we wish to administer or
+that could occur at a future time. In order to achieve this objective, we assume that the intervention
+or event has been already observed on a past sample and its effect has been estimated (Section 4.3).
+It is also worth noting that here we are not dealing with the problem of generalizing a causal effect
+to a different population of units, a problem that has been studied elsewhere (Cole and Stuart 2010;
+Tipton 2013; Hartman et al. 2015; O’Muircheartaigh and Hedges 2013). Instead, here we address
+the issue of transporting the causal effect to future observations of the same population. Although
+possible, an extension of our results to generalize an estimated causal effect to future observations
+but in a different population is possible but beyond the scope of this paper.
+At the end of the first wave of COVID-19, policy-makers were interested in designing effective
+strategies that they would have implemented in the case of a second wave. Moreover, at the time
+where we did see a surge in COVID-19 in the Fall 2020, policy-makers would have benefited from
+insights into the possible effect of implementing the same restrictions as in the Spring 2020. Similarly,
+they might want to prevent social events that occurred in that period and were estimated to have an
+9
+ZiS YiS(z) ZiT +F YiT +F (z)
+0 S T T +F time
+Observed window
+T
+Figure 1: Timeline and notation for point-treatments.
+effect on the spread of COVID-19, or allow the ones that were proven not to have an effect. As an
+example, the estimated effect of primary elections that took place during the first wave has informed
+on whether to hold in-person voting during the US presidential elections in Fall 2020 (Feltham et al.
+2023). The prototype of these questions is to forecast the effect of some treatment—the impact
+of which has already been assessed on an observed sample—if it were to be assigned in the same
+geographical area but in a future time point.
+We therefore define the average causal effect of the treatment in the future time point T + F as:
+ATTF =
+1
+|IF |
+X
+i∈IF
+
+E
+h
+YiT +F (1)|Xi0
+i
+− E
+h
+YiT +F (0)|Xi0
+i (5)
+where IF ⊆ I is a subset of the set of the sample locations where the intervention or event is
+assumed to occur at time T + F. For instance, one can set IF = U
+obs
+1
+such that ATTF is defined
+for the same set of locations that received the treatment at time S.
+4.4.2. Identification under temporal transportability
+The first problem that arises in forecasting a causal effect is that both potential outcomes YiT +F (1)
+and YiT +F (0) in (5) are missing for all locations in IF . In fact, we have not yet applied the treatment
+on any units in the future window. YiT +F (0) is also missing because we actually do not observe
+the outcome in the future time point, not even under the control condition. The simplest solution
+that is commonly taken is to assume that the effect of a treatment, estimated on an observed
+sample, will be constant if replicated on the same population in the future. This is what we tend to
+assume in our daily life when we expose ourselves to the same event that benefited us in the past,
+predicting that it will have the same effect on another occasion. This is also what it is implicitly
+done when the effect of policies or interventions is estimated to with the purpose of informing policymakers on the best strategy. The main problem of making this assumption of constant effect over
+time is that a unit’s response to a treatment usually depends on the context, which could change
+over time. Intuitively, if the treatment effect only depends upon time-invariant characteristics, the
+average treatment effect estimated on a population of units would be constant if the treatment were
+assigned on the same population in the future. In reality, the causal effect of a treatment, estimated
+in a past time period, could reflect the time-varying characteristics of that period and is subject to
+change in a future time when those characteristics evolve over time. It is, in fact, the presence of
+time-varying effect modifiers that makes the prediction of causal effects challenging.
+Let us assume that the distribution of a potential outcome for unit i at time t, Yit(z), is heterogeneous and depends on the time-varying covariates measured at the same time, Xit, in addition to
+10
+the baseline covariates Xi0. Let us also assume, for a moment, that the effect modifiers were ‘measured’ in both the observed time window T and at the unobserved future time T + F. Intuitively,
+one would aim to predict the causal effect at a future time point that exhibits certain characteristics by leveraging past time points with similar characteristics. This intuition—allowing for the
+transportability of causal effects from a previously observed time window to a future one—can be
+formalized through the following identification assumption.
+Assumption 2 (Temporal Transportability of Potential Outcomes). Let Ait be an indicator of
+whether the outcome of unit i has been observed at time t, i.e., Ait = 1 if t ∈ T and Ait = 0 if
+t = T + F, then we have
+Yit(z) Ait|Xit, Xi0 ∀i ∈ IF , ∀t ∈ {S, T + F} (6)
+In words, Assumption 2 states that, the distribution of potential outcomes is the same between
+the observed time point S and the future time point T + F for units with the same covariates Xit
+and Xi0. As a consequence, both missing potential outcomes in (16) can be imputed, implicitly
+or explicitly, conditional on effect modifiers from a set of control and treated units observed in the
+past. Formally, under Assumption 2, conditional expectations of potential outcomes for units in the
+subset IF ar identified as follows:
+E
+h
+YiT +F (z)|Xi0, i ∈ IF
+i
+=
+X
+x
+E
+h
+Y
+obs
+iS |ZiS = z, XiS = x, Xi0
+i
+fXiT +F
+(x|Xi0, i ∈ IF )
+(7)
+where the marginalizing distribution for time-varying covariates fXiT +F
+(x|Xi0, i ∈ IF ) is based on
+information measured at the future time point T + F.
+As mentioned in Section 4.3, if we could rule out the presence of unobserved time-varying
+factors affecting the distribution of potential outcomes under control, we could make Assumption
+2 for t ∈ T ∪ {T + F}, instead of only for t ∈ {S, T + F}. Then, the conditional expectation of
+potential outcomes under control for the future time point T +F could also be imputed by borrowing
+information on the observed outcome across the whole observed time window T , where Zit = 0, i.e.,
+E
+h
+YiT +F (0)|Xi0, i ∈ IF
+i
+=
+X
+x
+E
+h
+Y
+obs
+it |Zit = 0, Xit = x, Xi0, t ∈ T i
+fXiT +F
+(x|Xi0, i ∈ IF )
+(8)
+Nevertheless, the identification of future causal effects based on the temporal transportability
+assumption (Assumption 2) relies on the effect modifiers being known in both the observed time
+window and the future period. However, the effect modifiers in the future time point, i.e., XiT +F ,
+are not observed. In the literature related to prediction, when the effect is not assumed constant but
+time-varying effect modifiers are assumed to be present, two approaches are used. The first approach
+considers hypothetical scenarios that could determine a different predicted effect of a treatment in
+the future, i.e., effect modifiers XiT +F are set or drawn from a distribution (Hess et al. 2020;
+Vicedo-Cabrera et al. 2019). However, setting the effect modifiers to hypothetical values leads to
+a predicted causal effect under hypothetical scenarios that are only qualitatively informed by past
+data and that are not predicted from past outcome, covariate and treatment history. In a way, this
+approach does not forecast a causal effect in the future, but rather estimates the causal effect of
+both implementing the intervention of interest and setting the context in which the intervention will
+be rolled out. On the contrary, a second approach forecasts the evolution of effect modifiers using
+a dynamic model . Then, in turn, we predict the effect of implementing a treatment in the future
+relying on the estimated treatment effect heterogeneity (Sonnenberg and Beck 1993; Marshall and
+11
+Galea 2015). Importantly, this approach hinges on the assumption that effect modifiers follow the
+same model as in the past observed sample. We formalize here the conditions under which this
+approach is valid, and we provide the identification result supporting this approach.
+Assumption 3 (Temporal Transportability of Time-Varying Effect Modifiers). Define the indicator
+A⋆
+iℓ as whether the outcome of unit i at time ℓ has been observed, i.e., A⋆
+iℓ = 1 if iℓ ∈ U
+obs and
+A⋆
+iℓ = 0 if i ∈ I but ℓ ̸∈ T .
+Xiℓ A
+⋆
+iℓ|Z
+1,Lz
+iℓ , X
+1,Lxx
+iℓ , Xi0 ∀i ∈ IF , ∀ℓ ∈ [1, . . . , T, . . . , T + F]
+Assumption 3 states that the distribution of time-varying effect modifiers at each time point ℓ is
+the same between the past observed sample and the future time window until the time point T +F,
+conditional on baseline covariates, the past treatment history until ℓ − 1 − Lz and past covariate
+history until ℓ−1−Lxx. Note that Lz and Lxx define the presence of a lagged effect of past treatments
+and covariates on future covariates, respectively, and need to be specfied as part of Assumption 3.
+Thus, Assumption 3 rules out the presence of events that would change the way effect modifiers
+evolve over time, and allows the prediction of time-varying covariates XiT +F that could affect the
+potential outcome YiT +F (z). Note that in the setting with a point-treatment only observed for
+some units at time S, the treatment history Z
+1,Lz
+iℓ will simply be Z
+1,Lz
+iℓ = [0, . . . , 0, ZiS, 0, . . . , 0] if
+S ∈ [ℓ − 1 − Lz, ℓ − 1] or Z
+1,Lz
+iℓ = 0 otherwise.
+Under Assumption 3, the unknown distribution of effect modifiers at time T +F, conditional on
+the subset IF and baseline covariates Xi0, which is needed in the identifying quantity in Equation
+(7), is given by:
+fXiT +F
+(x|Xi0, i ∈ IF ) = X
+v
+fXit (x|X
+1,Lxx
+iT +F = v
+1,Lxx
+iT +F
+,Z
+1,Lz
+iT +F
+, Xi0, i ∈ IF , t ∈ T )
+×
+T +
+Y
+F −1
+ℓ=1
+fXit (vℓ
+|X
+1,Lxx
+iℓ = v
+1,Lxx
+iℓ ,Z
+1,Lz
+iℓ , Xi0, i ∈ IF , t ∈ T )
+(9)
+where v = [v1, . . . , vT +F −1] is a realization of the time-varying covariates from time 1 to T +F −1,
+while fXit (·| . . . , Xi0, i ∈ IF , t ∈ T ) is the conditional distribution of covariates measured in the
+subset of locations IF during the observed time window T .
+If that of time-varying covariates is a stationary process that only depends on baseline covariates
+with no time trend and is not affected by previous treatments, then, under Assumption 3, we would
+have
+fXiT +F
+(x|Xi0, i ∈ IF ) = fXit (x|Xi0, i ∈ IF ) (10)
+for any t ∈ [1, . . . , T, . . . , T + F], including. If the subset IF where we want to implement the
+intervention in the future also coincides with U
+obs
+1 where the treatment was observed at time S,
+i.e., ZiS = 1, then we would actually have the equivalence ATTF = ATT. If instead, time-varying
+covariates follow a time trend, Equation (9), resulting from Assumption 3, can be used to replace
+the unknown distribution of effect modifiers at time T +F, fXiT +F
+(x|Xi0, i ∈ IF ) in the identifying
+quantity on the right side of Equation (7) (or Equation (8)), resulting from Assumption 2.
+This identification result under Assumptions 2 and 3 supports the validity of an intuitive MonteCarlo imputation procedure. We would first estimate the distribution fXit (·| . . . , Xi0, i ∈ IF , t ∈ T )
+by fitting a model for the trend of covariates using the observed data with t ∈ T and i ∈ IF , and
+then we would sequentially impute their evolution in the future time period. Different time series
+model can be used, possibly including random or fixed effects for geographical areas. For the case of
+12
+infectious diseases, we could also use mechanistic models of disease transmission (e.g., Tuite et al.
+2020; Ferguson et al. 2020; Flaxman et al. 2020). Let XciT +F be the vector of covariates for unit
+i at the future time T + F, predicted using an estimated time-series model. For a future time
+point T + F, the potential outcomes under both the treatment and control condition for a unit
+i in IF with baseline covariates Xi0 can be imputed from the observed outcomes at time S of
+units in the observed sample subject to the treatment or the control condition, respectively, with
+the same baseline characteristics Xi0 and with time-varying covariates equal to XciT +F at time S
+right before that condition was observed. Such imputation can be more or less explicit, using nonparametric or semiparametric matching or weighting methods or more commonly used parametric
+approaches (e.g., Flaxman et al. 2020; Davies et al. 2020; Ferguson et al. 2020; Reiner et al. 2021;
+Vicedo-Cabrera et al. 2019).
+5. Assessing and Predicting the Impact of Actual Time-Varying
+Treatments
+In this section, we extend the discussion and results of Section 4 to settings with time-varying treatments: one-day events occurring at different times in different locations (e.g., US primary elections
+in the Spring 2020), and multi-day interventions or events with a continuous or intermittent duration (e.g., protests, stay-at-home orders, school closures, mask guidelines). Here, we also consider
+a latency between treatments and outcomes, lagged effects of time-varying covariates and past outcomes, both seen as potential effect modifiers, and potentially time-dependent covariates affected
+by past treatments.
+5.1. Definition of Potential Outcomes
+In addition to no-interference across locations, we assume that the outcome at time t can at most
+depend on interventions over a period from t − B − K to t − B, where 0 ≤ B < T and 0 ≤ K <
+t − B. This assumption allows carry-over effects over a period of length K and rules out that an
+intervention implemented after time t−B may have a short-term effect on the outcome at time t. In
+epidemiology B is sometimes called latency time. It is worth noting that the absence of carry-over
+effects corresponds to the case with K = 0, while if B = 0, immediate effects are possible. Let us
+define the lagged intervention vector of interest as Z
+B,K
+it = [Zi(t−B)
+, Zi(t−B−1), . . . , Zi(t−B−K)
+]. We
+also introduce a function h(·) which summarizes Z
+B,K
+it and maps it into a binary treatment variable
+Dit = h(Z
+B,K
+it ) ∈ {0, 1}. For example, h(·) can be defined such that Dit is 1 if area i is treated at
+least once over the period [t − B − K, t − B] and 0 otherwise, that is, Dit = I(
+PK
+k=0 Zi(t−B−k) ≥ 1).
+It is worth noting that when there are no carry-over effects, i.e., K = 0, h(·) is simply the identity
+function, that is, Dit = Zi(t−B)
+. Given the mapping function h(·), we assume that the potential
+outcome of unit i at time t only depends on the value of the binary variable Dit, summarizing the
+treatment vector over a period from t − B − K to t − B corresponding to location i.
+Formally, the previous considerations are expressed by the following Stable Unit Treatment
+Value Assumption (SUTVA).
+Assumption 4 (SUTVA). Let h(·) be a function h : RK+1 → {0, 1}. ∀z, z
+′ ∈ {0, 1}
+I×T
+such that
+h(z
+B,K
+it ) = h(z
+B,K′
+it ), the following equality holds:
+Yit(z) = Yit(z
+′
+).
+13
+t−B−K t−B t time
+Z h(·) Dit Yit(Dit)
+B,K
+it
+Carry-over period
+K
+Latency period
+B
+Figure 2: Timeline and notation for time-varying treatments.
+Under this assumption we can index the potential outcome by the binary variable Dit = h(Z
+B,K
+it ),
+i.e., Yit(Dit). Throughout this section, we will refer to Yit(d), as the potential outcome that we would
+observe at unit it if the lagged treatment Dit were set equal to d. Figure 2 represents the timeline
+and notation under SUTVA (Assumption 4), including the carry-over period and the latency period
+for a time point t.
+Let us suppose that we were interested in evaluating the effect of a one-day event that could have
+affected the spread of SARS-CoV-2 infection, such as US primary in-person elections, on the COVIDrelated hospital admissions after L days, and in particular on the Lth day, with B ≤ L ≤ B + K
+(L could reasonably range from 10 to 30 days). Under our set-up, in order to answer this question
+we would set the lagged treatment variable to Dit = Zi(t−L)
+, for each t ∈ [L + 1, . . . , T], that
+is, for each time point where the event is observable (see Figure 3a). Conversely, in the case of
+interventions or events that lasted more than one day, e.g. lockdowns or stay-at-home orders, the
+definition of the lagged treatment variable would depend on the causal effect of interest. If we
+were interested in the average effect of starting a lockdown on the increase of COVID-19 related
+deaths after L days, with B ≤ L ≤ B + K, we would set the lagged treatment indicator equal
+to 1 if the intervention started at day t − L and was not in place before that day during the
+carry-over period, that is, Dit = I(Zi(t−L) = 1 & PK−L
+k=1 Zi(t−L−k) = 0) (see Figure 3b). 1
+If
+we, instead, wanted to evaluate the effect of keeping a lockdown in place for Q days, during the
+period [t − L, t − L + Q − 1], on the outcome after L days, with B + Q ≤ L ≤ B + K, we should set
+Dit = I(
+PQ−1
+k=0 Zi(t−L+k) = Q) & PL−B
+k=Q Zi(t−L+k) = 0) (see Fgiure 3c). Finally, as another example,
+we could assess the effect of Q days of protests, which might or might not be continuous, on the
+spread of COVID-19 after L days of the first day of protest, with B + Q ≤ L ≤ B + K, by setting
+the lagged treatment variable equal to 1 if in the temporal window [t − L, t − B] there were Q days
+of protests in location i, i.e., Dit = I(
+PL−B
+k=0 Zi(t−L+k) = Q) (see Figure 3d).
+5.2. Actual impact on the observed sample
+5.2.1. Causal Estimands
+Under Assumption 4, let us assume the we want to evaluate the causal effect of a specific intervention
+that has been implemented in some areas or of a specific event that occurred in some locations over
+the observed temporal window. Formally, let U
+obs
+1 = {it ∈ U
+obs : Dit = 1} be the set of the
+Nobs
+1 = |U
+obs
+1
+| treated units, that is, the set of location-time units it whose treatment indicator Dit
+is equal to 1. Notice that, depending on the carry-over period and the definition of the treatment
+1We could, instead, estimate the average effect of a one-day occurrence of the multi-day intervention or event,
+averaged across the initiating time and duration, by setting Dit = [Z
+B−1,K
+it , D⋆
+it = I(Zi(t−B) = 1)]. In this case, our
+treatment of interest is D
+⋆
+it, while we would control for and average across the lagged intervention vector Z
+B−1,K
+it .
+For simplicity, given the non-binary nature of Dit, we do not consider this case here, although identification issues
+discussed in this paper would still apply.
+14
+t−B−K t−L t−B t time
+Dit =Z Yit(1) i(t−L) = 1
+t−B−K t−L t−B t time
+Dit =Z Yit(0) i(t−L) = 0
+(a) One-day intervention: effect of the one-day intervention
+t−B−K t−L t−B t time
+Dit =I(Z Yit(1) i(t−L) = 1&PK−L
+k=1 Zi(t−L−k) = 0)= 1
+t−B−K t−L t−B t time
+Dit =I(Z Yit(0) i(t−L) = 1&PK−L
+k=1 Zi(t−L−k) = 0)= 0
+(b) Multi-day intervention: effect of initiation time
+t−B−K t−L t−L+ Q t−B t time
+Dit =I( Yit(1) PQ−1
+k=0 Zi(t−L+k) = Q)&PL−B
+k=Q Zi(t−L+k) = 0)= 1
+t−B−K t−L t−L+ Q t−B t time
+Dit =I( Yit(0) PQ−1
+k=0 Zi(t−L+k) =Q)&PL−B
+k=Q Zi(t−L+k) = 0)= 0
+(c) Multi-day continuous intervention: effect of Q (e.g., =2) consecutive intervention days
+t−B−K t−L t−B t time
+Dit =I( Yit(1) PL−B
+k=0 Zi(t−L+k) =Q)= 1
+t−B−K t−L t−B t time
+Dit =I( Yit(0) PL−B
+k=0 Zi(t−L+k) =Q)= 0
+(d) Multi-day intermittent intervention: effect of Q (e.g.,=2) possibly nonconsecutive intervention days
+Figure 3: Potential treatment vectors Z
+B,K
+it and corresponding treatment indicator Dit for a time
+point t for different intervention/event settings and effects of interest.
+15
+indicator for the causal effect of interest, the treatment indicator may not be observed if defined
+based on time points outside of the observed time window. For example the effect of starting a
+lockdown on COVID-related deaths after 20 days cannot be evaluated using death counts measured
+at time points t < 20 in the observed time window. Since the treated set U
+obs
+1
+is defined as the
+set of units whose treatment indicator is 1, location-time units whose treatment indicator is not
+observed would not be included in this set. Here, the ATT is the average comparison between the
+two potential outcomes under Dit = 0 and Dit = 1 across treated units:
+AT T =
+1
+Nobs
+1
+X
+it∈Uobs
+1
+
+E
+h
+Yit(1)|Xi0
+i
+− E
+h
+Yit(0)|Xi0
+i (11)
+In the COVID-19 example, the ATT could be the number of COVID19-related deaths prevented
+by initiating lockdowns, stay-at-home orders or school closures, or the number of COVID19-related
+deaths attributable to having Q days of protests, or in-person elections rallies, in areas where these
+interventions or events actually happened.
+5.2.2. Identification under Sequential Ignorability
+In settings with time-varying treatment and time-varying covariates, the ignorability assumption
+must hold sequentially: for each time t the corresponding potential outcomes Yit(d) are independent
+from the current treatment Dit conditional on the treatment, outcome and covariate history. This
+assumption is called in the literature sequential ignorability (e.g., Robins et al. 2000). Let Rit be the
+vector of pre-treatment time-varying confounders, including covariates in the pre-treatment window
+[t − B − Lx, t − B − K] with Lx ≥ K, and possibly lagged outcomes in the pre-treatment window
+[t − B − Ly, t − B − K − 1] with Ly > K, i.e., Rit = [X
+B+K,Lx−K
+it ,Y
+B+K+1,Ly−K−1
+it ]. Let Viℓ be
+the set of time-varying covariates and lagged outcomes in the cross-over treatment window until a
+time point ℓ, i.e., Viℓ = [X
+0,ℓ−1−H
+it ,Y
+1,ℓ−1−H
+it ], with H = t − B − K, X
+0,ℓ−1−H
+iℓ being the covariate
+history between t − B − K + 1 and ℓ, and Y
+1,ℓ−1−H
+iℓ being the outcome history between t − B − K
+and ℓ − 1. We can now formalize the sequential ignorability assumption as follows:
+Assumption 5 (Sequential Ignorability - no unmeasured confounders).
+Yit(d) Ziℓ|Z
+1,ℓ−1−H
+iℓ = z
+ℓ−1
+, Viℓ, Rit, Xi0 ∀it ∈ U ⊆ U
+obs
+, ∀ d, ∀ ℓ ∈ [t − B − K, t − B], ∀z : Dit = d
+(12)
+where Z
+1,ℓ−1−H
+iℓ is the treatment history from t − B − K until ℓ − 1, z
+k = {zH, ..., zk} is the subvectors of any realization z such that Dit = d, and U is a subset of units contained in U
+obs where
+Assumption 5 holds. The sequential ignorability assumption states that for each unit in U ⊆ U
+obs
+the distribution of the potential outcomes at time t is independent of the treatment Ziℓ received at
+each time points ℓ in the cross-over time window [t−B −K, t−B] defining the lagged treatment Dit
+(i.e, Ziℓ is as good as randomized), conditional on the treatment history until the first treatment
+Zi(t−B−K)
+in the lagged treatment window, the covariate and the outcome history before and during
+the cross-over period, possibly until previous time points t − B − Lx and t − B − Ly. Indeed, the
+evolution of covariates as well as the outcome history could confound the causal effect of a treatment
+long before the treatment can start having an effect. For example, if were interested in estimating
+the effect of Q = 30 days of restrictions to control the spread of COVID-19 on mortality after
+L = 15 days (Figure 3c), in addition to area-specific characteristics that could confound the effect,
+we should also control for the epidemic dynamics before and during the time window of interest. In
+16
+fact, the decision of policy-makers to start restrictions may depend on the trend of COVID-19 cases
+and deaths in the previous month, i.e., Rit, but the decision to keep them for longer than few days
+and up to 30 days (instead of lifting them) can in principle be affected each day ℓ by the epidemic
+trend during this time, i.e., Viℓ. Because the epidemic status of each day ℓ during this 30-day period
+of interest depends on the restrictions implemented up to that day, we also need to control for the
+treatment vector Z
+1,ℓ−1−H
+iℓ up to day ℓ. Nevertheless, under the sequential ignorability assumption
+(Assumption 5), the identification of the ATT (Equation 11), that is, the types of confounders we
+should control for and how, depends on the definition of the lagged treatment vector Dit and on
+the presence of time-dependent confounders.
+First, let us assume that we wanted to evaluate the effect of a one-day intervention or event that
+could have happened in different days depending on the location (e.g., elections) on deaths after L
+days, with B ≤ L ≤ B +K (Figure 3a). The treatment indicator would be defined as Dit = Zi(t−L)
+,
+for t ∈ [L + 1, . . . , T]. In this simple setting, there are no time-dependent confounders during
+the treatment window because its duration is one day. As a consequence, we only need to adjust
+for baseline covariates and the evolution of time-varying covariates sometime before the treatment
+during a time window [t − B − Lx, t − B], i.e., Rit = X
+B,Lx
+it . In this case, under Assumption 5, the
+average potential outcome under the control condition for treated units is identified by:
+E
+h
+Yit(0)|Dit = 1, Xi0
+i
+=
+X
+c
+E
+h
+Y
+obs
+it |Dit = 0, Cit = c, Xi0
+i
+fCit
+(c|Dit = 1, Xi0)
+(13)
+with Cit = Rit. Thus, the average treatment effect on the treated is identified from the observed
+data as follows:
+AT T =
+1
+Nobs
+1
+X
+it∈Uobs
+1
+
+E
+h
+Y
+obs
+it |Dit = 1, Xi0
+i
+−
+X
+c
+E
+h
+Y
+obs
+it |Dit = 0, Cit = c, Xi0
+i
+fCit
+(c|Dit = 1, Xi0)
+
+(14)
+Different approaches exist to adjust for trends in panel or longitudinal data, e.g. matching or
+stratification (e.g., Perrakis et al. 2014; Kim et al. 2021a). 2 When previous outcomes also affect
+the propensity of having the one-day event, then we would also need to adjust for the outcome
+evolution over a sufficient time window [t − L − Ly, t − L], that is, Rit = [X
+L,Lx
+it ,Y
+L+1,Ly
+it ]. For
+instance, if researchers wanted to evaluate the effect of in-person elections that occurred in the US
+during the first wave of COVID-19, they would need to control for the epidemic dynamics during
+the month prior to the elections, which could have influenced the decision of holding the election
+in-person as well as their turnout.
+On the other hand, multi-day interventions or events, with a cross-over effect over a period of
+time of K > 1 days, complicate the identification of the ATT when time-dependent confounders are
+present. This is the case when we observe an intervention or event that lasted multiple days (e.g.,
+lockdowns, stay-at-orders, school closures, protests), with a varying number of days across areas,
+and we want to evaluate the effect of its initiation time (Figure 3b) or the effect of its duration
+(Figures 3c and 3d). Time-dependent confounders are defined as variables that (i) are caused by
+(or share a common cause with) previous treatments and (ii) are confounders for the effect of a
+subsequent treatment on the outcome. These variables could be time-varying covariates that, in addition to affecting subsequent treatments and the outcome, are also affected by previous treatments.
+Time-dependent confounders also include previous outcomes affecting subsequent treatments, given
+2The same consideration applies to the effect of having one more day of an intervention or event, regardless of
+its initiation time and duration, on the outcome after L days, with Dit = [Z
+L+1,K
+it , I(Zi(t−L) = 1)]. In this case, we
+would also adjust for lagged treatments Z
+L+1,K
+it that can be regarded as confounders, i.e. Rit = [X
+B,Lx
+it , Z
+L+1,K
+it ].
+17
+that lagged outcomes are always also caused by previous treatments. The identification of the ATT
+depends on whether time-dependent confounders are present or not. When they are not present –
+i.e., when previous outcomes do not confound the effect of a subsequent treatment on a subsequent
+outcome, by not affecting future treatments, and when time-varying covariates in Xit are not affected by previous treatments – under Assumption 5, the ATT is identified by the observed data
+using the simple identification results in Equations (13) and (14), simply conditioning for all type
+of confounders, including baseline covariates and outcomes as well as the evolution of time-varying
+covariates and outcomes pre-treatment and during the cross-over treatment window. Specifically,
+the conditioning set is given by Xi0 and Cit = [Rit, Vit], where Rit = [X
+B+K,Lx−K
+it ,Y
+B+K+1,Ly−K
+it ]
+is the set of pre-treatment confounders and Vit = [X
+B,K−1
+it ,Y
+B,K
+it ] is the set of time-varying confounders during the treatment window t − B − K, t − B. When the duration of the intervention is
+decided a priori based on the population characteristics and, say, the epidemic dynamics up until
+the initiation time, the evolution of the epidemic during the duration of the intervention should
+not be considered as a time-varying confounder and the adjustment set must only include previous
+covariates that led to the decision of initiating the intervention with a pre-specified duration.
+On the contrary, when time-dependent confounders exist, including previous outcomes affecting
+subsequent treatments, methods that match or stratify on X
+B,K
+it and Y
+B,K
+it are biased. In this
+situation, simply adjusting for the evolution of covariates and outcomes after time t − B − K would
+lead to selection bias (Robins 1999). Instead, we need to condition on the values drawn from the
+distribution of confounders and outcomes that would have been observed under the counterfactual
+scenario. This is the case when researchers wish to evaluate the effect of the implementation of
+COVID-19 restrictions or the occurrence of social events that lasted several days, with its duration
+(continuous or intermittent) being influenced by the daily/weekly status of the epidemic that was,
+in turn, affected by the restrictions being already in place. For example, stay-at-home orders were
+imposed in the Spring 2020 at different times across states and lasted from few weeks to several
+months. The decision of imposing new restrictions depended upon the population characteristics,
+the government political views, and the epidemic status at that point in time (also affected by
+not imposing restrictions earlier). After few weeks or months, the decision of lifting stay-at-home
+orders depended on similar factors, including the epidemic dynamics clearly affected by maintaining
+the restrictions until that point. If we wanted to evaluate two different strategies implemented by
+different states, with a different initiation time and a different duration, we must consider the fact
+that epidemic dynamics influenced both the initiation and duration of the stay-at-home orders, but
+were also affected by them. Therefore, intuitively each state with strategy 1 must be compared to
+states with strategy 0, that would have the same baseline covariates but also a similar evolution of
+the epidemic under strategy 0. Similarly, in the Fall 2020, several US states (e.g, California) and
+other countries around the world (e.g, India, Spain, Italy) shifted their COVID-19 control plan from
+a uniform lockdown to more locally tailored restrictions implemented by local governments. For
+instance, Italy implemented a color code classification system, classifying the COVID-19 criticality
+of each region and indicating the strictness of restrictions accordingly. Color codes were weekly
+assigned by the government and Minister of Health and depended on the degree of risk and local
+statistics reported in each region. Let us suppose that were interested in evaluating the impact of
+implementing the strict measures in the region classified as ‘red zones’ (high risk) compared to those
+associated to the orange classification (medium risk) (Bonifazi et al. 2021; Pelagatti and Maranzano
+2021). If we wanted to evaluate the impact of the first week of implementation (on COVID19-
+related deaths after 15-30 days) we must control for the epidemic status and the occupancy rate of
+hospital beds before the regions shifted from ‘orange’ to ‘red’. Instead, if we were also interested in
+the impact of keeping for an extra week the strict measures associated to the ‘red zones’, we must
+18
+consider the fact that the epidemic status and risk level that led to decision of keeping those regions
+colored in ‘red’ were affected by the strict measured implemented in the first week. These settings
+make the identification and estimation of such causal effects more complicated due to the presence
+of time-dependent confounders affected by previous events. Methods referred to as g-methods have
+been proposed to deal with issue (Naimi et al. 2017).
+Formally, under the sequential ignorability assumption 5, the average potential outcome for
+treated units under the control condition Dit = 0, conditional on baseline covariates, can be identified by the following g-formula:
+E
+h
+Yit(0)|Dit = 1, Xi0
+i
+=
+X
+z:Dit=0
+X
+r
+X
+x
+X
+y
+E
+h
+Y
+obs
+it |Z
+B,K
+it = z, Rit = r, Xi0, X
+B,K−1
+it = x,Y
+B,K
+it = y
+i
+H
+X
++K
+ℓ=H
+fYiℓ (yiℓ|Z
+B,ℓ−B−H
+iℓ = z
+ℓ−B,Y
+1,ℓ−1−H
+iℓ = y
+ℓ−1
+, X
+0,ℓ−1−H
+iℓ = x
+ℓ
+, Rit = r, Xi0)
+× fXiℓ (xiℓ|Z
+1,ℓ−1−H
+iℓ = z
+ℓ−1
+, Rit = r, Xi0) × fRit
+(r|Dit = 1, Xi0)
+(15)
+where x
+k = {xH, ..., xk}, y
+k = {yH, ..., yk}, and z
+k = {zH, ..., zk} are the sub-vectors of the
+realizations x, y, and z. In Equation 15 we identify the mean potential outcome under the control
+condition, for locations with baseline covariates Xi0 treated at some time t, by taking the mean
+outcome of the control units averaged over the distribution of covariate and outcome history Rit
+before the carry-over period t−B − K conditional on the treated, as well as over the distribution of
+the evolution of outcomes and covariates during the carry-over period under the control condition. In
+addition, given that Dit = 0 corresponds to multiple treatment vectors Z
+B,K
+it through the mapping
+function h(·), we take the average of the treatment history over all the values that map into Dit = 0.
+For example, when evaluating the effect of keeping an Italian region classified as ‘red zone’ for two
+weeks and imposing the stricter curbs as opposed to the ones associated to the orange zones,
+in addition to adjusting for the epidemic status and the occupancy rate of hospital beds before
+the shift from ‘orange’ to ‘red’ (i.e, Rit), we must compare the regions that were classified as
+‘red zones’ for at least two weeks to those classified as ‘orange zones’ during the same period,
+controlling for the propensity of having a similar evolution of the epidemic and level of risk (i.e,
+Y
+B,K
+it and X
+B,K
+it ) if the region were assigned an ‘orange code’ instead of a ‘red code’. Under the
+sequential ignorability assumption, given the identification result in 15 or a rework of it, researchers
+have developed methods for the estimation of average treatment effects, appropriately adjusting for
+time-varying confounders that are affected by past treatments. In the literature, these methods are
+broadly referred to as g-methods and include inverse-probability-of-treatment weighting, parametric
+g-formula, and g-estimation (Hernán and Robins 2020).
+5.3. Predicting the impact on future observations
+5.3.1. Causal Estimands
+Now, let us assume that we have already assessed the impact of an intervention or event that we had
+observed in a subsample U
+obs
+1
+of locations in I at some time points during the observed temporal
+window T . We now wish to predict the impact of the same intervention or event if were able to
+replicate it in the future on the same population I.
+Let T
+F
+Z = [T + F, . . . , T + F + T
+F
+Z
+], with F ≥ 1, T F
+Z ≥ 0, the future time window where
+we wish to apply the intervention or event of interest (future treatment window), and let T
+F =
+19
+0 T T +F T +F +T
+F
+Z
+T +F +L T +F +T
+F time
+Observed window
+T
+Future treatment window
+T
+F
+Z
+Future outcome window
+T
+F
+Figure 4: Timeline and notation for predicting the impact of an intervention if applied to a future
+treatment window on a future outcome window. The time window with a dashed red border
+represents the hypothetical 3-day intervention that we wish to apply in the future.
+[T + F + L, . . . , T + F + T
+F ], with B ≤ L ≤ B + K and L ≤ T
+F ≤ T
+F
+Z + K, be the future time
+window where we wish to forecast the causal effect (future outcome window) (see Figure 4). Note
+that the duration of the future treatment window, i.e., T
+F
+Z
+, depends on whether the intervention
+of interest is with or without duration and on the type of causal effect we wish to predict. For
+instance, if we wish to predict the effect of a multi-day intervention lasting Q = 3 days, then we
+would set T
+F
+Z = 3.
+3
+Let U
+F = {it : i ∈ I, t ∈ T F }. We define the average causal effect of the treatment in the future
+as the following quantity:
+AT TF =
+1
+NF
+1
+X
+it∈UF
+1
+
+E
+h
+Yit(1)|Xi0
+i
+− E
+h
+Yit(0)|Xi0
+i (16)
+where U
+F
+1 ⊆ U
+F is a sub-sample of units and NF
+1 = |U
+F
+1
+| is the number of units in U
+F
+1
+. The
+AT TF compares the two counterfactual scenarios where the lagged treatment vector Z
+B,K
+it is such
+that Dit = 0 or Dit = 1 on all units it ∈ U
+F
+1
+. The sub-sample U
+F
+1 where we wish to predict the
+causal effect AT T F depends on the question of interest. We could focus on one future time point
+T
+F = T +F +L, with B ≤ L ≥ K +B and predict the effect of initiating an intervention or having
+a single-day event at time T +F, in all areas in I or a subset of them, i.e., U
+F
+1 = {it : i ∈ I⋆ ⊂ I, t =
+T +F +L}. For example, after the US primary elections, federal and state government were anxious
+to gain insight into the possible effect of the general elections to be held on November 3rd, 2020.
+Similarly, during the surge of COVID-19 cases in Europe in October 2020, European governments
+had to decide on whether to impose restrictions to control the spread of the coronavirus and based
+their decision on the predicted effect of such regulations. Similar questions can arise about the
+effect of having multi-day events (e.g., lockdowns, protests) lasting Q days within the time window
+T
+F
+Z = [T + F, . . . , T + F + T
+F
+Z
+], with F ≥ 1, T F
+Z ≥ Q on a future day or days T
+F = T
+F
+Z + T
+F , with
+B ≤ T
+F ≤ B+K T
+F = [T +F +L, . . . , T +F +T
+F ], with B+Q ≤ L ≤ B+Q+K and T
+F ≤ T
+F
+Z +K.
+Predicting the effect of such events would allow policy-makers to decide on the length of lockdowns or
+on preventing long-lasting social events. Another interesting question could be about the predicted
+effect of implementing an intervention, not on a specific day, but during those days in a time window
+where characteristics reached a level similar to the one that determined the implementation of the
+intervention in the past (Reiner et al. 2021). Formally, U
+F
+1 = {it ∈ U
+F : Rit ∈ R(U
+obs
+1
+)}, where
+3Note that if 0 ≤ F < K and L < K − F, for any t ≤ T + B + K ∈ T F
+the cross-over treatment period
+[t − B − K, t − B] overlaps with the observed time window T and we would estimate the effect of switching the
+observed treatments and imposing new treatments such that Dit = h(Z
+B,K
+it ) = 0 or 1.
+20
+R(U
+obs
+1
+) is the empirical distribution of past covariates and outcomes in the past treated sample
+U
+obs
+1
+. This case refers to the question that policy-makers were asking at the end of the first wave
+about what they should have done in the case of a second wave with similar epidemic dynamic to
+the one in the Spring. Finally, we could be interested in predicting the effect of administering a
+regulation under a pre-specified scenario of interest R⋆
+for the covariate and outcome history before
+implementing the regulation, i.e., U
+F
+1 = {it ∈ U
+F : Rit ∈ R⋆}. For example, we could be interested
+in predicting the causal effect of imposing strict curbs when the weekly incidence and mortality
+exceed a threshold.
+5.3.2. Identification under Temporal Transportability
+Similarly to the discussion in Section 4.4.2, the first problem that arises in forecasting a causal effect
+is that both potential outcomes Yit(1) and Yit(0) in (16) are missing for all units in U
+F . Here, we
+extend the temporal transportability assumptions required to forecast causal effects of time-varying
+treatments in the future.
+Let us assume for now that all the time-varying effect modifiers were included in the covariate
+vector Xiℓ and possibly in the outcome variable Yiℓ, with their histories before the treatment and
+during the treatment period being potential modifiers. Under the hypothetical assumption that
+all the effect modifiers were ‘measured’ in both the observed time window and the unobserved
+future period, we formalize the temporal transportability assumption for potential outcomes under
+time-varying treatments.
+Assumption 6 (Temporal Transportability of Potential Outcomes). Let Ait be an indicator of
+whether the outcome of unit it has been observed, i.e., Ait = 1 if it ∈ U
+obs and Ait = 0 if it ∈ U
+F .
+Yit(d) Ait|Z
+B,K
+it : Dit = d, X
+B,Lx
+it , Y
+B,Ly
+it , Xi0 ∀ d, ∀it ∈ {U
+obs, UF
+} (17)
+In words, Assumption 6 states that, for units with the same baseline covariates, Xi0, that would
+have the same evolution of outcomes Y
+B,Ly
+it and covariates X
+B,Lx
+it under a treatment history Z
+B,K
+it ,
+the distribution of potential outcomes is the same, regardless of whether unit it were observed in
+the sample U
+obs or it belongs to a future time window. This means that Assumption 6 states
+that all the potential effect modifiers are included in the covariate and outcome history and rules
+out the presence of unobserved time-varying effect modifiers that could be different between the
+observed sample and the future period. Notice that we also allow the evolution of covariates and
+outcomes during the cross-over treatment period, i.e., X
+B,K−1
+it and Y
+B,K
+it , to be effect modifiers.
+As a consequence, both missing potential outcomes in (16) can be imputed, implicitly or explicitly,
+conditional on effect modifiers from a set of control and treated units observed in the past.
+In general, neither the evolution of outcomes Y
+B,Ly
+it nor that of time-varying covariates X
+B,Lx
+it
+are observed (or fully observed) for units in the future set U
+F . The temporal transportability of
+time-varying modifiers, including covariates and outcomes, with time-varying treatments can be
+formalized as follows, extending Assumption 3.
+Assumption 7 (Temporal Transportability of Time-Varying Modifiers). Let A⋆
+iℓ be an indicator of
+whether the outcome of unit iℓ has been observed, i.e., A⋆
+iℓ = 1 if iℓ ∈ U
+obs and A⋆
+iℓ = 0 if i ∈ I but
+ℓ ̸∈ T .
+Part A (Confounders):
+Xiℓ Aiℓ|Z
+1,Lz
+iℓ , X
+1,Lxx
+iℓ ,Y
+1,Lxy
+iℓ , Xi0 ∀ℓ ∈ [1, . . . , T, . . . , T + F, . . . , T + F + T
+F
+Z ]
+21
+Part B (Lagged Outcomes):
+Yiℓ Aiℓ|Z
+B,K
+iℓ , X
+B,Lx
+iℓ , Y
+B,Ly
+iℓ , Xi0 ∀ℓ ∈ [1, . . . , T, . . . , T + F, . . . , T + F + T
+F
+Z − 1]
+Assumption 7.A states that the distribution of time-varying covariates at each time point ℓ is the
+same between the past observed sample and the future time period, including the time window
+between the two periods, conditional on the past covariate, outcome, and treatment history. Thus,
+Assumption 7.A rules out the presence of events that would change the way covariates evolve over
+time, and allows the prediction of time-varying covariates during the window [t − B − Lx, t − B]
+that could affect the potential outcome Yit(d). Assumption 7.B on the lagged outcomes is similar
+to Assumption 6, but it is defined as an independence of observed outcomes rather than potential
+outcomes. It states that the distribution of outcomes at each time point ℓ is the same between
+the observed time period and the future time period, conditional on the past ‘observed’ covariate,
+outcome and treatment history.
+Let us now take a closer look to the conditioning set in temporal transportability assumption
+(Assumption 6). In principle, the treatment history in the future T
+F
+Z window, that is, Z
+B,K
+it , for
+t ∈ T F , is not known. Under the temporal transportability assumption Z
+B,K
+it must be set such that
+Dit = d, ∀t ∈ T F . However, given our interest on the causal effect of the treatment indicator Dit,
+there would be several treatment vectors leading to the same treatment indicator. In addition, if
+K > 0, we have post-treatment time-varying modifiers, i.e., X
+B,K−1
+it and Y
+B,K
+it . Under Assumption
+7, these post-treatment time-varying modifiers should, in principle, be drawn from their conditional
+distribution under the counterfactual scenario Dit = d. Nevertheless, we can prove the following
+proposition.
+Proposition 1 (Temporal Transportaility of Potential Outcomes). Under Assumptions 6 and 7,
+we have:
+Yit(d) Ait|X
+B+K,Lx−K
+it , Y
+B+K+1,Ly−K
+it ∀ d, ∀it ∈ {U
+obs, UF
+} (18)
+Then, we have the following identification result for potential outcomes in the future time
+window:
+E
+h
+Yit(d)|Ait = 0, Xi0
+i
+=
+X
+z:Dit=d
+X
+r
+E
+h
+Y
+obs
+it |Ait = 1, Z
+B,K
+it = z, Rit = r, Xi0
+i
+× fRit
+(r|Ait = 0, Xi0)
+(19)
+where
+fRit
+(r|Ait = 0,Xi0) =
+X
+x
+X
+y
+fRit
+(r|X
+Lx,t−Lx−1
+it = x
+Lx,t−Lx−1
+it , Y
+Ly+1,t−Ly−2
+it = y
+Ly+1,t−Ly−2
+it , Z
+B+K,B+K−1
+it , Ait = 1, Xi0)
+× fX,Y(x
+Lx,t−Lx−1
+it , y
+Ly+1,t−Ly−2
+it |Ait = 1, Xi0)
+(20)
+Proof is reported in the Appendix.
+Proposition 1 that we only need to predict effect modifiers before the treatment starts at time
+t − B − K . The evolution of post-treatment effect modifiers, that are affected by the counterfactual scenario, does not need to be predicted because it will be averaged over, conditional on
+pre-treatment covariates. The intuition is that the evolution of the time-varying modifiers affected
+22
+by the counterfactual treatment scenario is just a mechanism through which the treatment has an
+effect on the final outcome. If we assume that these time-varying modifiers can be predicted by
+their observed history (Assumption 7), this means that this mechanism can be explained by the
+variables collected in X (and Y ), ruling out other unmeasured factors that could be responsible for
+a different trend of these modifiers as a response of the treatment.
+On the other hand, the identification result in Proposition 1 still requires a marginalization
+over the distribution of time-varying covariates and outcomes before the carry-over window. This
+marginalization could be performed using a Monte-Carlo simulations as commonly done in Gcomputation approach or with multiple imputation techniques (Bartlett et al. 2025). Assumptions
+7.A and 7.B would allow us to ‘impute’ the covariate and outcome history in the future time period
+before the carry-over treatment window, using a model fitted using data observed in U
+obs. For
+instance, if US federal and state officials were interested in predicting the possible effect of holding
+the general elections in-person after observing the primary elections during the first wave of COVID19 in the Spring 2020, they would have had to impute the epidemic dynamics until November 3rd.
+It is worth mentioning that units in U
+F
+1
+are ‘matched’ with units in U
+obs across time but also across
+space. In fact, a future time point t ∈ T F at a geographical area i ∈ I could be matched with
+an observed time point t
+′ ∈ T at another geographical area. Because the treatment history in
+the conditioning sets of Assumptions 7.A and 7.B, i.e., Z
+1,Lz
+iℓ or Z
+B,K
+iℓ , is in general not actually
+observed, we would set Zik to: i) 0 for k ∈ [T + 1, . . . , T + F − 1], ii) the observed value for k ∈ T ,
+and iii) such that Dit = d for k in the carry-over window [t − B − K, t − B].
+It is worth mentioning that, at the time of predicting an effect, the trend of outcomes and
+time-varying covariates, needed for the prediction of causal effects in T
+F , can be already partially
+observed and the imputation of the missing part would be easier to handle. Given a future time
+point t ∈ T F , if there exists time points in the carry-over period that are still part of the observed
+period, i.e., ℓ ∈ [t − B − L, t − B − K]∩ T , with L = Lx, Ly, the time-varying modifiers Xiℓ and Yiℓ
+would have already been observed as part of the observed sample T . Furthermore, we have been
+denoting by T the observed time window used for the estimation of the effect of the intervention
+or even of interest that occurred on some units, e.g., the primary elections in the Spring 2020.
+However, at the time of predicting the effect on a future period we could have also observed the
+trend of deaths and cases – as well as the treatment history – beyond the observed time window
+T used for estimation, e.g. in the Summer 2020. This set of observations could still be used to
+estimate the model for the evolution of time-varying modifiers and predict them to forecast the
+causal effect of the general election in the Fall 2020.
+It is worth noting that, even if we observed all the time-varying effect modifiers until the day
+before the time we wish to assess the possible effect of an intervention, the temporal transportability
+assumptions for time-varying modifiers (Assumptions 7.A and 7.B) are still required for multi-day
+interventions. This is because we would estimate the effect in a future time window using data from
+the past sample averaging over the evolution of post-treatment modifiers that would be seen for
+these past units. In other words, the independence in (18) must hold.
+6. Potential issues invalidating temporal transportability
+It is worth stressing the implications of the temporal transportability assumptions and the possible situations that would invalidate them. The temporal transportability of potential outcomes
+assumptions (Assumptions 2 and 6) rule out the presence of unmeasured time-varying effect modifiers. Thus, when predicting the effect on mortality rate of a COVID regulation or event that
+could affect the spread of the virus, we must consider all time-varying factors that could potentially
+23
+affect such effect. Such time-varying effect modifiers could be the weather and other environmental factors, population preventive behaviors (e.g., social distancing and mask-wearing), the status
+of COVID-19 infections and hospitalizations, health care preparedness (e.g., medical supplies and
+access to personal protective equipment), as well as the infectiousness and deadliness of the virus
+which could change over time due to mutations. Some of these factors, such as weather, are not
+affected by COVID-19 restrictions and can be predicted using estimated trends. On the contrary,
+other factors, such as the epidemic status, are influenced by previous regulations or events and
+should be predicted under the observed interventions/events and hypothetical interventions/events.
+Nevertheless, other factors, such as preventive behaviors and virus mutations, are hard to measure
+and, in general, will not be included in X.
+On the other hand, the temporal transportability assumptions of time-varying modifiers (Assumptions 3 and 7) require the absence of unobserved events or time-varying factors that would
+have affected their trend. In the case of COVID-19 effect modifiers, similar unmeasured factors to
+the ones invalidating the temporal transportability assumption of potential outcomes (e.g., virus
+mutations and preventive behaviors) would also invalidate the prediction of other time-varying effect modifiers (e.g., epidemic status) from the observed data. In addition, we should also be careful
+about other interventions and events that could possibly affect the COVID-19 transmission. In the
+presence of such phenomenons between our observed time window and the future period where we
+want to make predictions, the temporal transportability of effect modifiers will not hold.
+In general, the closer we are to the future time window T
+F the more plausible the temporal
+transportability assumptions will be and, in turn, the more accurate the prediction of time-varying
+modifiers and causal effects can be. In the presence of a large gap between the observed period and
+the future window of interest, i.e., F >> 1, it is likely that some of these genetic, behavioral and
+environmental factors, or the occurrence of social events or restrictions other than the ones defining
+the treatment, have changed the transmission dynamics of COVID-19.
+In practice, the accuracy of predictions also depend on the accuracy of the models, including
+those for the effect modifiers and possibly the outcome model. Such accuracy will depend on the
+availability of historical data as well as on the gap between the observed and future time windows.
+Our ability to predict the future context may also depend on current uncertain circumstances and
+on our understanding of the phenomenon. For example: sometimes the amount of medical supplies
+and equipment that will be at hand is hard to predict; despite advances in meteorological modeling
+technology, weather forecasts often fail; predicting virus mutations is still a difficult task.
+If we were to use the effect estimated for the primary elections in the US in the Spring 2020 to
+predict the effect of the general elections on November 3rd, we would need to predict and control
+for all the aforementioned effect modifiers, as well as in-person turnout. Social distancing and
+mask-wearing behaviors have likely changed over time, from the first to the second wave. Over
+the summer, we saw in Europe a decreasing adherence of the population to preventive guidelines.
+Another difference between the Spring and the Fall 2020 is in the shortage of medical supplies and
+limited access to personal protective equipment, that contributed to a higher mortality rate during
+the first wave. If these factors were not taken into account, it is possible that the predicted effect
+of elections would be biased. If this exercise were conducted in the Summer 2020, it would have
+been harder to predict the spread of COVID-19 in the Fall 2020, preventive behaviors, health care
+preparedness, and in-person turnout. Conversely, if such analysis were carried out in early October,
+we could have better predicted in-person turnout and heath care preparedness. At that time, we also
+had a good sense of the different adherence to preventive guidelines in each area between the Spring
+and the Fall, and we could have predicted mask wearing and social distancing behaviors during and
+outside the polls. However, it would have been harder to forecast the epidemic dynamics, because
+temperatures were going down, in-door gatherings were becoming more frequent, and we were still
+24
+uncertain about the potential effect of school opening.
+7. Conclusions and discussion
+The goal of policy evaluation is commonly stated as “to determine the impact of a policy on some
+outcome of interest” (Heckman and Vytlacil 2007). This statement can be viewed in two ways: 1) we
+would like to assess the effect of the policy on the outcome of interest in the population and at the
+time the policy was actually implemented; 2) we would like to investigate whether the implemented
+policy would also be effective in another population and in a future time. The first type of causal
+question is actually what we have in mind when we design an evaluation study. However, the
+answer to the second question would be the one that should inform future policies. During the
+SARS-CoV-2 emergency in summer 2020, such question appeared to be crucial for public health
+officials trying to decide whether restrictions similar to those implemented in the spring should be
+replicated and whether similar social events should still be allowed. For this reason we use the
+evaluation of COVID-19 interventions as a motivational example throughout the paper. We have
+first reviewed the identification of the causal effect of an intervention, observed or hypothetical, in
+the observed time window, distinguishing between point intervention, intervention without duration,
+with continuous duration and intermittent occurrence. Then, we have dealt with the problem of
+predicting the effect of an intervention in a future time window. Due to the presence of possible timevarying effect modifiers, we have extended existing results on generalizability across populations
+to a problem of generalizability from the past to the future. We have clarified the assumptions
+required to identify predicted causal effects, including those needed to predict time-varying effect
+modifiers, which cannot be observed in a future time, and those that would allow model-based or
+non-parametric prediction of causal effects under the predicted modified context. In the case of
+multi-day interventions, we have shown that time-varying modifiers only need to be predicted for
+the time window between the observed one and the first day in the future where we assume that the
+intervention of interest will be implemented. This is also true for hypothetical interventions (see
+Appendix), except when they depend on previous outcomes or exposures. In Table 1 we summarize
+identification results for causal effects in the observed or future sample by intervention type and
+presence of time-dependent confounders.
+Furthermore, we have discussed several issues invalidating the prediction of causal effects: the
+problem of unmeasured effect modifiers (e.g., preventive behaviors, viral mutations) that cannot
+be observed and predicted, possible phenomenons occurring between the observed and the future
+time windows, and the inaccuracy of the models used for both time-varying modifiers and potential
+outcomes. As mentioned, such issues depend on the data quality at hand, the availability of historical
+data, the gap between the observed and future time windows, current uncertain circumstances, and
+on our understanding of the phenomenon.
+Although we have discussed the problem of causal prediction using the example of COVID19 interventions, our causal framework, identification results, and discussion on the underlying
+assumptions, apply to all fields where there is interest in forecasting causal effects of interventions
+or event. Model-based projections have been used extensively in environmental epidemiology, and,
+in particular, in the field of climate change to predict long-term health effects of implemented or
+hypothetical interventions to reduce greenhouse emissions (Baccini et al. 2011; Kendrovski et al.
+2017; Gasparrini et al. 2017; Hess et al. 2020; Hansen and Bi 2017; Vicedo-Cabrera et al. 2019;
+Rai et al. 2022). For instance, we could be interested in estimating the effect of traffic bans or
+the installation of scrubbers on power plants, designed to reduce the emission of fine particulate
+matter (PM10 or PM2.5), and informing policy-makers on the potential impact of implementing
+25
+Table 1: Summary of identification results by time window, intervention type, and whether timedependent confounders are present. Note that Rit: pre-treatment confounders and Vit: posttreatment confounders during the treatment window
+Time Window Causal Effect Intervention Type Time-dependent
+Confounders
+Assumptions Identification
+observed Eq.(1) point treatment NA Ass.1 Eq. (3), (4)
+observed Eq.(11) one-day NA Ass.5
+Eq. (13), (14)
+Cit = Rit
+observed Eq.(11) multi-day no Ass.5
+Eq. (13), (14)
+Cit=[Rit,Vit]
+observed Eq.(11) multi-day yes Ass.5 Eq.(14), (15)
+future Eq.(5) point treatment NA Ass.2, 3 Eq. (7), (8), (9), (10)
+future Eq.(16)
+time-varying
+treatment
+yes/no Ass.6, 7 Eq. (19), (20)
+these interventions in a different time when mobility behaviors might have changed. On the other
+hand, as a hypothetical interventions, we could think of a emissions reduction policy that would be
+able keep the annual average levels of PM10 below a recommended threshold or a law limit (e.g., 20
+µg/m3
+) (Forastiere et al. 2020).
+Many limitations of the use of model-based projections to forecast the effect of actual or hypothetical interventions in the future are known among researchers (Holmdahl and Buckee 2020; Kim
+et al. 2021b). For example, in the climate change literature, changes in the population structure
+as well as physiological adaptation to varying temperatures have been identified as two important
+issues that should be discussed and possibly addressed with sensitivity analyses when performing
+model-based projections (Vicedo-Cabrera et al. 2019; Hess et al. 2020; Hansen and Bi 2017; Rai
+et al. 2022). Here, we wish to provide formal evidence of such limitations and give further insights
+into the underlying assumptions that we make whenever such predictions are conducted. By doing
+so, we hope to encourage researchers to be more transparent and clear about their assumptions
+and to discuss their plausibility and possible circumstances that could invalidate them. In spite
+of the limitations, model-based projections, constrained by what we have observed and what we
+assume, can still be a necessary input to public policy decisions, if used appropriately and with an
+understanding of their weaknesses.
+Among the issues of forecasting a causal effect in the future, we have not discussed two main
+problems that would also invalidate predictions from a past observed sample to a future time. The
+first is the fact that the implementation of the intervention in the future might be different from the
+way it was implemented in the past. This is because, usually the implementation of an intervention
+is context-specific and it not easy to replicate the same operational steps. For example, in Europe
+the way the same COVID-19 preventive guidelines were imposed in the Fall was very different from
+26
+the stricter controls we have seen in the Spring. Another issue is that the no-interference assumption
+that could have been valid during the Spring, where strict mobility restrictions were imposed, might
+not be plausible in the Fall 2020, where inter-state mobility has begun to rise again. These questions
+are beyond the scope of this article but will be addressed in future research.
+References
+Adam, D., 2020a. A guide to r–the pandemic’s misunderstood metric. Nature 583, 346–349.
+Adam, D., 2020b. Special report: The simulations driving the world’s response to covid-19. Nature
+580. doi:10.1038/d41586-020-01003-6.
+Alimohamadi Yousef, Taghdir Maryam, S.M., 2020. Estimate of the basic reproduction number for
+covid-19: A systematic review and meta-analysis. J Prev Med Public Health 53, 151–157.
+Anderson, R.M., Heesterbeek, H., Klinkenberg, D., Hollingsworth, T.D., 2020. How will countrybased mitigation measures influence the course of the covid-19 epidemic? The lancet 395, 931–934.
+Baccini, M., Kosatsky, T., Analitis, A., Anderson, H.R., D’Ovidio, M., Menne, B., Michelozzi, P.,
+Biggeri, A., et al., 2011. Impact of heat on mortality in 15 european cities: attributable deaths
+under different weather scenarios. Journal of Epidemiology & Community Health 65, 64–70.
+Bartlett, J., Granger, E., Keogh, R., Zwet, E., Daniel, R., 2025. G-formula with multiple imputation for causal inference with incomplete data. Statistical methods in medical research 34,
+9622802251316971. doi:10.1177/09622802251316971.
+Bonifazi, G., Lista, L., Menasce, D., Mezzetto, M., Pedrini, D., Spighi, R., Zoccoli, A., 2021.
+Study on the effects of the restrictive measures for containment of the covid-19 pandemic on the
+reproduction number $$r_t$$in italian regions. The European Physical Journal Plus 136, 1208.
+Brooks-Pollock, E., Read, J.M., McLean, A.R., Keeling, M.J., Danon, L., 2021. Mapping social
+distancing measures to the reproduction number for covid-19. Philosophical Transactions of the
+Royal Society B: Biological Sciences 376.
+Brownson, R.C., Chriqui, J.F., Stamatakis, K.A., 2009. Understanding evidence-based public health
+policy. American Journal of Public Health 99, 1576–1583.
+Buchanan, A., Hudgens, M., Cole, S., Mollan, K., Sax, P., Daar, E., Adimora, A., Eron, J., Mugavero, M., 2018. Generalizing evidence from randomized trials using inverse probability of
+sampling weights. Journal of the Royal Statistical Society: Series A (Statistics in Society) 181.
+doi:10.1111/rssa.12357.
+Burnett, R., Chen, H., Szyszkowicz, M., Fann, N., Hubbell, B., Pope Iii, C.A., Apte, J.S., Brauer,
+M., Cohen, A., Weichenthal, S., et al., 2018. Global estimates of mortality associated with
+long-term exposure to outdoor fine particulate matter. Proceedings of the National Academy of
+Sciences 115, 9592–9597.
+Chinazzi, M., Davis, J.T., Ajelli, M., Gioannini, C., Litvinova, M., Merler, S., y Piontti, A.P.,
+Mu, K., Rossi, L., Sun, K., Viboud, C.G., Xiong, X., Yu, H., Halloran, M.E., Longini, I.M.,
+Vespignani, A., 2020. The effect of travel restrictions on the spread of the 2019 novel coronavirus
+(covid-19) outbreak. Science (New York, N.y.) 368, 395 – 400.
+27
+Cole, S., Stuart, E., 2010. Generalizing evidence from randomized clinical trials to target populations. the actg 320 trial. American journal of epidemiology 172, 107–15. doi:10.1093/aje/kwq084.
+Dahabreh, I.J., Hernán, M.A., 2019. Extending inferences from a randomized trial to a target
+population. European Journal of Epidemiology 34, 719–722.
+Dahabreh, I.J., Robertson, S.E., Steingrimsson, J.A., Stuart, E.A., Hernan, M.A., 2020. Extending
+inferences from a randomized trial to a new target population. Statistics in medicine 39, 1999–
+2014.
+Davies, N.G., Kucharski, A.J., Eggo, R.M., Gimma, A., Edmunds, W.J., Jombart, T., O’Reilly, K.,
+Endo, A., Hellewell, J., Nightingale, E.S., et al., 2020. Effects of non-pharmaceutical interventions
+on covid-19 cases, deaths, and demand for hospital services in the uk: a modelling study. The
+Lancet Public Health 5, e375–e385.
+Di, Q., Dai, L., Wang, Y., Zanobetti, A., Choirat, C., Schwartz, J.D., Dominici, F., 2017. Association of short-term exposure to air pollution with mortality in older adults. JAMA 318,
+2446–2456.
+Di Domenico, L., Pullano, G., Pullano, G., Hens, N., Colizza, V., 2020. Expected impact of school
+closure and telework to mitigate covid-19 epidemic in france. EPIcx Lab 15.
+Feltham, E., Forastiere, L., Alexander, M., Christakis, N.A., 2023. Mass gatherings for political
+expression had no discernible association with the local course of the covid-19 pandemic in the
+usa in 2020 and 2021. Nature Human Behaviour 7, 1708–1728. URL: https://doi.org/10.
+1038/s41562-023-01654-1, doi:10.1038/s41562-023-01654-1.
+Ferguson, N.M., Laydon, D., Nedjati-Gilani, G., Imai, N., Ainslie, K., Baguelin, M., Bhatia, S.,
+Boonyasiri, A., Cucunubá, Z., Cuomo-Dannenburg, G., et al., 2020. Impact of non-pharmaceutical
+interventions (npis) to reduce covid-19 mortality and healthcare demand. MRC Centre for Global
+Infectious Disease Analysis-COVID-19 reports [Internet] .
+Flaxman, S., Mishra, S., Gandy, A., Unwin, H.J.T., Mellan, T.A., Coupland, H., Whittaker, C.,
+Zhu, H., Berah, T., Eaton, J.W., Monod, M., Perez-Guzman, P.N., Schmit, N., Cilloni, L.,
+Ainslie, K.E.C., Baguelin, M., Boonyasiri, A., Boyd, O., Cattarino, L., Cooper, L.V., Cucunubá,
+Z., Cuomo-Dannenburg, G., Dighe, A., Djaafara, B., Dorigatti, I., van Elsland, S.L., FitzJohn,
+R.G., Gaythorpe, K.A.M., Geidelberg, L., Grassly, N.C., Green, W.D., Hallett, T., Hamlet, A.,
+Hinsley, W., Jeffrey, B., Knock, E., Laydon, D.J., Nedjati-Gilani, G., Nouvellet, P., Parag, K.V.,
+Siveroni, I., Thompson, H.A., Verity, R., Volz, E., Walters, C.E., Wang, H., Wang, Y., Watson,
+O.J., Winskill, P., Xi, X., Walker, P.G.T., Ghani, A.C., Donnelly, C.A., Riley, S., Vollmer,
+M.A.C., Ferguson, N.M., Okell, L.C., Bhatt, S., Team, I.C.C..R., 2020. Estimating the effects of
+non-pharmaceutical interventions on covid-19 in europe. Nature 584, 257–261.
+Forastiere, L., Carugno, M., Baccini, M., 2020. Assessing short-term impact of pm10 on mortality
+using a semiparametric generalized propensity score approach. Environmental Health: A Global
+Access Science Source 19. doi:10.1186/s12940-020-00599-6.
+Garcia, C.A., Yap, P.S., Park, H.Y., Weller, B.L., 2016. Association of long-term pm2.5 exposure
+with mortality using different air pollution exposure models: impacts in rural and urban california.
+International Journal of Environmental Health Research 26, 145–157.
+28
+Gasparrini, A., Guo, Y., Sera, F., Vicedo-Cabrera, A.M., Huber, V., Tong, S., de Sousa Zanotti
+Stagliorio Coelho, M., Nascimento Saldiva, P.H., Lavigne, E., Matus Correa, P., Valdes Ortega,
+N., Kan, H., Osorio, S., Kyselý, J., Urban, A., Jaakkola, J.J.K., Ryti, N.R.I., Pascal, M., Goodman, P.G., Zeka, A., Michelozzi, P., Scortichini, M., Hashizume, M., Honda, Y., Hurtado-Diaz,
+M., Cesar Cruz, J., Seposo, X., Kim, H., Tobias, A., Iñiguez, C., Forsberg, B., Åström, D.O.,
+Ragettli, M.S., Guo, Y.L., fu Wu, C., Zanobetti, A., Schwartz, J., Bell, M.L., Dang, T.N., Van,
+D.D., Heaviside, C., Vardoulakis, S., Hajat, S., Haines, A., Armstrong, B., 2017. Projections
+of temperature-related excess mortality under climate change scenarios. The Lancet Planetary
+Health 1, e360–e367.
+Hansen, A., Bi, P., 2017. Climate change adaptation: no one size fits all. The Lancet Planetary
+Health 1, e353–e354.
+Hartman, E., Grieve, R., Ramsahai, R., Sekhon, J.S., 2015. From sample average treatment effect
+to population average treatment effect on the treated: combining experimental with observational
+studies to estimate population treatment effects. Journal of the Royal Statistical Society: Series
+A (Statistics in Society) 178, 757–778.
+Heckman, J.J., Vytlacil, E.J., 2007. Econometric evaluation of social programs, part i: Causal
+models, structural models and econometric policy evaluation. Handbook of econometrics 6, 4779–
+4874.
+Hernán, M., Robins, J., 2020. Causal Inference: What If. Boca Raton: Chapman & Hall/CRC.
+Hess, J.J., Ranadive, N., Boyer, C., Aleksandrowicz, L., Anenberg, S.C., Aunan, K., Belesova, K.,
+Bell, M.L., Bickersteth, S., Bowen, K., Burden, M., Campbell-Lendrum, D., Carlton, E., Cissé,
+G., Cohen, F., Dai, H., Dangour, A.D., Dasgupta, P., Frumkin, H., Gong, P., Gould, R.J., Haines,
+A., Hales, S., Hamilton, I., Hasegawa, T., Hashizume, M., Honda, Y., Horton, D.E., Karambelas,
+A., Kim, H., Kim, S.E., Kinney, P.L., Kone, I., Knowlton, K., Lelieveld, J., Limaye, V.S., Liu,
+Q., Madaniyazi, L., Martinez, M.E., Mauzerall, D.L., Milner, J., Neville, T., Nieuwenhuijsen,
+M., Pachauri, S., Perera, F., Pineo, H., Remais, J.V., Saari, R.K., Sampedro, J., Scheelbeek, P.,
+Schwartz, J., Shindell, D., Shyamsundar, P., Taylor, T.J., Tonne, C., Vuuren, D.V., Wang, C.,
+Watts, N., West, J.J., Wilkinson, P., Wood, S.A., Woodcock, J., Woodward, A., Xie, Y., Zhang,
+Y., Ebi, K.L., 2020. Guidelines for modeling and reporting health effects of climate change
+mitigation actions. Environmental Health Perspectives 128, 115001.
+Holmdahl, I., Buckee, C., 2020. Wrong but useful — what covid-19 epidemiologic models can and
+cannot tell us. New England Journal of Medicine 383, 303–305.
+Hudgens, M.G., Halloran, M.E., 2008. Toward causal inference with interference. Journal of the
+American Statistical Association 103, 832 – 842.
+Imai, K., King, G., Stuart, E.A., 2008. Misunderstandings between experimentalists and observationalists about causal inference. Journal of the royal statistical society: series A (statistics in
+society) 171, 481–502.
+Imbens, G.W., Rubin, D.B., 2015. Causal inference in statistics, social, and biomedical sciences.
+Cambridge University Press.
+Inglesby, T.V., 2020. Public health measures and the reproduction number of sars-cov-2. JAMA .
+29
+Jewell, N.P., Lewnard, J.A., Jewell, B.L., 2020. Predictive Mathematical Models of the COVID19 Pandemic: Underlying Principles and Value of Projections. JAMA 323, 1893–1894. URL:
+https://doi.org/10.1001/jama.2020.6585, doi:10.1001/jama.2020.6585.
+Kendrovski, V., Baccini, M., Martinez, G.S., Wolf, T., Paunovic, E., Menne, B., 2017. Quantifying
+projected heat mortality impacts under 21st-century warming conditions for selected european
+countries. Int J Environ Res Public Health 14, 729.
+Kim, I.S., Rauh, A., Wang, E.H., Imai, K., 2021a. Matching methods for causal inference with
+time-series cross-sectional data. American Journal of Political Science .
+Kim, M., Gu, Z., Yu, S., Wang, G., Wang, L., 2021b. Methods, challenges, and practical issues of
+covid-19 projection: A data science perspective. Journal of Data Science 19, 219–242.
+Lauer, S., Brown, A., Reich, N., 2020. Infectious disease forecasting for public health. Population
+biology of vector-borne diseases (May 2020) 45.
+Li, F., Buchanan, A.L., Cole, S.R., 2022a. Generalizing trial evidence to target populations in
+non-nested designs: Applications to aids clinical trials. Journal of the Royal Statistical Society.
+Series C, Applied statistics 71, 669.
+Li, F., Ding, P., Mealli, F., 2022b. Bayesian causal inference: a critical review. Philosophical
+Transactions of the Royal Society A 381.
+Li, F., Hong, H., Stuart, E.A., 2021. A note on semiparametric efficient generalization of causal
+effects from randomized trials to target populations. Communications in Statistics-Theory and
+Methods , 1–32.
+Marshall, B.D., Galea, S., 2015. Formalizing the role of agent-based modeling in causal inference
+and epidemiology. American journal of epidemiology 181, 92–99.
+Martinez, G.S., Baccini, M., Ridder, K.D., Hooyberghs, H., Lefebvre, W., Kendrovski, V., Scott, K.,
+Spasenovska, M., 2016. Projected heat-related mortality under climate change in the metropolitan
+area of skopje. BMC Public Health 16, 407.
+McKenzie, J.F., Neiger, B.L., Thackeray, R., 2022. Planning, implementing and evaluating health
+promotion programs. Jones & Bartlett Learning.
+Meyerowitz-Katz, G., Merone, L., 2020. A systematic review and meta-analysis of published research
+data on covid-19 infection fatality rates. International Journal of Infectious Diseases 101, 138–148.
+Murray, E.J., Robins, J.M., Seage, G.R., Freedberg, K.A., Hernán, M.A., 2017. A comparison
+of agent-based models and the parametric g-formula for causal inference. American journal of
+epidemiology 186, 131–142.
+Naimi, A.I., Cole, S.R., Kennedy, E.H., 2017. An introduction to g methods. International journal
+of epidemiology 46, 756–762.
+O’Driscol, M., Harry, C., Donnelli, C., Cori, A., Dorigatti, I., 2021. A comparative analysis of
+statistical methods to estimate the reproduction number in emerging epidemics with implications
+for the current covid-19 pandemic. Clin Infect Dis 37, e215–e223.
+30
+O’Muircheartaigh, C., Hedges, L.V., 2013. Generalizing from unrepresentative experiments: A
+stratified propensity score approach. Journal of the Royal Statistical Society: Series C (Applied
+Statistics) 63, 195–210.
+Palguta, J., Levínský, R., Skoda, S., 2021. Do elections accelerate the covid-19 pandemic? Journal
+of Population Economics 35, 197 – 240.
+Pearl, J., 2015. Generalizing experimental findings. Journal of Causal Inference 3. doi:10.1515/
+jci-2015-0025.
+Pelagatti, M., Maranzano, P., 2021. Assessing the effectiveness of the italian risk-zones policy during
+the second wave of covid-19. Health Policy (Amsterdam, Netherlands) 125, 1188 – 1199.
+Perrakis, K., Gryparis, A., Schwartz, J., Tertre, A.L., Katsouyanni, K., Forastiere, F., Stafoggia, M.,
+Samoli, E., 2014. Controlling for seasonal patterns and time varying confounders in time-series
+epidemiological models: a simulation study. Statistics in Medicine 33, 4904–4918.
+Prem, K., Liu, Y., Russell, T.W., Kucharski, A.J., Eggo, R.M., Davies, N., Flasche, S., Clifford, S.,
+Pearson, C.A., Munday, J.D., et al., 2020. The effect of control strategies to reduce social mixing
+on outcomes of the covid-19 epidemic in wuhan, china: a modelling study. The Lancet Public
+Health 5, e261–e270.
+Rai, M., Breitner, S., Wolf, K., Peters, A., Schneider, A., Chen, K., 2022. Future temperaturerelated mortality considering physiological and socioeconomic adaptation: a modelling framework.
+The Lancet Planetary Health 6, e784–e792.
+Reiner, R.C., Barber, R.M., Collins, J.K., Zheng, P., Adolph, C., Albright, J., Antony, C.M.,
+Aravkin, A.Y., Bachmeier, S.D., Bang-Jensen, B., Bannick, M.S., Bloom, S., Carter, A., Castro,
+E., Causey, K., Chakrabarti, S., Charlson, F.J., Cogen, R.M., Combs, E., Dai, X., Dangel, W.J.,
+Earl, L., Ewald, S.B., Ezalarab, M., Ferrari, A.J., Flaxman, A., Frostad, J.J., Fullman, N.,
+Gakidou, E., Gallagher, J., Glenn, S.D., Goosmann, E.A., He, J., Henry, N.J., Hulland, E.N.,
+Hurst, B., Johanns, C., Kendrick, P.J., Khemani, A., Larson, S.L., Lazzar-Atwood, A., LeGrand,
+K.E., Lescinsky, H., Lindstrom, A., Linebarger, E., Lozano, R., Ma, R., Månsson, J., Magistro,
+B., Herrera, A.M.M., Marczak, L.B., Miller-Petrie, M.K., Mokdad, A.H., Morgan, J.D., Naik, P.,
+Odell, C.M., O’Halloran, J.K., Osgood-Zimmerman, A.E., Ostroff, S.M., Pasovic, M., Penberthy,
+L., Phipps, G., Pigott, D.M., Pollock, I., Ramshaw, R.E., Redford, S.B., Reinke, G., Rolfe, S.,
+Santomauro, D.F., Shackleton, J.R., Shaw, D.H., Sheena, B.S., Sholokhov, A., Sorensen, R.J.D.,
+Sparks, G., Spurlock, E.E., Subart, M.L., Syailendrawati, R., Torre, A.E., Troeger, C.E., Vos, T.,
+Watson, A., Watson, S., Wiens, K.E., Woyczynski, L., Xu, L., Zhang, J., Hay, S.I., Lim, S.S.,
+Murray, C.J.L., Team, I.C..F., 2021. Modeling covid-19 scenarios for the united states. Nature
+Medicine 27, 94–105.
+Robins, J.M., 1999. Association, causation, and marginal structural models. Synthese , 151–179.
+Robins, J.M., Hernán, M.A., Brumback, B.A., 2000. Marginal structural models and causal inference
+in epidemiology. Epidemiology 11, 550–560.
+Rothman, K., Greenland, S., Lash, T., 2011. Modern epidemiology: Third edition. Lippincott
+Williams & Wilkins.
+Rubin, D., 1980. Discussion of" randomization analysis of experimental data in the fisher randomization test" by d. basu. Journal of the American statistical association 75, 591–593.
+31
+Rubin, D., Huang, J., Fisher, B.T., Gasparrini, A., Tam, V.W., Song, L., Wang, X., Kaufman, J.,
+Fitzpatrick, K., Jain, A., Griffis, H.M., Crammer, K., Morris, J., Tasian, G.E., 2020. Association
+of social distancing, population density, and temperature with the instantaneous reproduction
+number of sars-cov-2 in counties across the united states. JAMA Network Open 3.
+Rudolph, K.E., van der Laan, M.J., 2017. Robust estimation of encouragement-design intervention
+effects transported across sites. Journal of the Royal Statistical Society. Series B, Statistical
+methodology 79, 1509–1525.
+Schwartz, J., 2017. Air pollution and mortality in the medicare population. New England .
+Schwartz, J., Bind, M.A., Koutrakis, P., 2017. Estimating causal effects of local air pollution on
+daily deaths: effect of low levels. Environmental health perspectives 125, 23–29.
+Shaddick, G., Lee, D., Zidek, J.V., Salway, R., 2008. Estimating exposure response functions
+using ambient pollution concentrations. The Annals of Applied Statistics 2, 1249–1270. URL:
+http://www.jstor.org/stable/30245134.
+Sonnenberg, F.A., Beck, J.R., 1993. Markov models in medical decision making: a practical guide.
+Medical decision making 13, 322–338.
+Stuart, E.A., Cole, S.R., Bradshaw, C.P., Leaf, P.J., 2011. The use of propensity scores to assess
+the generalizability of results from randomized trials. Journal of the Royal Statistical Society:
+Series A (Statistics in Society) 174, 369–386.
+Tipton, E., 2013. Improving generalizations from experiments using propensity score subclassification: Assumptions, properties, and contexts. Journal of Educational and Behavioral Statistics
+38, 239–266.
+Tipton, E., Hedges, L., Vaden-Kiernan, M., Borman, G., Sullivan, K., Caverly, S., 2014. Sample
+selection in randomized experiments: A new method using propensity score stratified sampling.
+Journal of Research on Educational Effectiveness 7, 114–135.
+Tuite, A.R., Fisman, D.N., Greer, A.L., 2020. Mathematical modelling of covid-19 transmission
+and mitigation strategies in the population of ontario, canada. Cmaj 192, E497–E505.
+Velias, A., Georganas, S., Vandoros, S., 2022. Covid-19: Early evening curfews and mobility. Social
+Science & Medicine 292, 114538.
+Vicedo-Cabrera, A.M., Sera, F., Gasparrini, A., 2019. Hands-on tutorial on a modeling framework
+for projections of climate change impacts on health. Epidemiology (Cambridge, Mass.) 30, 321 –
+329.
+Wei, Y., Wang, Y., Wu, X., Di, Q., Shi, L., Koutrakis, P., Zanobetti, A., Dominici, F., Schwartz,
+J.D., 2020. Causal effects of air pollution on mortality rate in massachusetts. American journal
+of epidemiology 189, 1316–1323.
+Westreich, D., Edwards, J.K., Lesko, C.R., Stuart, E., Cole, S.R., 2017. Transportability of trial
+results using inverse odds of sampling weights. American journal of epidemiology 186, 1010–1014.
+Yadav, S.K., Akhter, Y., 2021. Statistical modeling for the prediction of infectious disease dissemination with special reference to covid-19 spread. Frontiers in Public Health 9.
+Zhang, R., Wang, Y., Lv, Z., Pei, S., 2022. Evaluating the impact of stay-at-home and quarantine
+measures on covid-19 spread. BMC Infectious Diseases 22.
+32
+Appendix
+A. Impact of a hypothetical intervention modifying the exposure
+distribution
+We now extend the framework developed in Section 5 to the assessment of a hypothetical intervention
+that would modify the exposure level, either by setting it to a specific value or by shifting the
+exposure distribution below a certain threshold.
+In our COVID-19 example, the exposure variable Sit can be seen as the number of potentially
+contagious interactions between infectious and susceptible people in area i at time t. Thus, Sit can
+be seen as proportional to the effective reproduction number Re
+4 and the number of circulating
+infected individuals in the area. For the sake of simplicity, we can consider the exposure variable
+Sit as being equal to the effective reproduction number Re.
+We can think of a hypothetical public health policy that would control the spread of COVID-19
+by keeping the Re below 1 for one month. We do not specify the specific measures that will be put
+in place to achieve this goal. It is instead a hypothetical intervention on the distribution of the Re.
+An intervention of this kind is usually evaluated by first estimating the exposure-response function
+(mortality rate-Re). Then, we can evaluate the effect of the hypothetical intervention by predicting
+the expected mortality rate under a shift in the distribution of the exposure.
+A.1. Potential Outcomes
+Under the potential outcome framework, we denote as Yit(s) the potential outcome of unit it under
+an exposure matrix S equal to s. As before, we make the no-interference assumption between
+areas and we assume that the outcome at time t can at most depend on the exposures over a
+period from t − B − K to t − B, where 0 ≤ B < T and 0 ≤ K < t − B. We denote by S
+B,K
+it =
+[Si(t−B)
+, Si(t−B−1), . . . , Si(t−B−K)
+] the lagged exposure vector of interest.5 Formally, we make the
+following SUTVA-type assumption:
+Assumption 8 (SUTVA on the exposure). ∀S,S
+′ ∈ RI×T
+such that S
+B,K
+it = S
+B,K′
+it , the following
+equality holds:
+Yit(S) = Yit(S
+′
+)
+Under this assumption we can index the potential outcome only by the lagged exposure vector
+S
+B,K
+it , i.e., Yit(S
+B,K
+it ). Throughout, we will refer to Yit(s), as the potential outcome that we would
+observe at unit it if the lagged exposure vector S
+B,K
+it were set equal to s. In the literature, the
+function Yit(s) is referred to as exposure-response function (ERF) (e.g., Forastiere et al. 2020).
+A.2. Actual impact on the observed sample
+Oftentimes the exposure-response function Yit(s) is the actual object of interest, rather than the
+effect of a specific intervention. In fact, ERFs are essential to estimate health effects of exposures:
+4The effective reproduction number Re, is the expected number of new infections caused at a specific time by an
+infectious individual in a population O’Driscol et al. (2021).
+5We could also introduce a function g(·), which summarizes the exposure vector S
+B,K
+it and maps it into a continuous
+(possibly multivariate) exposure variable Git = g(S
+B,K
+it ) ∈ RP
+, and assume a SUTVA-like assumption that allows
+indexing the potential outcomes only by this variable, i.e., Yit(Gi). Note that g(·) could also be the identity function.
+However, for clarity of exposition, in this section we prefer to index the potential outcomes by the whole exposure
+vector, without introducing a summarizing function.
+33
+they describe quantitatively the extent to which a specific health outcome changes when exposure
+to the specified agent varies by a given amount. For example, there is an extensive literature
+on the harmful effects of air pollution, and several parametric and semi-parametric approaches
+have been used to estimate the exposure-response curve between long-term or short-term exposure
+to ambient air pollution concentrations and health outcomes (Shaddick et al. 2008; Garcia et al.
+2016; Schwartz 2017; Schwartz et al. 2017; Di et al. 2017; Burnett et al. 2018; Wei et al. 2020).
+The exposure-response relationship has important regulatory implications. In fact, quantifying the
+relationship between exposure and the resulting effects on health makes it possible to assess the
+effectiveness of hypothetical measures that reduce the exposure (Forastiere et al. 2020).
+In the case of COVID-19, the ERF is usually represented by epidemiological models. The
+different measures that have been implemented to control the epidemic or that can be hypothesized
+act on the transmission rate in order to reduce the spread from infected to susceptible individuals.
+Let f
+S
+B,K
+it
+(s) be the observed distribution of the exposure S
+B,K
+it for each day t at location i. Let
+us consider a hypothetical intervention that sets the distribution of the exposure for each day t at
+location i to p
+⋆
+S
+B,K
+it
+(s). For the sake of notational simplicity, we denote the observed distribution by
+fit(s) and the hypothetical distribution by p
+⋆
+it(s). We define the average impact of the hypothetical
+intervention p
+⋆
+it(s), denoted by AEE (Average Exposure Effect), as the following quantity:
+AEE =
+1
+Nobs
+1
+X
+it∈Uobs
+1
+ Z
+E
+h
+Yit(s)|Xi0
+i
+fit(s)ds −
+Z
+E
+h
+Yit(s)|Xi0
+i
+p
+⋆
+it(s)ds
+
+, (21)
+where U
+obs
+1
+is a sub-sample of U
+obs and Nobs
+1
+is the number of units in U
+obs
+1
+. For example, U
+obs
+1
+could
+be the subset of units it where the exposure s falls below a certain threshold s
+⋆
+. Then, the AEE
+(Equation 21) can be seen as the average outcome events that could have been prevented in the
+sample U
+obs
+1 had we implemented the hypothetical intervention. With regard to the hypothetical
+intervention, we could think of a counterfactual scenario where we set all the exposure values during
+the cross-over period equal to the critical threshold i.e., p
+⋆
+it(s) = δ(s
+⋆
+). A more realistic intervention
+is the one where we shift the distribution to values below the threshold, i.e., p
+⋆
+it(s) = fit(s|s < s
+⋆
+).
+For example, in the case of COVID-19 we could think of public policies that would be able to
+reduce the effective reproductive number Re to values below 1. Note that the notation in Equation
+(21) implies that we are assuming that the hypothetical intervention has the only effect of shifting
+the distribution to the targeted one (p
+⋆
+it(s)), without resulting in any other effect. For now, let
+us assume the the hypothetical distribution p
+⋆
+it(s) does not depend on any unit’s characteristics or
+previous exposures.
+A.2.1. Identification under Sequential Ignorability
+Here, we extend the sequential ignorability assumption 5 to the case where potential outcomes are
+indexed by the lagged exposure treatment vector s:
+Assumption 9 (Sequential Randomization - no unmeasured confounders).
+Yit(s) Siℓ|S
+1,ℓ−1−H
+iℓ = s
+ℓ−H+1
+, Viℓ, Rit, U ⊆ U
+obs ∀ d, ∀ ℓ ∈ [t − B − K, t − B] (22)
+where S
+1,ℓ−1−H
+iℓ is the exposure history from t − B − K until ℓ − 1, s
+ℓ−H+1 is the sub-vector of
+the exposure realization s, and U is a subset of units contained in U
+obs where Assumption 9 holds.
+This sequential ignorability assumption states that for each unit in U ⊆ U
+obs the distribution of
+the potential outcomes at time t is independent of the exposure Siℓ in the cross-over time window
+34
+[t − B − K, t − B], conditional on the exposure history until time [t − B − K], the covariate and the
+outcome history before and during the cross-over period.
+When evaluating exposure-response functions, oftentimes the exposure has a cross-over effect and
+the outcome depends on the exposure over multiple days, i.e., K > 0. In this case, the estimation
+of the exposure-response function could be affected by time-dependent confounders. When they are
+not present – i.e., when previous outcomes do not affect future exposures, and when covariates in
+Xit are fixed or time-varying covariates are not affected by previous exposures – under Assumption
+9, the conditional exposure-response function is identified by:
+E
+h
+Yit(s)|Xi0
+i
+=
+X
+c
+E
+h
+Y
+obs
+it |S
+B,K
+it = s, Cit = c, Xi0
+i
+fCit
+(c|Xi0)
+(23)
+with Cit = [Rit, Vit]. That is, we adjust for all type of confounders, including baseline covariates
+as well as the evolution of time-varying covariates pre-treatment and during the cross-over window.
+Thus, the average exposure effect on the exposed (AEE) is identified from the observed data as
+follows:
+AEE =
+1
+Nobs
+1
+X
+it∈Uobs
+1
+
+E
+h
+Y
+obs
+it |Xi0
+i
+−
+Z
+E
+h
+Yit(s)|Xi0
+i
+p
+⋆
+it(s)ds
+
+, (24)
+with E[Yit(s)|Xi0] identified by Equation (23). When the exposure is the number of potentially
+contagious interactions between infectious and susceptible people and the outcome is the mortality
+rate, time-independent confounders can include population and environmental characteristics. For
+example, an area with a high average age might show limited interactions between individuals and
+yet a high mortality rate.
+On the other hand, it is possible to conceive time-dependent confounders affected by previous
+exposures and affecting future ones. For instance, the adoption of protective behaviors (e.g., mask
+wearing, test and treatment seeking behaviors), that are likely to reduce exposure to the virus as
+well as the risk of death, might be prompted by an increase in COVID-19 cases. Similarly, the
+worsening of the epidemic could compromise the contact tracing capacity, and its effectiveness in
+identifying cases, letting them circulate and infect more people. As a consequence, the effective
+reproductive number Re could get higher (although the downward bias in the estimated Re might
+be more prominent), while the capacity of monitoring the onset of severe symptoms in a timely
+matter will also be compromised, leading to an increased mortality rate. In addition, a surge in
+cases can lead the governments to impose stricter restrictions as well as to increase the provision of
+medical equipment, affecting both the future Re and mortality rate.
+When time-dependent confounders are present, under the sequential ignorability Assumption 9,
+the average exposure-response function, conditional on pre-treatment confounders, Cit = Rit, not
+affected by the exposure vector S
+B,K
+it , can be identified by the following g-formula:
+E
+h
+Yit(s)|Xi0
+i
+=
+X
+r
+X
+x
+X
+y
+E
+h
+Y
+obs
+it |S
+B,K
+it = s, Rit = r, Xi0, X
+B,K−1
+it = x,Y
+B,K
+it = y
+i
+H
+X
++K
+ℓ=H
+p(yiℓ|S
+B,ℓ−B−H
+iℓ = s
+ℓ−B,Y
+1,ℓ−1−H
+iℓ = y
+ℓ−1
+, X
+0,ℓ−1−H
+iℓ = x
+ℓ
+, Rit = r, Xi0)
+× f(xiℓ|S
+1,ℓ−1−H
+iℓ = s
+ℓ−1
+, Rit = r, Xi0) × fRit
+(r|Xi0)
+(25)
+where s
+k = {sH, ..., sk}. Given Equation (25), we identify the conditional exposure-response function E[Yit(s)|Xi0] by taking the mean outcome of those with the lagged exposure vector equal to
+35
+s units averaged over the distribution of covariate and outcome history Rit before the carry-over
+period t − B − K conditional on the treated, as well as over the distribution of the evolution of
+outcomes and covariates during the carry-over period under the lagged exposures given in s. Finally,
+the AEE is then identified as in (24).
+A.3. Predicting the impact on future observations
+A.3.1. Causal Estimands
+Now, let assume that we wish to forecast the impact of the hypothetical intervention on the observed
+population I but in a future period. Instead of asking the question of what would have happened
+had we been able to shift the distribution of the exposure to p
+⋆
+it(s), we wish to pose the question
+of what would happen in a future period if we could implement an intervention able to yield shift
+the exposure with an hypothetical distribution p
+⋆
+it(s). Policy-makers usually rely on the observed
+evidence of the harmful effect of a biological, chemical or physical agent to propose a hypothetical
+intervention that could reduce the population exposure. In this case, they are typically interested
+in assessing its future impact, rather than wonder what would have happened in the past had they
+been able to implement an intervention that was not even conceived. For example, after the first
+wave of COVID-19, we had a good estimate of the basic reproductive number and case fatality rate
+for SARS-CoV-2 (Alimohamadi Yousef 2020; Meyerowitz-Katz and Merone 2020). This evidence
+led us to thinking that if we could keep the effective reproductive number to a value lower than 1,
+we could predict the number of prevented deaths.
+As in Section 5.3, let T
+F
+Z = [T + F, . . . , T + F + T
+F
+Z
+], with F ≥ 1, T F
+Z ≥ 0, be the future time
+window where we wish to apply the hypothetical intervention, and let T
+F = [T + F + L, . . . , T +
+F + T
+F ], with B ≤ L ≤ B + K and L ≤ T
+F ≤ T
+F
+Z + K be the future time window where we
+wish to forecast the causal effect. Let us assume that we still want to predict the effect in the same
+population I where we observed a certain variation in the exposure and the outcome variable during
+the past time window T . Thus, our future sample is defined by U
+F = {it : i ∈ I, t ∈ T F }.
+We can define the average causal effect of the hypothetical intervention on the exposure in the
+future as the following quantity:
+AEEF =
+1
+NF
+1
+X
+it∈UF
+1
+ Z
+E
+h
+Yit(s)|Xi0
+i
+fit(s)ds −
+Z
+E
+h
+Yit(s)|Xi0
+i
+p
+⋆
+it(s)ds
+
+, (26)
+where U
+F
+1 ⊆ U
+F is a sub-sample of units and NF
+1 = |U
+F
+1
+| is the number of units in U
+F
+1
+, while p
+⋆
+it(s)
+is the hypothetical distribution. The AEEF compares the two counterfactual scenarios where the
+lagged exposure vector is what would be observed under its natural evolution fit(s) or is drawn
+from the hypothetical distribution p
+⋆
+it(s) on all units it ∈ U
+F
+1
+. Thus, the AEEF represents the effect
+of implementing the hypothetical intervention as opposed to letting the population be subject to
+the natural course of the exposure, without such intervention. For instance, we may wish to assess
+the gain (in terms of prevented deaths) of implementing restrictions able to alter the course of the
+epidemic by reducing the Re to values below 1 or strictly equal to 1 for all the days in U
+F
+1 where
+Re would have been above 1.
+A.3.2. Identification under Temporal Transportability
+In the average causal effect of the hypothetical intervention in Equation (26), all the potential
+outcomes are missing: the entire exposure-dose response function Yit(s), and the lagged exposure
+S
+B,K
+it that would be observed under its natural evolution fit(s) without any intervention, for all
+36
+units in the future sample. The hypothetical distribution p
+⋆
+it(s) might be pre-specified or might be
+a shifted version of the distribution p(s) and, hence, will depend on domain knowledge or scientific
+contexts.
+The simplest solution is to assume that the exposure-response function, estimated on an observed
+sample, remains constant over time on the same population. That is, the distribution of the potential
+outcomes under a lagged exposure vector s, for any s, does not change with time, i.e., f(Yit(s)|U
+F
+1
+) =
+f(Yit(s)|U
+obs
+1
+). For example, in the case of COVID-19, we could assume a constant case fatality rate.
+If the exposure in the future time window T
+F
+Z
+could be assumed to be the same as in the past time
+window, either constant over time or following the same trend, AEEF could be simply evaluated in
+the past sample U
+obs
+1
+. Nevertheless, the exposure usually evolves overtime, and exposure-response
+functions are usually heterogeneous, depending on unit’s characteristics that may vary over time.
+Let us first focus on the problem of heterogeneous exposure-response functions. If these modifiers
+were fixed and only depended on the location, then the distribution of the exposure-response function
+in the future sample would be the same as in the past sample. On the contrary, in the presence
+of time-varying modifiers, a different distribution of these modifiers between the past and future
+samples would result in a different distribution of the exposure-response function. However, if all
+the time-varying effect modifiers were included in X and Y, the conditional distribution could still
+be the same. We could predict the exposure-response function Yit(s) of a future time point it ∈ U
+F
+1
+having certain characteristics from past time points in U
+obs
+1 with the same characteristics. This
+procedure relies on a temporal transportability assumption similar to Assumption 6.
+Assumption 10 (Temporal Transportability of Potential Outcomes).
+Yit(s) Ait|S
+B,K
+it = s, X
+B,Lx
+it , Y
+B,Ly
+it ∀s, ∀it ∈ {U
+obs, UF
+} (27)
+In words, Assumption 10 states that the distribution of the exposure-response function Yit(s), is
+the same for units observed in the sample U
+obs and those in the future sample U
+F , as long as they
+share the same evolution of outcomes Y
+B,Ly
+it and covariates X
+B,Lx
+it before the cross-over period and
+during the exposure under the exposure history S
+B,K
+it = s. Thus, for Assumption 10 to hold, all
+the potential time-varying modifiers must be included in the covariate and outcome history. As a
+consequence, the exposure-response function Yit(s) for future time points can be imputed from past
+time points with the same characteristics.
+Another potentially missing component in AEEF (Equation (26) is distribution of the exposure
+in the future time window, that is, f
+S
+B,K
+it
+(s) for it ∈ U
+F . We could assume that the evolution
+of the exposure in the future period would follow the same dynamic as in the past and could be
+predicted using dynamic models given past exposures. For example, in the case of COVID-19, we
+could assume that without any intervention the epidemic would follow its natural course. Formally,
+we can make the following assumption:
+Assumption 11 (Temporal Transportability of the Exposure Distribution). Given a subset Us,
+∀iℓ ∈ Us the following independence holds:
+Siℓ A
+⋆
+iℓ|S
+1,Lss−1
+iℓ , X
+0,Lxs
+iℓ , Y
+1,Lys−1
+iℓ (28)
+Assumption 11 states that the conditional distribution of the exposure Siℓ is independent of
+whether iℓ belongs to the observed sample U
+obs or not, that is, the stochastic process for the
+exposure, at least conditional on previous exposures, covariates and outcomes, is stationary. Let
+Us = {i ∈ I, ℓ ∈ Tcond(t), t ∈ T F }. If Assumption 11 holds for Tcond(t) = [t − B − K, t − B], we can
+identify the lagged exposure distribution for all units in U
+F
+1
+, and use it to predict S
+B,K
+it . Assumption
+37
+11 is what researchers rely on when using epidemiological models to predict the evolution of the
+epidemic over time without any intervention (Flaxman et al. 2020; Ferguson et al. 2020; Davies
+et al. 2020, e.g.,)
+As discussed in Section 5.3, in general, the time-varying modifiers Y
+B,Ly
+it and X
+B,Lx
+it are not
+observed for future time points in UF . Nevertheless, under a temporal transportability condition one
+could predict their evolution from the past. In particular, we must assume the following conditions.
+Assumption 12 (Temporal Transportability of Time-Varying Modifiers). Consider a future time
+window T
+F where we wish to predict the exposure-response function Yit(s) under a lagged exposure
+S
+B,K
+it = s, ∀t ∈ T F . The conditional distribution of time-varying modifiers is the same for units
+it ∈ U
+obs and it ∈ U
+F . In particular:
+Part A (Confounders):
+Xiℓ A
+⋆
+iℓ|S
+1,ℓ−1−H
+iℓ = s
+ℓ−1
+,S
+ℓ−H+1,H−1−ℓ+Ls
+iℓ , X
+1,Lxx
+iℓ , ∀ℓ ∈ [t − B − K + 1, t − B]
+Xiℓ Aiℓ|S
+1,Ls−1
+iℓ , X
+1,Lxx
+iℓ , ∀ℓ ∈ [t − B − Lx, t − B − K]
+Part B (Lagged Outcomes):
+Yiℓ Aiℓ|S
+B,ℓ−B−H
+iℓ = s
+ℓ−B,S
+ℓ−H+1,H−1−ℓ+B+K
+iℓ , X
+B,Lx
+iℓ , Y
+B,Ly
+iℓ , ∀ℓ ∈ [t − B − K, t − B]
+Yiℓ Aiℓ|S
+B,K
+iℓ , X
+B,Lx
+iℓ , Y
+B,Ly
+iℓ , ∀ℓ ∈ [t − B − Ly, t − B − K − 1]
+Assumption 12.A states that the distribution of time-varying covariates at each time point ℓ is
+the same between the past observed sample and the future time window, conditional on the past
+exposure vector, such that S
+B,K
+it = s, and the past covariate history if ℓ is within the carry-over time
+window, or conditional on the past covariate and exposure history for any ℓ before the carry-over
+time window. Assumption 12.B on the lagged outcomes states that the distribution of outcomes
+at each time point ℓ is the same between U
+obs and U
+F , conditional on the past exposure, covariate
+and outcome history corresponding to S
+B,K
+it = s if ℓ ∈ [t − B − K, t − B], or conditional on the
+past ‘observed’ covariate, outcome and exposure history for any ℓ ∈ [t − B − Ly, t − B − K − 1].
+Thus, Assumptions 12.A and 12.B, allow the prediction of time-varying modifiers during the window
+[t−B −L, t−B], with L = Lx, Ly, that could affect the potential outcome Yit(s). In practice, given
+a model for their trend, we would sequentially impute their evolution in the future time period.
+In order to predict these time-varying modifiers, the exposure history is missing and must also
+be imputed. As for the treatment in Section 5.3, for k ∈ T we keep Sik equal to the observed value.
+On the contrary, the exposure history before the carry-over period (i.e., S
+B+K+1,Lx+Ls−K−1
+it or
+S
+B+K+1,Ly−1
+it ), when not observed, must be imputed relying on the Assumption 11. In particular,
+for time-varying covariates Assumption 11 must hold for Tcond(t) = [t−B −Lx −Ls, t−B − K −1],
+whereas for time-varying outcomes it must hold for Tcond(t) = [t − B − K − Ly, t − B − K − 1].
+As in Section 5.3, it is worth emphasizing the role of post-exposure time-varying modifiers
+during the treatment window t − B − K, t − B, i.e., Vit = [X
+B,K−1
+it ,Y
+B,K
+it ]. In Assumption
+10, we can see that the exposure-response function in the future can be predicted from the past,
+conditional on the same exposure, covariate and outcome history, before and during the cross-over
+period. Nevertheless, under Assumption 12, these post-exposure time-varying modifiers should,
+in principle, be drawn from their conditional distribution under the counterfactual exposure vector
+S
+B,K
+it predicted from the natural evolution of exposures or drawn from the hypothetical distribution.
+. Thanks to the two transportability assumptions 10 and 12 combined, we can prove the following
+proposition.
+38
+Proposition 2 (Temporal Transportaility of Potential Outcomes). Under Assumptions 10 and 12,
+we have:
+Yit(s) Ait|X
+B+K,Lx−K
+it , Y
+B+K+1,Ly−K
+it ∀ d, ∀it ∈ {U
+obs, UF
+} (29)
+As a consequence, we would only need to predict time-varying modifiers in the pre-exposure period
+before time t − B − K.
+A similar result holds for the prediction of the lagged exposure vector in the cross-over period.
+We can rely on the following proposition.
+Proposition 3. Let A
+⋆,B,K
+it = [A⋆
+i(t−B)
+, A⋆
+i(t−B−1), . . . , A⋆
+i(t−B−K)
+], with A⋆
+iℓ = 1 if iℓ ∈ U
+obs and
+A⋆
+iℓ = 0 if i ∈ I but ℓ ̸∈ T . Under Assumption 11 with Us = {i ∈ I, ℓ ∈ Tcond(t) = [t − B − K, t −
+B], t ∈ T F }, and under Assumption 12, we have:
+f
+S
+B,K
+it
+(s|A
+⋆,B,K
+it = 0,S
+1,Lss−1
+i(t−B−K)
+,X
+0,Lxs
+i(t−B−K)
+, Y
+1,Lys−1
+i(t−B−K)
+) =
+f
+S
+B,K
+it
+(s|A
+⋆,B,K
+it = 1,S
+1,Lss−1
+i(t−B−K)
+, X
+0,Lxs
+i(t−B−K)
+, Y
+1,Lys−1
+i(t−B−K)
+)
+(30)
+In fact, given Assumption 11 the distribution of the exposure Si(t−B−K) can be estimated given the
+exposure, covariate and treatment history. Then, the distribution of the subsequent exposures in
+the lagged exposure vector S
+B,K
+it can be predicted, thanks to Assumption 12, only conditioning on
+the time-varying modifiers in the pre-exposure period before time t − B − K, without the need to
+predict the post-exposure modifiers. Note that the variables in the conditioning set can be partially
+observed, or if not observed, i.e., A⋆
+iℓ = 0, they can be predicted under the same assumptions 12
+and 11.
+Thus far we have assumed that the hypothetical intervention p
+⋆
+it(s) setting the exposure does
+not depend on time-varying characteristics or outcomes or on previous exposures. However, we
+could think of dynamic conditional hypothetical interventions that could potentially depend on
+previous outcomes or exposures, i.e., p
+⋆
+Siℓ
+(s|S
+1,L⋆
+ss−1
+iℓ , X
+0,L⋆
+xs
+iℓ , Y
+1,L⋆
+ys−1
+iℓ ). An example of these type of
+interventions is the Italian color code classification system, imposing different restrictions depending
+on the current effective reproductive number and hospitalization (Bonifazi et al. 2021). Davies
+et al. (2020) and Reiner et al. (2021) conducted model-based projections under similar hypothetical
+interventions triggered by different conditions. In this case, time-varying covariates, outcomes, and
+exposures under the hypothetical distribution must be sequentially imputed also in the treatment
+carry-over time window.
+Under the temporal transportability assumptions (Assumption 10, 11, and 12), using the result
+in Propositions 2 and 3, we can predict the exposure-response function on a future period using the
+following equality:
+E
+h
+Yit(s)|Ait = 0, Xi0
+i
+=
+X
+r
+E
+h
+Y
+obs
+it |Ait = 1,S
+B,K
+it = s, Rit = r, Xi0
+i
+× fRit
+(r|Ait = 0, Xi0)
+(31)
+In practice, for each unit in U
+F
+1
+, we first predict for the pre-exposure window until time t−B−K (or
+t−B − K −1) the time-varying modifiers Rit and the exposure vector bS
+1,Lss−1
+i(t−B−K) using their trends
+estimated from the observed data. Then, we draw samples from both hypothetical distribution
+p
+⋆
+it(s) and the distribution f
+S
+B,K
+it
+(s|A
+⋆,B,K
+it = 0,
+bS
+1,Lss−1
+i(t−B−K)
+,
+bRit) that would be observed without
+the hypothetical intervention. For both draws, we then estimate the average potential outcomes
+39
+under the corresponding exposure vector s, using units in the observed sample exposed to the vector
+S
+B,K
+it = s and with the same history Rit =
+bRit . When the hypothetical intervention depends on
+previous exposures, covariates or outcomes, in (??) we replace p
+⋆
+it(s) with p
+⋆
+it(s|S
+1,Lss−1
+i(t−B−K)
+, Vit, Rit),
+which requires to sequentially impute time-varying modifiers Vit and exposures during the cross-over
+period.
+For example, as already mentioned, the exposure to SARS-CoV-2 can be represented by the
+number of infectious cases circulating and the effective reproductive number. The relationship
+between this exposure and the mortality rate – the exposure-response function – depends on the
+case fatality rate. In fact, given the knowledge of the case fatality rate for SARS-CoV-2, and
+provided the number of cases in a population, we could compute the number of deaths we could
+have prevented under a hypothetical reduction of the effective reproductive number. If we were
+interested in conducting this exercise for a future period, we cannot just rely on the estimated
+exposure-response function, or in this setting, the estimated case fatality rate. The reason is that the
+mortality risk of COVID-19 depends on the population characteristics, but also on virus mutations
+which could affect the deadliness of the virus, the amount of medical supplies, hospital capacity, the
+development and availability of treatments. All these modifiers are likely to change over time. Thus,
+the case fatality rate estimated on the past sample might not be representative of the mortality risk
+for a future sample. However, if we were able to estimate the heterogeneity of the case fatality rate
+with respect to these modifiers, by relying on the temporal transportality assumption (Proposition
+2) we would be able to predict on a future sample the case fatality rate and, in turn, the mortality
+rate under a hypothetical intervention on the Re. Nevertheless, we must be careful to consider and
+include in the analysis all the time-varying modifiers, some of which could be related to unmeasured
+characteristics. Moreover, given the limited testing and contact tracing capacity and because a
+large number of infections with SARS-CoV-2 are pauci-symptomatic or even asymptomatic, the
+uncertainty around the number of undetected infections result in limited knowledge on the actual
+infection fatality rate and its heterogeneity.
+B. Proof of Proposition 1
+Proposition 1 (Temporal Transportaility of Potential Outcomes). Under Assumptions 6 and 7,
+we have:
+Yit(d) Ait|X
+B+K,Lx−K
+it , Y
+B+K+1,Ly−K
+it ∀ d, ∀it ∈ {U
+obs, UF
+}
+Proof.
+p
+
+Yit(d)|Ait = 0, Rit
+=
+X
+z:Dit=0
+X
+x
+X
+y
+p
+
+Yit(d)|Ait = 0, Z
+B,K
+it = z, Rit, X
+B,K−1
+it = x, Y
+B,K
+it = y
+
+H
+X
++K
+ℓ=H
+p(yiℓ|Aiℓ = 0, Z
+B,ℓ−B−H
+iℓ = z
+ℓ−B,Y
+1,ℓ−1−H
+iℓ = y
+ℓ−1
+, X
+0,ℓ−1−H
+iℓ = x
+ℓ
+, Rit)
+× f(xiℓ|Aiℓ = 0, Z
+1,ℓ−1−H
+iℓ = z
+ℓ−1
+, Rit)
+=
+X
+z:Dit=0
+X
+x
+X
+y
+p
+
+Yit(d)|Ait = 1, Z
+B,K
+it = z, Rit, X
+B,K−1
+it = x, Y
+B,K
+it = y
+
+H
+X
++K
+ℓ=H
+p(yiℓ|Aiℓ = 1, Z
+B,ℓ−B−H
+iℓ = z
+ℓ−B,Y
+1,ℓ−1−H
+iℓ = y
+ℓ−1
+, X
+0,ℓ−1−H
+iℓ = x
+ℓ
+, Rit)
+× f(xiℓ|Aiℓ = 1, Z
+1,ℓ−1−H
+iℓ = z
+ℓ−1
+, Rit)
+40
+41

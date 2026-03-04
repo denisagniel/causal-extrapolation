@@ -1,4 +1,4 @@
-\begin{thebibliography}{36}
+\begin{thebibliography}{37}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -52,6 +52,16 @@ Nancy Cartwright.
 \newblock \emph{Hunting Causes and Using Them: {{Approaches}} in Philosophy and
   Economics}.
 \newblock Cambridge University Press, 2007.
+
+\bibitem[Chernozhukov et~al.(2018)Chernozhukov, Chetverikov, Demirer, Duflo,
+  Hansen, Newey, and Robins]{chernozhukovDoubleDebiasedMachine2018}
+Victor Chernozhukov, Denis Chetverikov, Mert Demirer, Esther Duflo, Christian
+  Hansen, Whitney Newey, and James Robins.
+\newblock Double/debiased machine learning for treatment and structural
+  parameters.
+\newblock \emph{The Econometrics Journal}, 21\penalty0 (1):\penalty0 C1--C68,
+  2018.
+\newblock \doi{10.1111/ectj.12097}.
 
 \bibitem[Cintron et~al.(2022)Cintron, Adler, Gottlieb, Hagan, Tan, Vlahov,
   Glymour, and Matthay]{cintronHeterogeneousTreatmentEffects2022}

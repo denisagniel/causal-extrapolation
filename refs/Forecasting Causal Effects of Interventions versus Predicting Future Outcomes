@@ -1,0 +1,1734 @@
+Structural Equation Modeling: A Multidisciplinary Journal
+ISSN: 1070-5511 (Print) 1532-8007 (Online) Journal homepage: www.tandfonline.com/journals/hsem20
+Forecasting Causal Effects of Interventions versus
+Predicting Future Outcomes
+Christian Gische, Stephen G. West & Manuel C. Voelkle
+To cite this article: Christian Gische, Stephen G. West & Manuel C. Voelkle (2021) Forecasting
+Causal Effects of Interventions versus Predicting Future Outcomes, Structural Equation
+Modeling: A Multidisciplinary Journal, 28:3, 475-492, DOI: 10.1080/10705511.2020.1780598
+To link to this article: https://doi.org/10.1080/10705511.2020.1780598
+© 2020 The Author(s). Published with
+license by Taylor & Francis Group, LLC.
+View supplementary material
+Published online: 08 Sep 2020.
+Submit your article to this journal
+Article views: 5663
+View related articles
+View Crossmark data
+Citing articles: 14 View citing articles
+Full Terms & Conditions of access and use can be found at
+https://www.tandfonline.com/action/journalInformation?journalCode=hsem20
+TEACHER’S CORNER
+Forecasting Causal Effects of Interventions versus Predicting Future Outcomes
+Christian Gische 1
+, Stephen G. West2
+, and Manuel C. Voelkle 1,3
+1
+Humboldt-Universität zu Berlin, Germany; 2
+Arizona State University, Arizona; 3
+Max Planck Institute for Human Development, Germany
+ABSTRACT
+The present article provides a didactic presentation and extension of selected features of Pearl’s DAG-based
+approach to causal inference for researchers familiar with structural equation modeling. We illustrate key
+concepts using a cross-lagged panel design. We distinguish between (a) forecasts of the value of an
+outcome variable after an intervention and (b) predictions of future values of an outcome variable. We
+consider the mean level and variance of the outcome variable as well as the probability that the outcome
+will fall within an acceptable range. We extend this basic approach to include additive random effects,
+allowing us to distinguish between average effects of interventions and person-specific effects of interventions. We derive optimal person-specific treatment levels and show that optimal treatment levels may differ
+across individuals. We present worked examples using simulated data based on the results of a prior
+empirical study of the relationship between blood insulin and glucose levels.
+KEYWORDS
+Causal inference; DAG;
+cross-lagged panel;
+structural equation modeling
+Introduction
+Psychologists have long distinguished between experimental
+designs in which participants are randomly assigned to an
+active treatment or a control treatment and passive observational designs (i.e., non-experimental designs without
+a manipulation) in which the responses of participants are
+simply observed (e.g., Cronbach, 1957, 1975). Given randomization and manipulation of the treatment conditions, experimental designs permit strong causal inferences when their
+assumptions are met (Shadish et al., 2002; West &
+Thoemmes, 2010). A traditional view is that longitudinal passive observational designs only permit prediction of participants’ scores on the criterion variable at future time points and
+do not allow for causal conclusions.
+In this paper, we present an approach that shows that
+under certain conditions longitudinal passive observational
+designs contain information that allows researchers to forecast the causal effect of a hypothetical treatment, even if
+that treatment has not yet been carried out. We consider
+the commonly used cross-lagged panel design in which two
+variables X and Y are each measured at a set of equally
+spaced measurement waves. Throughout we make a clear
+distinction between (a) the forecast of the causal effect of
+a (hypothetical) intervention on an outcome at a future
+time point and (b) the prediction of the individual’s outcome at a future time point. The machinery for making
+forecasts of causal effects of interventions is provided by
+Judea Pearl’s (2009) graphical approach to causal inference
+(see also Elwert, 2013). We provide a brief didactic presentation and illustration of the relevant key ideas of Pearl’s
+approach, showing the links to ideas from traditional path
+analysis familiar to readers of this journal.
+Using this approach, we illustrate how to forecast the effect
+of an intervention on the level of an outcome variable at
+a future time point. We also show how to calculate the
+variance of the forecasted value and the probability that the
+outcome variable attains a value within a predefined acceptable range. We initially assume a population of homogeneous
+individuals and later extend the approach to consider potential individual differences in the mean level of each person’s
+time series data (unobserved heterogeneity). To facilitate
+a clear illustration of these ideas, we use as a running example
+a simple system with two variables measured at T ¼ 4 equally
+spaced time points. We assume that the data are generated in
+a dynamic system in which the value of X at time t, Xt,
+influences the value of Y at time t þ 1, Ytþ1, and likewise Yt
+influences Xtþ1. The system also includes autoregressive
+effects in which Xt influences Xtþ1 and Yt influences Ytþ1. In
+our illustration Xt represents blood insulin levels in nondiabetic adults at each of four equally spaced measurement
+waves measured in micro international units per milliliter
+(mcIU/ml). Blood glucose (Yt) is also measured at each measurement wave in milligrams per deciliter (mg/dl). For ease of
+presentation and without loss of generality, we use variables
+centered at the individual mean for each person.
+The causal relationships in the system postulated above
+can be plotted using causal diagrams (see Figure 1). Causal
+diagrams are well-defined mathematical objects that consist
+of nodes and edges. Pearl’s approach focuses on causal
+diagrams without feedback or causal loops, that is, without
+directed paths that traverse the same variable more than
+once. These causal diagrams are termed directed acyclic
+graphs (DAG) and represent the researcher’s theory and
+prior (empirical) knowledge about the causal relationships
+CONTACT Christian Gische christian.gische@hu-berlin.de Humboldt-Universität zu Berlin, Lebenswissenschaftliche Fakultät, Institut für Psychologie, Unter den
+Linden 6, 10099 Berlin.
+Supplemental data for this article can be accessed on the publisher’s website.
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL
+2021, VOL. 28, NO. 3, 475–492
+https://doi.org/10.1080/10705511.2020.1780598
+© 2020 The Author(s). Published with license by Taylor & Francis Group, LLC.
+This is an Open Access article distributed under the terms of the Creative Commons Attribution License (http://creativecommons.org/licenses/by/4.0/), which permits unrestricted use,
+distribution, and reproduction in any medium, provided the original work is properly cited.
+between the variables.1 A key advantage of representing the
+hypothesized causal process as a DAG is that it allows the
+researcher to analyze the causal system using mathematical
+tools from the fields of graph theory and graphical modeling (Cowell et al., 1999; Jordan, 1998; Koller & Friedman,
+2009; Pearl, 2009). These mathematical tools allow
+researchers to establish whether specific causal effects can
+be theoretically estimated given observable data (causal
+identification). They also help researchers to recognize the
+key variables needed for covariate adjustment and to find
+the testable implications of the causal system. Some of these
+tools are implemented in the user-friendly program
+DAGitty (Textor et al., 2016). In linear additive models,
+the insights provided by these mathematical tools have
+substantial overlap with the insights available from the
+tracing rules (Loehlin & Beaujean, 2017; Wright, 1934)
+and covariance algebra (Bollen, 1989) traditionally used in
+structural equation modeling. Unlike the tracing rules, the
+mathematical tools from graph theory can be applied to
+nonlinear and nonparametric models.
+We initially consider a dynamic system representing
+a single person from a population of homogenous individuals.
+In the section on “Between-Person Heterogeneity” we extend
+the approach to consider potential individual differences in
+the mean level (unobserved heterogeneity). To keep the illustration simple we further assume that the data generating
+mechanism is linear and can be represented by the following
+set of linear structural equations:2 t ¼ 1; 2; . . .; T ¼ 4
+Xtþ1 ¼ cxtþ1 xtXt þ cxtþ1ytYt þ εxtþ1 (1a)
+Ytþ1 ¼ cytþ1xtXt þ cytþ1ytYt þ εytþ1 (1b)
+Error terms (residuals, disturbances) are denoted by ε and
+a subscript indicating the corresponding variable. For example,
+εxtþ1 denotes the error term corresponding to variable Xtþ1. The
+error term εxtþ1 captures those factors that determine the value
+of Xtþ1 that are not explicitly included in the model (omitted
+variables).
+Consider the DAG in Figure 1 that represents the causal
+relationships for our simple two variable, four-wave illustration. Each solid single-headed arrow represents a direct causal
+relationship in this model. For simplicity of presentation, we
+will assume time-stable structural coefficients throughout the
+article. That is, we will assume that the autoregressive coefficients cxtþ1xt , t � 1, for the X-series and the autoregressive
+coefficients cytþ1 yt , t � 1, for the Y-series are constant over
+time. Likewise, we will assume that the cross-lagged coefficients
+from X at time t to Y at time t þ 1, denoted by cytþ1 xt , t � 1, and
+the cross-lagged coefficients from Yt to Xtþ1, denoted by cxtþ1yt ,
+t � 1, are constant over time. In addition, we will assume that
+the variances of the disturbances corresponding to the X-series,
+denoted by ψxt;xt
+, t � 2, and those corresponding to the Yseries, denoted by ψyt;yt
+, t � 2, are constant over time.
+Traditionally, error terms are not explicitly drawn in a DAG
+and the following conventions are used: (a) A bidirected edge
+drawn between two variables in the DAG indicates that the
+corresponding error terms covary due to unobserved confounding. For example, we assume an unobserved common
+cause of X1 and Y1 that implies a covariance between the
+corresponding error terms εx1 and εy1 , denoted as ψx1;y1 ¼
+COVðεx1 ;εy1 Þ (for interested readers, a detailed discussion of
+the specification of the first measurement occasion is provided
+in the Appendix on Initial Variables). (b) The absence of
+a bidirected edge between two variables reflects the assumption
+that there is no unobserved common cause. For example, we
+assume that there is no unobserved confounder for the X2 !
+Y3 relationship. Throughout this article, variances and covariances of disturbances are denoted by ψ and a subscript. For
+example, ψxt;xt denotes the variance of the disturbance εxt , that
+is, ψxt;xt ¼ VðεxtÞ.
+For our illustration, we simulate data from a known data
+generating process. Numerical values have been assigned to
+each parameter in the DAG based on the values from a panel
+data study by Ito et al. (1998). These numerical values are
+displayed in Tables 1 and 5 and will be used to illustrate
+numerical calculations of causal effects later in the paper (see
+X1 X2 X3 X4
+Y1 Y2 Y3 Y4
+cx2x1= 0.05
+cy2x1= -0.6
+cx3x2= 0.05
+cy3x2= -0.6
+cx4x3= 0.05
+cy4x3= -0.6
+cx2y1= 0.4
+cy2y1= 1.20
+cx3y2= 0.4
+cy3y2= 1.20
+cx4y3
+= 0.4
+cy4y3= 1.20
+Figure 1. The causal diagram (DAG) of the causal model for the four-wave passive observational study is displayed. The dashed double-headed arrow (bidirected edge)
+represents a correlation between X1 on Y1 due to an unobserved common cause. Traditionally, in DAGs the disturbances denoted by εxt , εyt , t ¼ 1; . . . ; 4 which
+represent other unmeasured influences on each variable are not represented. Solid single-headed arrows (directed edges) are labeled with path coefficients that
+quantify direct causal effects. For example, the cross-lagged coefficient cx2 y1 represents the direct effect of Y1 on X2. The autoregressive coefficient cx4 x3 represents the
+direct effect of X3 on X4. The coefficients cytþ1 xt and cytþ1yt , t � 1, are defined analogously.
+1
+Sometimes the class of acyclical directed mixed graphs is used. Mixed refers to the fact that graphs in this class contain directed edges as well as bidirected edges (Kang
+& Tian, 2009; Richardson, 2003). 2
+The complete set of model equations and distributional assumptions are provided in the online supplementary material.
+476 GISCHE ET AL.
+online supplementary material for a detailed account of the
+data generation). Note that these numerical values yield
+a stable and covariance stationary system (Hamilton, 1994).3
+Based on these values we obtain a standard deviation of blood
+insulin of SDðXtÞ ¼ 11:48 mcIU/ml and a standard deviation
+of blood glucose of SDðYtÞ ¼ 25:16 mg/dl, t � 1.
+Figure 2 modifies Figure 1 by introducing a specific form of
+manipulation introduced by Pearl. Historically in psychology, we
+have thought of a manipulation as adding (subtracting) a constant
+to the person’s current level on X. Thus, if a dose of insulin were
+given, the person’s insulin level would be expected to experience
+a fixed increase to a level that reflects both the dose received and
+the person’s baseline insulin level prior to the manipulation. In
+contrast, Pearl (2009) proposed a manipulation that fixes
+a person’s level on X to a constant value x. The latter type of
+manipulation is formalized via the do-operator and has proven to
+be very useful for theoretically defining and quantifying causal
+effects. For example, the do-operator applied to variable Xt is
+denoted by doðXt ¼ xtÞ or equivalently abbreviated as doðxtÞ.
+By definition, the doðxtÞ-operator has the following properties:
+It (a) fixes the level of Xt at xt for each unit in the population,
+where xt is referred to as the interventional level. The interventional level xt is (b) not related to any causally prior variable.
+Finally, the doðxtÞ-operator (c) leaves all other relationships in the
+dynamic system unchanged.
+Part (a) reflects the manipulation in a hypothetical experiment in which the level of the treatment variable Xt is set by an
+experimenter. By fixing the level of the variable, each unit will
+have the identical value of Xt following the doðxtÞmanipulation and Xt will have 0 variance under the intervention. In other words, the doðxtÞ-operation reflects
+a hypothetical experiment in which the treatment Xt ¼ xt is
+applied uniformly over the whole population. Part (b) of the
+definition of the doðxtÞ-operator reproduces the feature of
+randomized experiments that all prior covariates are independent of the treatment variable. Part (c) of the definition of the
+doðxtÞ-operator, an assumption formally known as autonomy
+or modularity (Pearl, 2009; Peters et al., 2017; Spirtes et al.,
+2000), implies that the intervention doðxtÞ only alters the value
+of Xt and does not change the relationships between other
+measured variables not involved in the manipulation.
+Figure 2 illustrates the do-operator applied to insulin levels
+at time t ¼ 2, denoted as doðx2Þ. Here, we imagine that each
+person’s insulin level is set to the interventional value X2 ¼
+11:48 mcIU/ml, that is, one standard deviation above the
+person’s mean level (which is 0 for each person after meancentering in a homogeneous population). The causal links of
+X2 to its direct predecessors in the causal chain (here: X1 and
+Y1) have been removed, but all other causal relationships in the
+model are maintained as before the doðx2Þ-operation.
+Up to this point, we have discussed the data generating
+mechanism but have not yet introduced the statistical model
+we will use for data analysis. Since we use simulated data the
+choice of a statistical model is straightforward: We chose
+a correctly specified statistical model, that is, one that exactly
+captures the data generating process described above. In our
+example, we will use a bivariate linear cross-lagged panel model
+with four measurement waves. This model can be equivalently
+understood as a linear structural equation model. Thus, it can
+be represented by a causal path diagram as commonly used to
+represent linear SEM (Bauer, 2003; Curran, 2003). These causal
+path diagrams are similar to DAGs, as long as we restrict our
+attention to linear models without feedback or causal loops. An
+important difference, however, is that a dashed double-headed
+arrow in a path diagram represents a covariance between variables (or disturbances) that is not further analyzed. In the
+Table 1. Numeric values of parameters for the homogeneous population.
+structural coefficients variance-covariance parameters
+cxx cxy cyx cyy ψx1 x1 ψy1 y1 ψx1 y1 ψxx ψyy
+0.05 0.40 −0.60 1.20 131.76 632.94 254.12 20.00 40.00
+Note. The numeric values of the structural coefficients correspond to a stationary
+and ergodic bivariate time series for the insulin-glucose dynamics displayed in
+Figures 1 and 2. The variances (ψx1 x1 ,ψy1 y1 ) and covariance (ψx1 y1 ) of the initial
+variables correspond to the long-term equilibrium values of the insulin-glucose
+process.
+X1 do(x2) X3 X4
+Y1 Y2 Y3 Y4
+cy2x1= -0.6
+cx3x2= 0.05
+cy3x2= -0.6
+cx4x3 = 0.05
+cy4x3= -0.6
+cy2y1= 1.20
+cx3y2= 0.4
+cy3y2= 1.20
+cx4y3
+= 0.4
+cy4y3= 1.20
+Figure 2. The causal diagram (DAG) displayed in Figure 1 is modified to account for the intervention doðx2Þ. The variable X2 has been replaced by doðx2Þ and the solid
+single-headed arrows entering X2 have been removed, indicating that the interventional level doðx2Þ does not depend on X1 or Y1 but is set by an experimenter (in our
+illustrative example we choose doðX2 ¼ 11:48Þ). Note that all other variables and directed edges (causal arrows) remain unchanged as compared to the situation
+without the intervention doðx2Þ as depicted in Figure 1 reflecting the assumption of modularity.
+3
+The two assumptions of homogeneous individuals and stationarity over time allow us to make statements about either a single individual over time or a population of
+homogeneous individuals. Given these two assumptions, the results of between subjects and within subjects analyses of the data are theoretically expected to be
+identical (Molenaar, 2004). Complexity is introduced if the parameters of the model are allowed to vary across individuals, that is, a person is drawn from a population
+of heterogeneous individuals (see section on “Between-Person Heterogeneity”).
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 477
+context of DAG-based causal inference, a dashed doubleheaded arrow represents a covariance that stems from an
+unobserved confounder. Throughout this paper, we draw
+DAGs and therefore double-headed arrows always indicate
+the existence of an unobserved confounder. From a statistical
+point of view, the linear bivariate cross-lagged panel model that
+captures the DAG depicted in Figure 1 is globally identified,
+that is, all parameters can theoretically be estimated uniquely
+from observational data (Bollen & Curran, 2004; Hsiao, 2014).
+Throughout this paper, we know with certainty that the
+causal assumptions encoded in the DAG in Figure 1 are
+correct since we use simulated data. Note that all our data
+stems from the DAG depicted in Figure 1, that is, we have not
+actually performed an experiment. This non-experimental
+evidence is combined with our assumptions about the data
+generating mechanism to forecast the effect of the (hypothetical) intervention (see Figure 2). In practical applications,
+however, one usually does not know the true data generating
+mechanism and causal assumptions postulated by researchers
+might be wrong. We discuss statistical tests of model assumptions and methods to analyze the sensitivity of causal conclusions with respect to violations of assumptions in the section
+on “Current Limitations and Future Directions.”
+Given the important distinction between the system following the doðx2Þ-operation depicted in Figure 2 and the passive
+observational system in the absence of any intervention
+depicted in Figure 1, we now explore the implications of
+these different situations for (a) forecasting the treatment effect
+of X2 on Y3 and (b) predicting the value of Y3 based on X2 in
+the absence of interventions.
+Distinguishing between forecasting effects of
+interventions and predicting future outcomes
+The effect of a treatment is always defined relative to another
+active or control treatment (Holland, 1986). The do-operator
+allows us to represent a specific type of treatment effect by
+comparing the distribution of an outcome variable under the
+intervention doðxtÞ (representing the treatment) to that of
+a second intervention doðx
+0
+tÞ (representing the control). The
+upper panel of Figure 3 displays the distribution of Y3 given the
+interventions doðX2 ¼ 11:48Þ (treatment; solid line) and
+doðX2 ¼ 0Þ (control; dotted line).
+We define the distribution of the outcome value Ytþk in the
+population given the treatment doðxtÞ as the interventional
+distribution, denoted by PðYtþkjdoðxtÞÞ, where k is the number
+of waves after the intervention when the outcome is measured.4
+In this paper, we restrict our attention to the interventional
+distribution k ¼ 1 wave after the treatment has been applied.
+To compare the outcome variable Ytþ1 given two distinct
+y3
+probability density function
+−80 −40 −6.89 40 80
+0 .006 .012
+interventional pdf f(y3|do(X2=x2))
+do(X2=11.48)
+do(X2=0)
+y3
+probability density function
+−80 −40 0 19.68 40 80
+0 .01 .02
+conditional pdf f(y3|X2=x2)
+X2=11.48
+X2=0
+Figure 3. The upper panel displays the probability density functions (pdf) of the interventional distribution PðY3jdoðx2ÞÞ for two distinct treatment levels, namely
+doðX2 ¼ 11:48Þ (solid line) and doðX2 ¼ 0Þ (dashed line). Means are depicted as solid and dashed vertical line segments. The lower panel displays the pdf of the
+conditional distribution PðY3jX2 ¼ x2Þ for two distinct observed levels of blood insulin at time t ¼ 2, namely X2 ¼ 11:48 (solid line) and X2 ¼ 0 (dashed line). The
+marked interval on the horizontal axes (½ 40; 80�, person mean-centered metric) represents the range of acceptable mean-centered blood glucose levels. The shaded
+areas under the curves (designated by square brackets) represent the probability that blood glucose level at time t ¼ 3 falls in the acceptable range.
+4
+In its most general form, the interventional distribution is the multivariate joint distribution of all variables in the system given the intervention doðxtÞ is applied. For
+example, the joint interventional distribution for the system depicted in Figure 2 is given by PðX1; Y1; X2; Y2; X3; Y3; X4; Y4jdoðx2ÞÞ. In this paper, we restrict our
+attention to the marginal interventional distribution of a single outcome variable, for example, PðY3jdoðx2ÞÞ.
+478 GISCHE ET AL.
+interventions doðxtÞ and doðx
+0
+tÞ, one has to compare the two
+random variables Ytþ1jdoðxtÞ and Ytþ1jdoðx
+0
+tÞ. This comparison can, for example, be done visually by plotting the probability density functions (pdf) of the two interventional
+distributions PðYtþ1jdoðxtÞÞ and PðYtþ1jdoðx
+0
+tÞÞ, as displayed
+in the upper panel of Figure 3. In our illustration, we compare
+the values of blood glucose at time t ¼ 3 given two distinct
+interventions on blood insulin at t ¼ 2, namely doðX2 ¼
+11:48Þ and doðX2 ¼ 0Þ. The latter intervention sets the value
+of blood insulin to the mean value ( ¼ 0 in mean-centered
+metric), the former intervention to one standard deviation
+above the mean. The upper panel of Figure 3 depicts the
+probability density functions of the corresponding interventional distributions PðY3jdoðX2 ¼ 0Þ (dashed line) and
+PðY3jdoðX2 ¼ 11:48Þ (solid line).
+Another common way to compare two distributions is to
+examine differences in their means. The difference between the
+interventional means EðY3jdoðxtÞÞ  EðY3jdoðx
+0
+tÞÞ is called the
+average treatment effect (ATE) of treatment doðxtÞ relative to
+treatment doðx
+0
+tÞ on Ytþ1, abbreviated as the ATE of Xt on Ytþ1
+(Pearl, 2009). In our illustration, we analyze the ATE of treatment doðX2 ¼ 11:48Þ relative to treatment doðX2 ¼ 0Þ on Ytþ1,
+denoted as EðY3jdoðX2 ¼ 11:48ÞÞ
+EðY3jdoðX2 ¼ 0ÞÞ. The interventional means are depicted in
+the upper panel of Figure 3 as the solid and the dashed vertical
+line segments.
+The comparison of two distributions is not restricted to
+a comparison of their location (means). Another important
+feature of the interventional distribution is its variance. The
+variances of the outcome distributions under the distinct
+treatments doðxtÞ and doðx
+0
+tÞ correspond to the widths of
+the bell-shaped curves in the upper panel of Figure 3. The
+two curves in the upper panel have the same widths, that is,
+the error when forecasting the effect of an intervention on
+X2 on the level of Y3 is the same for doðX2 ¼ 11:48Þ
+and doðX2 ¼ 0Þ.
+Comparisons that go beyond first- and second-order
+moments (means and variances) may be of importance in
+a number of research situations involving dynamic systems.
+For example, Monnier et al. (2017) propose the frequency of
+hypoglycemia (adversely low levels of blood glucose) as a target
+quantity that should be minimized during treatment. In the
+section titled “Interventional Probabilities versus Conditional
+Probabilities” we will consider the probability that a dooperation will lead to glucose levels that fall in an acceptable
+range of values that is specified a priori.
+Throughout this article, we will make a clear distinction
+between (a) the forecast of the outcome value Ytþ1 given an
+intervention doðxtÞ, and (b) the prediction of the value of Ytþ1
+given the passive observation that variable X takes the value x
+at time t, denoted by Xt ¼ xt. Returning to our example, in case
+(b) we would like to predict the value of blood glucose at t ¼ 3
+based on the passive observation (e.g., self-measured monitoring of blood insulin) that the insulin level is one standard
+deviation above the mean level at t ¼ 2. We will, therefore,
+use the conditional distribution of Y3, given X2 ¼ 11:48,
+denoted by PðY3jX2 ¼ 11:48Þ, to predict the value of blood
+glucose at t ¼ 3. We use the term predictions (of future values)
+to refer to probabilistic statements that are based on the conditional distribution.
+Comparing the two panels of Figure 3 provides a visual
+representation of the differences between (a) forecasts of the
+effects of interventions and (b) predictions of future values.
+Observing X2 ¼ 11:48 yields the conditional distribution
+PðY3jX2 ¼ 11:48Þ represented by the solid line in the lower
+panel, whereas administering the treatment doðX2 ¼ 11:48Þ
+yields the interventional distribution PðY3jdoðX2 ¼ 11:48ÞÞ
+represented by the solid line in the upper panel. The conditional distribution of the predicted values of blood glucose
+levels is shifted to the right relative to the interventional distribution of the doðx2Þ-forecast of blood glucose levels.
+Given this initial impression of the differences between (a) the
+interventional and (b) the conditional distribution, we now systematically analyze the differences in mean levels and variances,
+followed by the probabilities of blood glucose levels falling in an
+acceptable range. As part of this systematic comparison, we present formulae for interventional distributions and the moments
+thereof (see also Gische & Voelkle, 2020). Formulae for conditional distributions and moments thereof are established results
+for the multivariate normal distribution (e.g., Rao, 1973).
+For ease of presentation we will drop the time indices of the
+structural coefficients in the equations. For example, we will
+write cxx instead of cx2x1 , cx3x2 , and cx4x3 for the autoregressive
+coefficients of the X-series, because these coefficients are
+assumed to be stable over time. Analogously, we will write cyy
+for the autoregressive coefficients of the Y-series as well as cxy
+and cyx for the cross-lagged coefficients. Likewise, we will drop
+the time indices of the variance parameters for t � 2. We will
+write ψxx instead of ψx2x2
+, ψx3x3
+, and ψx4x4 and ψyy instead of
+ψy2y2
+, ψy3y3
+, and ψy4y4
+. All numeric quantities are calculated
+based on the parameter values displayed in Tables 1 and 5.
+A complete presentation of all relevant formulae and details
+regarding the derivation thereof is provided in the online
+supplementary material together with a justification of the
+numerical values based on prior empirical results reported by
+Ito et al. (1998).
+Interventional mean versus conditional mean
+In this section we systematically compare the mean level of
+blood glucose at t ¼ 3 given (a) a doðx2Þ-intervention has been
+applied on insulin levels at t ¼ 2 and (b) prior observations on
+the levels of X2 are available.
+We start with a comparison of the baseline scenarios in
+which (a) no do-treatment is applied (denoted by doð;Þ), and
+(b) no prior observations are available (denoted by the empty
+set ;). In both situations, the best guess of the value of Y3 is
+zero since the data are mean-centered within each person (see
+row 1 of Table 2). Put more formally, in the baseline scenarios
+the interventional mean EðY3jdoð;ÞÞ and the conditional mean
+EðY3j;Þ are both equal to the unconditional mean, that
+is, EðY3jdoð;ÞÞ ¼ EðY3j;Þ ¼ EðY3Þ ¼ 0.
+We now turn to a comparison of the scenarios where in case
+(a) the level of blood insulin has been set to doðX2 ¼ 11:48Þ
+and in case (b) the value X2 ¼ 11:48 has been observed (see
+row 2 of Table 2).
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 479
+In case (a), the intervention doðX2 ¼ 11:48Þ is performed,
+which sets the value of blood insulin to one SD above the mean
+level at time t ¼ 2. Due to the intervention both paths entering
+into X2 are removed (see Figure 2). The formula for the interventional mean and its numeric evaluation are given by:
+EðY3jdoðx2ÞÞ ¼ cyxx2
+EðY3jdoðX2 ¼ 11:48ÞÞ ¼  0:6 � 11:48 ¼  6:89 (2)
+Thus, the mean forecast of Y3 given the intervention doðX2 ¼
+11:48Þ is  6:89 mg/dl (see also row 2, column 3 of Table 2).
+Recall that the ATE of a treatment is always defined relatively
+to another treatment. Here we analyze the ATE of treatment
+doðX2 ¼ 11:48Þ relative to the treatment doðX2 ¼ 0Þ. Thus, the
+resulting ATE is equal to EðY3jdoðX2 ¼ 11:48ÞÞ
+EðY3jdoðX2 ¼ 0ÞÞ ¼  6:89  0 ¼  6:89. In other words,
+actively changing the level of blood insulin at t ¼ 2 from 0 to
+11:48 ( ¼ one SD above the mean) results in a difference of
+ 6:89 mg/dL in the forecasted blood glucose level at
+time t ¼ 3.
+In case (b) observing a blood insulin level of one SD above
+the person’s mean at time t ¼ 2 leads to a predicted value of
+1:71 � 11:48 ¼ 19:63 mg/dl of blood glucose at time t ¼ 3 (see
+row 2, column 6 of Table 2). The coefficient 1:71 is the population regression coefficient in a simple linear regression of Y3 on
+X2 and is calculated according to the following formula:
+EðY3jX2 ¼ x2Þ ¼ COVðX2; Y3Þ
+VðX2Þ x2 (3)
+¼ cyxþ
+cxxcyxcyyψx1x1 þ cxyc2
+yyψy1y1 þ ðcxycyxcyy þ cxxc2
+yyÞψx1y1
+c2
+xxψx1x1 þ c2
+xyψy1y1 þ 2cxxcxyψx1y1 þ ψxx !
+x2
+¼ ð 0:6 þ 2:31Þx2 ¼ 1:71x2
+The last line contains an numeric evaluation based on the
+parameter values displayed in Table 1. The population regression coefficient represents the sum of the direct causal effect
+and the spurious effects of X2 on Y3. These spurious effects
+correspond to backdoor paths from X2 to Y3 in Pearl’s terminology. One such backdoor path is X2 X1 ! Y2 ! Y3;
+another backdoor path is from X2 Y1 ! Y2 ! Y3 (see
+Figure 1). Observing a mean blood insulin level ( ¼ 0) at
+time t ¼ 2 leads to a predicted value of 1:71 � 0 ¼ 0 mg/dl of
+blood glucose at time t ¼ 3. Thus, based on traditional methods for prediction (e.g., linear regression), we would obtain
+a difference of 19:63 mg/dL between the predicted values of Y3
+given we observe a change in X2 from 0 to 11:48.
+In summary, in case (a) changing the doðx2Þ treatment level by
+plus one SD yields a  6:89 mg/dL decrease in the forecasted
+value of blood glucose at time t ¼ 3. In case (b) an observed one
+SD increase in blood insulin at wave 2 is predicted to produce a
+19:63 mg/dL increase in blood glucose at time t ¼ 3. Both findings provide useful information that need to be used for distinct
+purposes. In case (a), a physician would correctly forecast
+a negative value (  0:6 � 11:48 ¼  6:89 mg/dl) of blood glucose
+at time t ¼ 3 after administering the dose doðX2 ¼ 11:48Þ of
+insulin at time t ¼ 2. In case (b), a patient obtaining the insulin
+reading X2 ¼ 11:48 at time t ¼ 2 would correctly predict
+a positive level (1:71 � 11:48 ¼ 19:63 mg/dl) of blood glucose at
+time t ¼ 3.
+Incorrect conclusions only arise if the algebraic machinery
+of conditional expectations (case (b)) is used to forecast the
+effects of interventions (case (a)) – or the other way around –
+the interventional mean based on the do-operator (case (a)) is
+used to predict future values of Y in the absence of interventions (case (b)).
+We have seen that interventional means (forecasts) and
+conditional expectations (predictions) are different quantities.
+The latter is a purely statistical quantity that can always be
+estimated based on observational data in a correctly specified
+model. The former is a causal quantity that might not be
+identified based on observational data even if the model is
+correctly specified. Pearl (2009) provides DAG-based criteria
+for the identification of specific causal effects, some of which
+are implemented in the computer program DAGitty (Textor
+et al., 2016). For example, to identify the ATE of X2 on Y3 in the
+present example, a graphical rule called the backdoor criterion
+can be used. The backdoor criterion states that observing a set
+of variables which blocks all backdoor paths from X2 to Y3
+provides sufficient information to correctly calculate the ATE
+based on non-experimental data. In the present example, the
+minimal sufficient backdoor adjustment set for the ATE of X2
+on Y3 is fY2g.
+5 Thus, if Y2 is held constant or statistically
+adjusted for, all backdoor paths are blocked.
+Backdoor adjustment in linear models can for example, be
+obtained by linear regression. Thus, the ATE X2 on Y3 can be
+estimated using a linear regression of Y3 on X2 and Y2 (Pearl,
+2009, Theorem 5.3.2). The resulting coefficient of X2 in the
+proposed regression of Y3 on X2 and Y2 is equal to  0:6 (see
+row 3, column 6 of Table 2) which equals the coefficient in the
+interventional mean expression (see row 2, column 3 of
+Table 2. Mean forecast of effects of interventions vs. mean prediction of future values.
+(a) intervention (b) observation
+intervention interventional mean numeric observation conditional mean numeric
+doð;Þ EðY3jdoð;ÞÞ 0 ; EðY3j;Þ 0
+doðx2Þ EðY3jdoðx2ÞÞ  0:6x2 X2 ¼ x2 EðY3jX2 ¼ x2Þ 1:71x2
+doðx2Þ, doðy2Þ EðY3jdoðx2Þ; doðy2ÞÞ  0:6x2 þ 1:2y2 X2 ¼ x2, Y2 ¼ y2 EðY3jX2 ¼ x2; Y2 ¼ y2Þ  0:6x2 þ 1:2y2
+Note. The left part of Table 2 contains three different interventional means. In row one, no intervention is applied (doð;Þ), in row two an intervention on blood insulin at
+t ¼ 2 is applied (doðx2Þ), and in row three interventions on both blood insulin and blood glucose at t ¼ 2 are applied (doðx2Þ, doðy2Þ). The right part of Table 2
+contains three different conditional means that are used for predictions of future values. In row one, we condition on the empty set ; (no prior observations available),
+in row two on the observation X2 ¼ x2, and in row three on the observations X2 ¼ x2 and Y2 ¼ y2.
+5
+An introduction to DAG-based causal identification written in a didactic style of presentation is provided by Pearl et al. (2016).
+480 GISCHE ET AL.
+Table 2). Thus, if the backdoor criterion is satisfied in a linear
+model, the interventional mean (causal quantity) can be estimated from observational data using linear regression.
+Interventional variance versus conditional variance
+This section studies the interventional variance of the outcome
+variable following a do-operation, a feature of the interventional distribution that has received less attention than the
+interventional mean. Using our running example, we focus
+on the variance of blood glucose at t = 3.
+In the baseline scenarios in which (a) no do-treatment is
+applied (denoted by doð;Þ), and (b) no prior observations are
+available (denoted by the empty set ;), the interventional variance VðY3jdoð;ÞÞ and the conditional variance VðY3j;Þ are
+both equal to the unconditional variance VðY3Þ. All quantities
+take on the value 632:93, as displayed in row 1 of Table 3.
+In the left part of Table 3 (columns below (a) intervention)
+the interventional variances are displayed. For example, the
+interventional variance VðY3jdoðx2ÞÞ can be calculated according to the following formula (see online supplementary material for derivation):
+VðY3jdoðx2ÞÞ ¼ c
+2
+yxc
+2
+yyψx1x1 þ c
+4
+yyψy1y1 þ 2cyxc
+3
+yyψx1y1
+þ ð1 þ c
+2
+yyÞψyy (4)
+Note that the interventional level x2 does not appear on the
+right-hand side of Equation (4). Thus, the interventional variance (in linear models with normally distributed error terms)
+does not depend on the exact level x2 of the do-treatment that is
+applied. This can also be seen in the upper panel of Figure 3:
+The shape of the interventional distributions is the same for
+both treatment levels doðX2 ¼ 0Þ (dashed line) and doðX2 ¼
+11:48Þ (solid line). If a patient is treated at time t ¼ 2 and we
+change the treatment dose (e.g., set the insulin level to 11:48
+instead of 0), only the location of the interventional distribution changes and the forecast variance (width of the bellshaped curves) is not affected by the specific level to which
+blood insulin is set by the experimenter.
+In contrast, the interventional variance does change as we
+introduce additional interventions on different variables in the
+model. This can be verified by comparing the value in row 1 with
+the value of row 2 in column 3 of Table 3. These values illustrate
+the case where we administer the treatment doðx2Þ to a formerly
+untreated (doð;Þ) person: the forecast variance increases from
+632:93 to 951:43. An increase in variance might appear counterintuitive at first glance. However, our illustration considers the
+dynamic interplay of blood insulin and blood glucose in
+a population of healthy (non-diabetic) persons. For such
+a population the glucose and insulin levels are governed by
+a self-regulating dynamic system. In our example the external
+intervention temporarily eliminates the ability of the system to
+self-regulate. Consequently, the system becomes temporarily
+destabilized and the variance increases.
+In case (b), the conditional variances used for prediction
+decrease (632:93 > 245:71 > 40:00) as we successively move
+from row 1 to row 3 in column 6 of Table 3. This result is
+intuitive: As we move from one row to the row below in the
+right part of Table 3, more observational information becomes
+available. Increasing the amount of available observational
+information (that stems from the same data generating
+mechanism) increases the precision of prediction as reflected
+in the sequence of decreasing conditional variances. The conditional variance VðY3jX2 ¼ x2Þ is calculated according to the
+following general formula (Rao, 1973):
+VðY3jX2 ¼ x2Þ ¼ VðY3Þ  COVðX2; Y3Þ
+2
+VðX2Þ (5)
+Note that x2 does not appear on the right-hand side of
+Equation (5). In other words, unlike the conditional expectations in Table 2, the conditional variance (in linear models with
+normally distributed error terms) does not depend on the exact
+value x2 of the variable on which we condition. This result is
+also depicted in panel (b) of Figure 3, where the shape of the
+conditional distributions is the same for both observations
+X2 ¼ 0 (dashed line) and X2 ¼ 11:48 (solid line). The two
+curves only differ in location but have the same width.
+So far, we have seen that the interventional variance and the
+conditional variance are different quantities. The conditional
+variance is a purely statistical quantity used to represent prediction error, whereas the interventional variance is a causal
+quantity used to represent forecast error when assessing the
+effect of a do-type intervention. The interventional variance
+(causal quantity) is identified since the backdoor criterion
+introduced in the section titled “Interventional Mean versus
+Conditional Mean” is not restricted to interventional means
+but applies to the entire interventional distribution (Pearl,
+2009).
+Given identification is ensured, the question arises whether
+there is a simple way to estimate the interventional variance of
+Y3 from observational data. In our example, the question is:
+Can we compute the numerical value VðY3jdoðx2ÞÞ ¼ 951:43
+(causal quantity) from the numerical values of the statistical
+quantities in column 6 of Table 3? The answer is yes, but the
+procedure is complex and also requires information from
+Table 3. Variance of forecasts (intervention) vs. variance of predictions (future values).
+(a) intervention (b) observation
+intervention interventional variance numeric observation conditional variance numeric
+doð;Þ VðY3jdoð;ÞÞ 632:93 ; VðY3j;Þ 632:93
+doðx2Þ VðY3jdoðx2ÞÞ 951:43 X2 ¼ x2 VðY3jX2 ¼ x2Þ 245:71
+doðx2Þ, doðy2Þ VðY3jdoðx2Þ; doðy2ÞÞ 40:00 X2 ¼ x2, Y2 ¼ y2 VðY3jX2 ¼ x2; Y2 ¼ y2Þ 40:00
+Note. The left part of Table 3 contains three different interventional variances used when forecasting the value of an outcome variable. In row one no intervention is
+applied (doð;Þ), in row two an intervention on blood insulin at t ¼ 2 is applied (doðx2Þ), and in row three interventions are applied on both blood insulin and blood
+glucose at t ¼ 2 (doðx2Þ, doðy2Þ). The right part of Table 3 contains three different conditional variances that are used for predictions of future values. In row one, we
+condition on the empty set ; (no prior information available), in row two on the observation X2 ¼ x2, and in row three on the observations X2 ¼ x2 and Y2 ¼ y2.
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 481
+column 6 of Table 2 (Kuroki & Cai, 2007). Unfortunately, the
+standard backdoor adjustment procedure for linear models
+(i.e., linear regression) that is used to estimate the interventional mean cannot be used to estimate interventional
+variances.
+This problem can be resolved by using the technique for
+causal identification and estimation in linearly parameterized causal DAG-models suggested by Gische and Voelkle
+(2020). The central idea is that a causal quantity defined via
+the do-operator can be expressed as a function of the
+parameters of the statistical model. This idea can be illustrated for the interventional variance as stated in Equation
+(4). The expression on the left-hand side of Equation (4) is
+VðY3jdoðx2ÞÞ which is a causal quantity and contains the
+do-operator. The expression on the right-hand side is
+a polynomial function of the model parameters cyx, cyy,
+ψx1x1
+,ψy1y1
+, ψx1y1
+, ψyy and does not contain the do-operator.
+In our working example all parameters that appear on the
+right-hand-side of Equation (4) (i.e., cyx, cyy, ψx1x1
+,ψy1y1
+,
+ψx1y1
+, ψyy) are identified in the statistical model and can
+be estimated from observational data. Therefore, the interventional variance VðY3jdoðx2ÞÞ on the left-hand side of
+Equation (4) is also identified and estimates can be
+obtained from observational data.
+Interventional probabilities versus conditional probabilities
+For some phenomena, it is important that a variable in
+a dynamic system falls within a predefined acceptable
+range. In our running example, the physician’s goal is
+that the patient’s level of blood glucose will be maintained
+in an acceptable range (so-called euglycemic range) after
+a treatment. A patient’s glucose level should not exceed
+a critical level (yupper
+, upper threshold) where she will
+experience hyperglycemia. Nor should a patient’s glucose
+level fall below a critical level (ylower, lower threshold)
+where she will experience hypoglycemia (Bode et al.,
+2005). The thresholds yupper and ylower are defined a priori
+based on medical standards. Each condition outside the
+acceptable range poses a threat to a patient’s health and
+should, therefore, be avoided.
+We use the values yupper ¼ 80 mg/dl and ylower ¼  40 mg/dl
+in our example. The original upper (180 mg/dl) and lower (60
+mg/dl) thresholds were centered around a global mean of 100
+mg/dl (Cryer, 2003; Danaei et al., 2011; Giugliano et al., 1997).
+Thus, a physician is interested in the event that Y3 falls in the
+acceptable range ½ 40; 80� in the mean-centered metric, given
+the treatment. We refer to the latter event as successful treatment and introduce an indicator variable Y�
+3 that is equal to 1
+in case of a successful treatment and 0 otherwise. The probability of a successful treatment is denoted by
+Pð 40<Y3 <80jdoðx2ÞÞ or in brief PðY�
+3 ¼ 1jdoðx2ÞÞ. The
+shaded area under the solid curve in the upper panel of
+Figure 3 represents the probability of a successful treatment
+given the intervention doðx2 ¼ 11:48Þ.
+We now turn to a systematic analysis of interventional
+probabilities and contrast them with conditional probabilities.
+In the baseline scenarios in which (a) no do-treatment is
+applied (denoted by doð;Þ), and (b) no prior observations are
+available (denoted by the empty set ;), the probability that
+blood glucose levels fall in the acceptable range at t ¼ 3 is :94
+as displayed in the first row of Table 4.
+In case (a), administering doðX2 ¼ 11:48Þ at time t ¼ 2
+yields a probability of blood glucose values within the acceptable range at time t ¼ 3 equal to :86 (see row 2 column 3 in
+Table 4). The interventional probability of treatment success
+depends on the level of blood insulin that has been administered at t ¼ 2 in a nonlinear way that exhibits a unique maximum as depicted by the solid line in Figure 4.
+6
+In case (b), where a value of blood insulin equal to one
+standard deviation above the person’s mean level is observed at
+time t ¼ 2, the probability of blood glucose values being within
+the acceptable range at time t ¼ 3 is equal to :9999 (see row 2
+column 6 of Table 4). Again, the conditional probability
+PðY�
+3 ¼ 1jX2 ¼ x2Þ has a nonlinear relationship to the level of
+blood insulin observed at t ¼ 2 which is depicted as the dashed
+line in Figure 4.
+Both curves displayed in Figure 4 have a single unique
+maximum. In case (a) a physician who must choose an interventional level should apply the treatment doðX2 ¼  33:34Þ to
+maximize the probability of treatment success (solid vertical
+line). Recall that we use mean-centered variables with
+SDðX2Þ ¼ 11:48. Thus, the treatment doðX2 ¼  33:34Þ
+Table 4. Interventional probabilities versus conditional probabilities.
+(a) intervention (b) observation
+intervention interventional probability numeric observation conditional probability numeric
+doð;Þ PðY�
+3 ¼ 1jdoð;ÞÞ :94 ; PðY�
+3 ¼ 1j;Þ :94
+doðx2Þ PðY�
+3 ¼ 1jdoðx2ÞÞ :86 X2 ¼ x2 PðY�
+3 ¼ 1jX2 ¼ x2Þ :9999
+doðx2Þ, doðy2Þ PðY�
+3 ¼ 1jdoðx2Þ; doðy2ÞÞ � 1 X2 ¼ x2, Y2 ¼ y2 PðY�
+3 ¼ 1jX2 ¼ x2; Y2 ¼ y2Þ � 1
+Note. The left part of the Table 4 contains three different interventional probabilities that are used to forecast outcome values after an intervention has been applied. In
+row one, no intervention is applied (doð;Þ), in row two an intervention on blood insulin at t ¼ 2 is applied (doðx2Þ) and in row three an intervention on both blood
+insulin and blood glucose at t ¼ 2 is applied (doðx2Þ, doðy2Þ). The right part of Table 4 contains three different conditional probabilities that are used for predictions. In
+row one, we condition on the empty set ; (no prior information available), in row two on the observation X2 ¼ x2, and in row three on the observations X2 ¼ x2 and
+Y2 ¼ y2. We use the numerical values x2 ¼ 11:48 and y2 ¼ 0 for both interventional levels and observed values. Y�
+3 is an indicator variables that is equal to 1 if blood
+glucose levels fall within the acceptable range ½ 40; 80� at t ¼ 3, and is equal to 0 otherwise.
+6
+Note that we did not set up an additional model for the probability of treatment success. Instead, we analytically derived the functional form of the population quantity
+PðY�
+3 ¼ 1jdoðx2ÞÞ for the model depicted in Figure 1 and Figure 2. The complete set of model equations for a homogeneous population and the explicit formula for
+the interventional probability are provided in the online supplementary material.
+482 GISCHE ET AL.
+corresponds to setting a patient’s insulin level to 2:9 standard
+deviations below the mean level. In case (b) a patient who is
+passively measuring blood insulin levels at t ¼ 2 would hope to
+measure a value of x2 ¼ 11:67, since observing this value maximizes the conditional probability of blood glucose levels
+within the acceptable range at t ¼ 3 (dashed vertical line).
+If a physician were to erroneously use the conditional distribution to optimize an intervention and applied the treatment doðX2 ¼ 11:67Þ, this non-optimal intervention would
+result in a 85:5% probability of treatment success.
+A physician who correctly used the interventional distribution
+to choose the optimal treatment would apply
+doðX2 ¼  33:34Þ, resulting in a 94:8% probability of treatment
+success. Thus, the consequence of an incorrect decision yields a
+9:3% percentage drop in the probability of treatment success.
+In summary, we have seen that conditional probabilities
+(statistical quantity) and the interventional probabilities (causal quantity) differ. The statistical quantity can always be
+estimated from observational data in a correctly specified
+model, whereas the causal quantity needs to be identified.
+The backdoor criterion ensures causal identification of interventional probabilities in our example model. The exact formula of the interventional probability PðY�
+3 ¼ 1jdoðx2ÞÞ is
+complex and the regression-based backdoor adjustment formula for linear models can not be applied to calculate interventional probabilities. Instead, techniques for causal
+identification and estimation in linearly parameterized causal
+DAG-models suggested by Gische and Voelkle (2020) can be
+applied as explicated in more detail at the end of the section
+titled “Interventional Variance versus Conditional Variance.”
+Between-person heterogeneity
+At the beginning of this article, we assumed that individuals come
+from a homogeneous population. This assumption will often be
+unrealistic in practice. A treatment that would be optimal (e.g.,
+the administered dose of insulin maximizes the probability that
+blood glucose realizes within the acceptable range) for an “average” person is not necessarily optimal for a given patient if the
+population from which the average was calculated consists of
+heterogeneous individuals (Holland, 1986; Molenaar, 2004;
+Sidman, 1960; Voelkle et al., 2018). In this section we incorporate
+person-specific differences in mean levels into our model and
+focus on person-specific effects of interventions, that is, we forecast the effect of an intervention for a single individual drawn
+from a heterogeneous population.
+Modeling between-person heterogeneity via random
+intercepts
+We use a panel data design with a fixed number of time points,
+T ¼ 4, and sample size N as presented in the Introduction.
+Authors from different disciplines have proposed a variety of
+approaches for including person-specific differences into this
+framework (e.g., Hsiao, 2014; Usami et al., 2019; Wooldridge,
+2010; Zyphur et al., 2019).
+Here, we adopt the approach of including the latent variables ηx and ηy as additive random intercepts into the model
+(see Figure 5). The random intercept ηx is a term that includes
+all additive time-invariant factors that affect the level of blood
+insulin of a person; ηy is a term that includes all additive
+x2
+probability
+−50 −33.34 0 11.67 50
+.70 .80 .90 .948 .999
+ interventional probability
+ conditional probability
+Figure 4. The interventional probability PðY�
+3 ¼ 1jdoðx2ÞÞ on the vertical axis is depicted as a function of the (mean-centered) interventional level on the
+horizontal axis (solid line). In addition, the conditional probability PðY�
+3 ¼ 1jX2 ¼ x2Þ on the vertical axis is depicted as a function of the (mean-centered)
+observed level X2 ¼ x2 on the horizontal axis (dashed line). Y�
+3 ¼ 1 whenever blood glucose level at time t ¼ 3 falls within the acceptable range. A vertical
+dotted line is drawn at the interventional level doðX2 ¼  33:34Þ that maximizes the probability of treatment success. Another vertical dotted line is drawn at
+the observed measurement level X2 ¼ 11:67 that maximizes the prediction probability that blood glucose levels will be within the acceptable range at time
+t ¼ 3 (in the absence of an intervention).
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 483
+time-invariant factors that affect the level of blood glucose of
+a person. Thus, random intercepts capture those factors that
+vary across persons but do not change over time. For example,
+the random intercept could capture such factors as sex, marital
+status, and genetic endowment if these factors are constant
+during the study. Without loss of generality, we assume that
+random intercepts have zero means, that
+is, EðηxÞ ¼ EðηyÞ ¼ 0.
+Note that these time-invariant variables (e.g., sex, marital
+status, and genetic endowment) are neither explicitly modeled
+nor measured in the study. Instead, the time-invariant variables are captured in the random intercepts (i.e., they are
+statistically accounted for).7 This approach gives random intercepts the status of latent variables as indicated by the dashed
+circles around ηx and ηy in the DAG representation of the
+model displayed in Figure 5. Since the random intercepts are
+latent we speak of unobserved heterogeneity.
+The time-invariant variables collected in the random intercept ηx are assumed to have direct causal effects on the levels of
+blood insulin as indicated by the directed edges from ηx to X1,
+X2, X3, and X4 in Figure 5. For analogous reasons, directed
+edges from ηy to Y1, Y2, Y3, and Y4 are included in the DAG.
+The values of the structural coefficients corresponding to the
+paths from ηx to Xt, t � 2 are restricted to be equal to 1. These
+restrictions (a) assign a scale to the latent random intercept ηx
+and (b) reflect the assumption that the structural coefficients
+from the random intercepts to blood insulin levels Xt, t � 2 do
+not change over time. The same reasoning applies to the paths
+from ηy to Yt, t � 2. The bidirected dashed edge between the
+random intercepts ηx and ηy indicates that time-invariant
+variables that determine blood insulin levels might covary
+with time-invariant variables that determine the level of
+blood glucose due to unobserved confounding. The random
+intercepts are assumed to be uncorrelated with the error terms
+εxt , εyt , t � 1.
+Special attention needs to be paid to the initial variables X1
+and Y1 since they differ from the subsequent variables X2, X3,
+and X4 and Y2, Y3, and Y4 in an important way. The levels of Xt
+and Yt are explained in our model by the values of Xt 1 and
+Yt 1 when t � 2. In contrast, the initial variables X1 and Y1 are
+exogenous in our model, that is, there are no incoming directed
+edges into X1 and Y1. The dynamics of the insulin–glucose
+relationship, however, were going on in the individuals prior to
+the first measurement wave. Thus, the initial variables somehow need to account for the past of the process that is not
+explicitly modeled (Figure A1 in the Appendix on Initial
+Variables).
+Different approaches for incorporating initial variables into
+the statistical model have been proposed (Browne & Zhang,
+2007; Hamaker et al., 2005; Hsiao, 2014; Molenaar, 1985).
+From a causal inference perspective, we believe the most
+straightforward and interpretable approach is to draw directed
+edges from ηx !
+cx1ηx
+X1 and ηx !
+cy1ηx
+Y1 as well as from ηy !
+cx1ηy
+X1
+and ηy !
+cy1ηy
+Y1 (see Figure 5). A detailed justification of this
+modeling strategy is presented in the Appendix on Initial
+X1 X2 X3 X4
+Y1 Y2 Y3 Y4
+cx2x1 = 0.05
+cy2x1 = -0.6
+cx3x2 = 0.05
+cy3x2 = -0.6
+cx4x3 = 0.05
+cy4x3 = -0.6
+cx2y1 =
+0.4
+cy2y1 = 1.20
+cx3y2 =
+0.4
+cy3y2 = 1.20
+cx4y3 =
+0.4
+cy4y3 = 1.20
+ηx
+cx1ηx= -4.0
+1 1 1
+cy1ηx= -12.0
+ηy
+cy1ηy = 19.0
+1 1 1
+cx1ηy = 8.0
+Figure 5. The causal diagram (DAG) displayed in Figure 1 is extended to include random intercepts (i.e., differences in the individual mean levels) that are represented in
+dashed circles, indicating that these variables are latent and therefore not observed. The directed edges from ηx to X1, …, X4 and Y1 indicate that time-invariant factors
+contained in the latent variables ηx have direct causal effects on blood insulin levels and the initial values of blood glucose levels. The directed edges from ηy to Y1, …, Y4
+and X1 indicate that time-invariant factors contained in the latent variables ηy have direct causal effects on blood glucose levels and the initial values of blood insulin
+levels. The effects of the random intercepts on the initial variables are labeled with cx1ηx , cx1ηy , cy1ηx and cy1ηy . The direct effects of ηx on X2, X2, and X4 and of ηy on Y2, Y2,
+and Y4 are assumed to be time-stable and equal to 1. The bidirected dashed edge between the random intercepts ηx and ηy indicate the existence of an unobserved
+confounder.
+7
+In case one or more time-invariant variables (e.g., a person’s sex) are explicitly included as predictors of, say, Xt; t ¼ 1; . . .; T, then ηx collects all other additive timeinvariant factors that are not explicitly modeled (the omitted factors; e.g., marital status, genetic endowment) that determine the value of Xt.
+484 GISCHE ET AL.
+Variables where we also refer to viable alternatives. As noted in
+the previous paragraph, the initial variables differ in an important way from subsequent measurements. This special status is
+accounted for by not restricting the structural coefficients cx1ηx
+,
+cy1ηx
+, cx1ηy and cy1ηy to be equal to one.
+A measure of the degree of unobserved heterogeneity in the
+population is the variance of the random intercepts. In the
+following, we assume the numerical values VðηxÞ ¼ 5 and
+VðηyÞ ¼ 10, where the time-invariant factors covary with
+COVðηx; ηyÞ ¼ 2:5. All parameters introduced to model person-specific differences in mean levels via random intercepts
+are collected in Table 5.
+A consequence of modeling unobserved heterogeneity via
+random intercepts is an increase in total variance as compared
+to the model for the homogeneous population. For example,
+for t � 2, the standard deviation of blood insulin levels
+increases from SDðXtÞ ¼ 11:48 mcIU/ml in the homogeneous
+model to SDðXtÞ ¼ 26:30 mcIU/ml in the model with random
+intercepts. Similarly, the standard deviation of blood glucose
+levels increases from SDðYtÞ ¼ 25:16 mg/dl to SDðYtÞ ¼ 61:83
+mg/dl. A complete presentation of all relevant formulae and
+details regarding the derivation thereof is provided in the
+online supplementary material.
+Figure 5 displays the causal diagram of the data generating
+mechanism. We use the bivariate linear cross-lagged panel
+model (T ¼ 4) with random intercepts for data analysis. Since
+we use simulated data, we know with certainty that the causal
+model is correctly specified and that our statistical model captures the data generating process. In practical applications, however, one usually does not know the true data generating
+mechanism and causal assumptions postulated by researchers
+might be wrong. We discuss statistical tests of model assumptions and methods to analyze the sensitivity of causal conclusions with respect to violations of assumptions in the section on
+“Current Limitations and Future Directions.” From a statistical
+point of view, we believe that the model is identified (Hisao,
+2014; Oud and Delsing, 2014, Zyphur et al., 2019), that is, all
+model parameters can be estimated from observational data and
+person-specific values of the random intercepts can be
+calculated.
+Average effects versus person-specific effects of
+interventions
+As in the homogeneous model, we are interested in the effects
+of an intervention represented by the do-operator. Since the
+causal diagram of the model with random intercepts still
+belongs to the class of DAGs (see Figure 5), the do-operator
+is well-defined and can be directly applied to the model including random intercepts. Figure 6 displays the situation where
+the intervention doðx2Þ is applied.
+Table 5. Numeric values of parameters related to random intercepts.
+structural coefficients variance-covariance parameters
+cx1ηx cy1ηy cx1ηy cy1ηx ψηxηx ψηyηy ψηxηy
+−4.00 19.00 8 −12 5.00 10.00 2.50
+Note. Parameters introduced to model unobserved person-specific differences in
+the mean levels (see Figures 5 and 6). The structural coefficients cx1ηx , cy1ηy , cx1ηy
+and cy1ηx correspond to the accumulated long-term effects of the random
+intercepts on insulin and glucose levels, respectively. The parameters ψηxηx
+,
+ψηyηy
+, and ψηxηy represent the variance-covariance structure of the random
+intercepts.
+X1 do(x2) X3 X4
+Y1 Y2 Y3 Y4
+cy2x1 = -0.6
+cx3x2 = 0.05
+cy3x2 = -0.6
+cx4x3 = 0.05
+cy4x3 = -0.6
+cy2y1 = 1.20
+cx3y2 =
+0.4
+cy3y2 = 1.20
+cx4y3 =
+0.4
+cy4y3 = 1.20
+ηx
+cx1ηx= -4.0
+1 1
+cy1ηx= -12.0
+ηy
+cy1ηy = 19.0
+1 1 1
+cx1ηy = 8.0
+Figure 6. The causal diagram (DAG) from Figure 5 is modified to account for the intervention doðx2Þ. The variable X2 has been replaced by doðx2Þ and all directed edges
+that formerly entered X2 have been removed, indicating that the interventional level doðx2Þ does not depend on X1, Y1 or ηx but is set by an experimenter (in our
+illustrative example we choose doðX2 ¼ 26:30ÞÞ. Note that all other variables and directed edges (causal arrows) remain unchanged as compared to the situation
+without the intervention doðx2Þ as depicted in Figure 5 reflecting the assumption of modularity.
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 485
+The interventional distribution PðY3jdoðx2ÞÞ describes
+blood glucose levels in the entire population of individuals,
+given that the treatment doðx2Þ has been administered. The
+inclusion of random intercepts allows us to define the personspecific effects of interventions.
+Each individual in the population can be characterized by
+the values zx and zy of his or her time-invariant characteristics
+ηx and ηy. We define the person-specific interventional distribution of Y3 for an individual characterized by ηx ¼ zx and
+ηy ¼ zy as PðY3jdoðx2Þ; ηx ¼ zx; ηy ¼ zyÞ. The person-specific
+interventional distribution describes blood glucose levels at
+time t ¼ 3 for an individual who is characterized by the timeinvariant characteristics ηx ¼ zx and ηy ¼ zy after the treatment doðx2Þ has been applied. If multiple individuals have the
+same time-invariant characteristics the person-specific interventional distribution is also the subgroup-specific interventional distribution of this homogeneous group of individuals.
+For both the interventional distribution PðY3jdoðx2ÞÞ and
+the person-specific interventional distribution
+PðY3jdoðx2Þ; ηx ¼ zx; ηy ¼ zyÞ, the random intercepts ηx and
+ηy belong to every adjustment set for backdoor identification
+(see Figure 5; Pearl (2009); Shpitser and Pearl (2006)). Thus, to
+apply backdoor adjustment in the model with random intercepts, the values of the latter need to be known. Recall that
+random intercepts are latent variables and thus unobserved
+(i.e., not part of the available data). As a consequence, the
+backdoor adjustment formulae cannot be applied
+straightforwardly.8 Causal identification can be established,
+however, by following the criteria for linear causal DAGmodels suggested by Gische and Voelkle (2020) as explicated
+in more detail at the end of the section titled “Interventional
+Variance versus Conditional Variance.”
+In the first half of the paper, we analyzed a homogeneous
+population and focused on the difference between forecasts of
+effects of interventions and predictions of future values (cells in
+the first row in Figure 7). The introduction of between-person
+heterogeneity in the second half of the paper suggests an additional distinction: The difference between average values across
+the entire population and person-specific values. In the following, we focus on the difference between the average effects of
+interventions versus person-specific effects of interventions
+(cells in the first column in Figure 7). Space limitations preclude a discussion of predictions of future values in the presence of unobserved heterogeneity in the main text. A formal
+treatment of the differences between forecasts of effects of
+interventions and predictions of future values in the presence
+of unobserved heterogeneity is presented in the online supple
+mentary material.
+In the following, we consider three hypothetical individuals
+from the population, namely Amy, Joe, and Sam, who are
+characterized by person-specific characteristics displayed in
+Table 6. We are interested in the blood glucose levels at time t ¼
+3 after the intervention doðX2 ¼ 26:30Þ has been applied, where
+26:30 mcIU/ml is the standard deviation of blood insulin levels
+in the model with unobserved heterogeneity (recall that due to
+the inclusion of random intercepts into the model the standard
+deviation of blood insulin increased from 11:48 to 26:30.) In the
+following sections, we compute the person-specific effects of
+interventions for Amy, Joe, and Sam and compare these quantities to the average (unconditional) effect of an intervention in
+the entire population.
+Person-specific interventional mean and variance
+The unconditional mean of blood glucose is the best prediction
+of blood glucose level at time t ¼ 3 if no further information is
+available. Since all observable variables are mean-centered and
+the random intercepts ηx and ηy have zero means, the
+average forecast
+of effect
+of intervention
+average across
+entire population
+forecast of effect
+of intervention
+average prediction
+of future value
+prediction of
+future value
+person-specific
+forecast of
+effect of intervention
+person-specific
+person-specific
+predicition
+of future value
+Figure 7. The four cells of the depicted (2 � 2) table display all possible combinations that result from the binary distinctions ‘forecast versus prediction’ (columns)
+and ‘average versus person-specific’ (rows).
+Table 6. Person-specific characteristics for Amy, Joe, and Sam.
+Person zx zy
+Amy z
+Amy
+x ¼  SDðηx Þ ¼  2:24 z
+Amy
+y ¼  SDðηy Þ ¼  3:16
+Joe zJoe
+x ¼ Eðηx Þ ¼ 0 zJoe
+y ¼ Eðηy Þ ¼ 0
+Sam zSam
+x ¼ SDðηx Þ ¼ 2:24 zSam
+y ¼ SDðηy Þ ¼ 3:16
+Note. Table 6 displays the person-specific characteristics for three hypothetical
+individuals Amy, Joe, and Sam. Amy’s and Sam’s values are one standard
+deviation below and above the mean, respectively. Joe’s values are equal to
+the mean of the distribution of person-specific characteristics in the population.
+Table 7. Interventional means and variances in models with unobserved heterogeneity.
+Mean Variance
+EðY3Þ EðY3jdoðx2ÞÞ EðY3jdoðx2Þ; ηx ¼ zx ; ηy ¼ zy Þ VðY3Þ VðY3jdoðx2ÞÞ VðY3jdoðx2Þ; ηx ¼ zx ; ηy ¼ zy Þ
+0  0:6x2  0:6x2  14:4zx þ 23:8zy 3822:93 5939:03 951:43
+Note. The left part of Table 7 contains the unconditional mean (used for prediction of future values) and interventional means (used to forecast outcome values after an
+intervention has been applied). The right part of Table 7 contains the unconditional variance (prediction error) and interventional variances (forecast errors).
+8
+The causal quantities PðY3jdoðx2ÞÞ and PðY3jdoðx2Þ; ηx ¼ zx ; ηy ¼ zy Þ are not identified based on the DAG depicted in Figure 5 in the most general non-parametric
+DAG setup. One way to ensure identification is to impose further assumptions on the functional form of the structural equations (e.g., linearity).
+486 GISCHE ET AL.
+unconditional mean is equal to zero (see column one of Table
+7). The unconditional variance in the presence of unobserved
+heterogeneity is equal to 3822:93 (see column 4 of Table 7)
+which is the variance of the prediction error when predicting
+Y3 in the absence of additional information.
+The interventional mean and variance of Y3 describe the
+distribution of blood glucose levels at t ¼ 3 in the entire population after the intervention doðx2Þ has been applied. They are
+given by the following formulae:
+EðY3jdoðx2ÞÞ ¼ cyxx2 (6a)
+VðY3jdoðx2ÞÞ ¼ ðcy1ηx
+c
+2
+yy þ cx1ηx
+cyxcyyÞ
+2
+ψηxηx (6b)
+þ ðcy1ηy
+c
+2
+yy þ cx1ηy
+cyxcyy þ cyy þ 1Þ
+2
+ψηyηy
+þ 2ðcy1ηx
+c
+2
+yy þ cx1ηx
+cyxcyyÞðcy1ηy
+c
+2
+yy þ cx1ηy
+cyxcyy þ cyy þ 1Þψηxηy
+þ c
+2
+yxc
+2
+yyψx1x1 þ c
+4
+yyψy1y1 þ 2cyxc
+3
+yyψx1y1 þ ðc
+2
+yy þ 1Þψyy
+Equation (6a) reveals that the interventional mean in the presence of unobserved heterogeneity has the same linear functional form as in the homogeneous model (see Equation [2]).
+The first three lines of Equation (6b) are related to the random
+intercepts, whereas the last line is equal to the interventional
+variance in the homogeneous case (see Equation [4]). The
+value of VðY3jdoðx2ÞÞ in the presence of unobserved heterogeneity is equal to 5939:03 (see column 5 of Table 7), which is
+the variance of the forecast error when forecasting blood glucose levels at time t ¼ 3 after the intervention doðx2Þ has been
+applied.
+The person-specific interventional moments describe the
+distribution of blood glucose levels at t ¼ 3 for an individual
+who is characterized by the time-invariant features ηx ¼ zx and
+ηy ¼ zy, after the treatment doðx2Þ has been applied. The person-specific interventional mean is given by the following
+formula:
+EðY3jdoðx2Þ; ηx ¼ zx; ηy ¼ zyÞ (7)
+¼ cyxx2 þ ðcy1ηx
+c
+2
+yy þ cx1ηx
+cyxcyyÞzx
+þ ðcy1ηy
+c
+2
+yy þ cx1ηy
+cyxcyy þ cyy þ 1Þzy
+Equation (7) reveals that the person-specific interventional
+mean is a function of the interventional level x2 and the timeinvariant characteristics zx and zy of that person. For example,
+the person-specific interventional mean for Sam is computed
+by plugging in Sam’s numeric values zSam
+x ¼ 2:24 and zSam
+y ¼
+3:16 (see row 3 of Table 6) into the equation for the personspecific mean as stated in row 3 of Table 7:
+EðY3jdoðX2 ¼ 26:30Þ; ηx ¼ zSam
+x ; ηy ¼ zSam
+y Þ ¼ (8)
+ 0:6 � 26:30  14:4 � 2:24 þ 23:8 � 3:16 ¼ 27:17
+Likewise the person-specific interventional means for Amy
+(  58:73) and Joe (  15:78) can be computed. Thus, given
+the same treatment doðX2 ¼ 26:30Þ, different forecasts of
+blood glucose levels at time t ¼ 3 are obtained for different
+individuals, depending on their respective time-invariant
+characteristics.
+Note that the linear coefficient of the treatment level x2 is
+constant and equal to cyx ¼  0:6 in the equation for the
+person-specific mean (see Equation [7] and column 3 of
+Table 7). As a consequence, the person-specific ATE is independent of the time-invariant characteristics of a person and
+constant across individuals. For example, the person-specific
+ATE of X2 on Y3 for Sam is given by:
+EðY3jdoðX2Þ; ηX ¼ zSam
+X ; ηy ¼ zSam
+y Þ
+ EðY3jdoðX0
+2Þ; ηX ¼ zSam
+X ; ηy ¼ zSam
+y Þ
+¼  0:6x2  14:4zSam
+X þ 23:8zSam
+y
+ ð 0:6x
+0
+2  14:4zSam
+X þ 23:8zSam
+y Þ
+¼  0:6ðx2  x
+0
+2Þ
+(9)
+Equation (9) reveals that the ATE is independent of Sam’s
+time-invariant characteristics (i.e., zSam
+x and zSam
+y cancel out),
+a result that also holds for every other individual in the
+population.9 In other words, a change in the treatment level,
+say from doðX2 ¼ x2Þ to doðX2 ¼ x
+0
+2Þ, will cause the same
+change in forecasted values for each individual.
+The difference between the (unconditional) interventional moments and the person-specific interventional
+moments can be illustrated as follows. A physician initially
+forecasts the value EðY3jdoðX2 ¼ 26:30ÞÞ ¼  0:6 � 26:30 ¼
+Table 8. Probabilities of treatment success in models with unobserved heterogeneity.
+(unconditional) probability of treatment success person-specific probabilities of treatment success
+PðY�
+3 ¼ 1jdoðX2 ¼ 26:30Þ; ηx ¼ z
+Amy
+x ; ηy ¼ z
+Amy
+y Þ ¼ :27
+PðY�
+3 ¼ 1jdoðX2 ¼ 26:30ÞÞ ¼ :52 PðY�
+3 ¼ 1jdoðX2 ¼ 26:30Þ; ηx ¼ zJoe
+x ; ηy ¼ zJoe
+y Þ ¼ :78
+PðY�
+3 ¼ 1jdoðX2 ¼ 26:30Þ; ηx ¼ zSam
+x ; ηy ¼ zSam
+y Þ ¼ :94
+Note. Y�
+3 is an indicator variable that is equal to 1 if blood glucose levels at t ¼ 3 fall inside the acceptable range ½ 40; 80� (treatment success), and is equal to 0
+otherwise. The left part of the Table 8 contains the (unconditional) probability of treatment success after the treatment doðX2 ¼ 26:30Þ has been applied. The right
+part of Table 8 contains person-specific probabilities of treatment success for three hypothetical individuals. Amy’s time-invariant values are one standard deviation
+below the mean, Joe’s values are exactly at the mean, and Sam’s values are one standard deviation above the mean.
+9
+This result is a consequence of modeling unobserved heterogeneity via additive random intercepts. To capture heterogeneity in the person-specific ATE we need more
+complex models (e.g., models including product terms).
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 487
+ 15:78 for a new patient under treatment of whom the
+person-specific characteristics are yet unknown. After learning that a patient is Amy, Joe, or Sam (and their respective
+person-specific characteristics) the physician updates his or
+her forecast to  58:73,  15:78, or 27:17, respectively.
+Note that by learning the person-specific characteristics of
+a new patient, the variance of the forecast error drops from
+5939:03 to 951:43 (see columns 5 and 6 of Table 7).
+Person-specific probabilities of treatment success
+As in the section titled “Interventional Probabilities versus
+Conditional Probabilities” we use the binary variable Y�
+3 to
+indicate (Y�
+3 ¼ 1) that blood glucose levels at time t ¼ 3 are
+within an acceptable range ½ 40; 80� (mean-centered metric), an
+event we refer to as treatment success. Recall that Y�
+3 ¼ 0 indicates the presence of hypo- or hypoglycemia, that is, blood
+glucose levels outside the acceptable range.
+In the presence of unobserved heterogeneity, the (unconditional) probability of treatment success is equal to :52 given the
+treatment doðX2 ¼ 26:30Þ (see column 1 of Table 8). That is,
+a physician would estimate a 52% probability of treatment
+success after the intervention doðX2 ¼ 26:30Þ has been applied
+to a new patient from the heterogeneous population (a patient
+whose person-specific characteristics are yet unknown).
+The right column of Table 8 contains the person-specific
+probabilities of treatment success for the three hypothetical
+individuals Amy, Joe, and Sam. After learning that a patient
+is Amy, Joe, or Sam (and their respective person-specific characteristics) the physician would update his or her initial beliefs
+about the probability of treatment success from 52% to 27%,
+78%, or 94%, respectively. The reasons for this update are
+twofold. First, the person-specific means differ across the
+three individuals (see Equations [7] and [8]). Second, the
+amount of uncertainty when forecasting Y3 drops from
+5939:03 to 951:43 after learning the person-specific characteristics (see columns 5 and 6 of Table 7).
+Figure 8 displays the person-specific probabilities of treatment success for Amy (dashed line), Joe (solid line) and Sam
+(dotted line) as a function of the interventional level (population mean-centered metric). Each curve has a unique maximum. Due to the simple nature of the model the three curves
+share the same maximal value of 94:8%.
+10 Note that the person-specific optimal treatment levels differ across persons:
+doðX2 ¼  104:92Þ for Amy, doðX2 ¼  33:33Þ for Joe, and
+doðX2 ¼ 38:25Þ for Sam. In other words, if a given person is
+administered his or her individually optimal treatment level,
+the probability of treatment success for that person is 94:8%.
+Joe is the average patient, that is, his person-specific characteristics coincide with the respective population means (see
+row 2 of Table 6). The person-specific optimal treatment level
+for Joe is  33:33 which is also the average optimal treatment
+level in the entire population. If a physician treats a new patient
+from the population for whom the person-specific characteristics are yet unknown, the optimal treatment decision would
+be doðX2 ¼  33:33Þ. If the physician learns that the new
+patient is Joe (i.e., the average patient) the initial treatment
+doðX2 ¼  33:33Þ coincides with Joe’s person-specific optimal
+treatment resulting in a 94:8% probability of treatment success.
+On the other hand, if the new patient turns out to be Amy or
+Sam, then the treatment doðX2 ¼  33:33Þ is no longer optimal
+(given this new person-specific information) and would result
+in a 71% probability of treatment success in either case. The
+optimal treatment decision after learning that the new patient
+is Amy or Sam would be doðX2 ¼  104:92Þ or doðX2 ¼ 38:25Þ,
+respectively, resulting in a 94:8% probability of treatment
+success in either case. Thus, updating an initial populationbased optimal treatment decision to include Amy’s or Sam’s
+person-specific characteristics, results in an absolute increase
+of 23:8% in the probability of treatment success.
+−104.92 −80 −60 −33.33 −20 0 20 38.25
+x2
+.25 .35 .45 .55 .65 .75 .85 .95
+probability
+Amy
+Joe
+Sam Figure 8. The person-specific interventional probabilities (vertical axis) are depicted for the three hypothetical individuals Amy (dashed line), Joe (solid line) and Sam
+(dotted line) as a function of the (mean-centered) interventional level (horizontal axis). Vertical-dotted lines are drawn at the interventional levels that maximize the
+respective probabilities of treatment success. For example, the interventional level doðX2 ¼ 38:25Þ maximizes the probability of treatment success for Sam, which is
+94:8%. A dotted horizontal line is drawn at :948 which is the probability of treatment success under optimal treatment. Two more dotted horizontal lines are drawn at
+:71 and :20 which correspond to person-specific probabilities of treatment success under different types of non-optimal treatment (see Table 6).
+10More complex models (e.g., models allowing for person-specific differences in error term variances) would be needed to model individual differences in the
+probabilities of treatment success under optimal treatment. We will return to this limitation in the Discussion.
+488 GISCHE ET AL.
+Discussion
+In this article, we focused on the example of a four-wave linear
+cross-lagged panel design to provide a didactic presentation of
+Pearl’s (2009) approach to causal inference for researchers familiar with structural equation modeling.11 Throughout we emphasized the important distinction between (a) forecasting the
+future value of a variable following an intervention at a prior
+wave and (b) predicting the future value of a variable following
+measurement of variables at a prior wave. In task (a) a causal
+effect is computed based on the interventional distribution in
+a DAG-based framework. We focus on doðxtÞ-type interventions
+that set each individual’s value on the variable X at time t to
+a fixed constant value. In task (b) the future value of a variable is
+predicted using the conditional distribution (statistical quantity).
+Task (a) requires identification of the interventional distribution
+and its moments (causal quantities). Causal identification in the
+case of a homogeneous population can be established using the
+machinery of Pearl’s (2009) approach to causal inference which
+includes graphical criteria such as the backdoor criterion. Causal
+identification in case of a heterogeneous population can be
+established using a parametric procedure suggested by Gische
+and Voelkle (2020).
+Our initial development of the approach assumed that all
+individuals were homogeneous. Later, we relaxed this assumption to account for unobserved heterogeneity (person-specific
+differences in the mean levels of the two variables) by including
+additive random intercepts into the linear cross-lagged panel
+framework. We showed that – even in this simple model –
+a treatment decision that is optimal on average can be
+improved substantially if person-specific characteristics can
+be incorporated into the model. In other words, treating
+a new, unknown patient with a treatment dose that has proven
+to be optimal on average (e.g., based on the results of randomized control trials) will only be optimal for a specific person
+as long as additional person-specific information is not available (Voelkle et al., 2018). As (a) relevant person-specific information becomes available or (b) repeated measures of
+the individual become available that allow us to control for
+time-invariant person characteristics, this information can be
+incorporated to develop a treatment level that more adequately
+matches the optimal level of treatment for the individual.
+Pearl’s (2009) approach to DAG-based causal inference was
+developed using a general nonparametric framework. We used
+a linear parameterization of the cross-lagged panel framework
+to simplify the results and show the connection to linear
+structural equation modeling. The linear parameterization
+has weaknesses and strengths. On the one hand, if linear
+relationships represent a serious misspecification of the
+unknown true nonlinear functional form, the models will be
+misspecified and the results will be biased. On the other hand,
+the linear specification permits the inclusion of random intercepts, that is, person-specific differences in the mean levels of
+the time series, which reduces the risk of causal misspecification. In linear models with random intercepts additive timeinvariant unobserved confounders are being statistically
+controlled. This, in turn, allows for the identification of causal
+effects that would not be identified in the most general nonparametric setup.12 In the case of linear models with random
+intercepts, we can to use the approach developed by Gische and
+Voelkle (2020) to establish identification of causal effects. The
+latter approach could also be used to obtain estimates of causal
+quantities in the presence of random intercepts.
+Current limitations and future directions
+The methods presented in this paper permit causal conclusions
+to be reached based on a combination of observational data
+and assumptions about the data generating mechanism. The
+effects of a hypothetical do-intervention were forecasted without performing an experiment or otherwise perturbing the
+dynamic system. For causal conclusions based on observational
+data to be valid, the underlying assumptions need to hold. The
+methods discussed in this paper rely on the correct a priori
+specification of the causal ordering of the variables and the
+assumption of a linear dynamic process that is both stable over
+time and that is not altered by the intervention (modularity,
+autonomy). In the present article, we only allowed for betweenperson differences in the individual mean levels of the variables. Computing causal forecasts based on models that
+account for between-person differences in the autoregressive
+and cross-lagged effects remains a task for future research.
+Statistical tests are available that can detect certain types of
+misspecification. In the present paper the set of possible causal
+orders is limited in part by the cross-lagged panel design (e.g.,
+time ordering of variables). Further tests of the causal ordering
+of the variables (e.g., maximum lag of autoregressive effects) can
+be performed using procedures proposed by Chen et al. (2014),
+Shipley (2003), Thoemmes et al. (2018), and Tian and Pearl
+(2002). The assumption of autonomous mechanisms is in principle testable, but requires that both observational and experimental data on the process are available. The consequences of
+violations of non-testable assumptions can sometimes be gauged
+via sensitivity analyses and robustness checks (Ding &
+VanderWeele, 2016; Imai et al., 2010; Rosenbaum, 2011).
+Given that our developments were in the context of linear causal
+models, the linearity of the functional relations should be examined. Graphical checks utilizing lowess fits or splines commonly
+used in regression can be performed (e.g., Cohen et al., 2003; Suk
+et al., 2019). Formal statistical tests of linearity are available both
+for nested and non-nested models (Amemiya, 1985; Lee, 2007;
+Schumacker & Marcoulides, 1998).
+In the development of our approach, we did not consider
+measurement error. Cole and Preacher (2014) have highlighted
+the serious bias that can arise from the failure to address
+measurement error in structural equation models. In our insulin-glucose example we would expect this problem to be minimal since instantaneous measures of blood insulin and blood
+glucose both have high precision. In cases in which only
+11Technical details, formal derivations, and R-code for numerical computations are provided in the online supplementary material. 12All models discussed in the paper belong to the class of DAGs. Random intercepts are by definition latent variables and are therefore unobserved. Therefore, many
+standard nonparametric adjustment formulae used to compute causal quantities can no longer be applied in the presence of random intercepts.
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 489
+a single measure of each variable is available at each measurement wave, the bias can be reduced by using methods to
+correct the observed variables for measurement error (e.g.,
+Fuller, 1987) or structural equation models with latent variables can be constructed that yield measurement error-free
+estimates. Our proposed approach to cross-lagged panel
+designs can potentially be extended to define, identify, and
+estimate causal effects between latent variables. Again, this is
+a task for future research.
+Finally, our example was based on simulated data based on
+empirical findings reported by Ito et al. (1998). To simplify our
+didactic presentation of the approach, we ignored both possible
+contemporaneous correlations among the residuals of the insulin and glucose time-series as well as possible autocorrelations in
+the residuals for the blood insulin and blood glucose series.
+From a causal perspective, this means that we generated the
+data to reflect the absence of time-varying unobserved confounders in both the autoregressive and the cross-lagged relationships. With a real data example, these assumptions need to be
+checked, for example, by using the methods to detect certain
+types of misspecifications referred to in the second paragraph of
+this section.
+In conclusion, the proposed method combines the desirable
+features of cross-lagged panel designs, a sound definition of
+causal quantities based on DAGs, and the flexibility of SEM for
+data analysis. We hope that our presentation facilitates the
+integration of linear SEM and DAG-based causal inference
+and enables researchers to better distinguish between tools
+for predictive and causal research questions.
+Acknowledgments
+The first author thanks Leona S. Aiken for her comments on an earlier
+version of the manuscript. We acknowledge support by the Open Access
+Publication Fund of Humboldt-Universität zu Berlin.
+Disclosure statement
+The authors do not have any conflicts of interest to disclose.
+Funding
+Stephen G. West was supported in part by a further research stay supplement to his Forschungspreis from the Alexander von Humboldt Stiftung
+and in part by a grant from the US National Institute on Drug Abuse
+(R37DA09757).
+ORCID
+Christian Gische http://orcid.org/0000-0002-7372-2894
+Manuel C. Voelkle http://orcid.org/0000-0001-5576-8103
+References
+Amemiya, T. (1985). Advanced econometrics. Harvard University Press.
+Bauer, D. J. (2003). Estimating multilevel linear models as structural
+equation models. Journal of Educational and Behavioral Statistics, 28,
+135–167. https://doi.org/10.3102/10769986028002135
+Bode, B. W., Schwartz, S., Stubbs, H. A., & Block, J. E. (2005). Glycemic
+characteristics in continuously monitored patients with type 1 and type
+2 diabetes: Normative values. Diabetes Care, 28, 2361–2366. https://doi.
+org/10.2337/diacare.28.10.2361
+Bollen, K. A. (1989). Structural equations with latent variables. John Wiley
+& Sons.
+Bollen, K. A., & Curran, P. J. (2004). Autoregressive latent trajectory
+(ALT) models: A synthesis of two traditions. Sociological Methods &
+Research, 32, 336–383. https://doi.org/10.1177/0049124103260222
+Browne, M. W., & Zhang, G. (2007). Developments in the factor analysis
+of individual time series. In R. Cudeck & R. C. MacCallum (Eds.),
+Factor analysis at 100: Historical developments and future directions
+(pp. 265–292). Lawrence Erlbaum Associates.
+Chen, B., Tian, J., & Pearl, J. (2014). Testable implications of linear
+structural equation models. In Proceedings of the 28th AAAI conference
+on artificial intelligence (pp. 2424–2430). AAAI Press.
+Cohen, J., Cohen, P., West, S. G., & Aiken, L. S. (2003). Applied multiple
+regression/correlation analysis for the behavioral sciences (3rd ed.).
+Lawrence Erlbaum Associates.
+Cole, D. A., & Preacher, K. J. (2014). Manifest variable path analysis:
+Potentially serious and misleading consequences due to uncorrected
+measurement error. Psychological Methods, 19, 300–315. https://doi.
+org/10.1037/a0033805
+Cowell, R. G., Dawid, A. P., Lauritzen, S. L., & Spiegelhalter, D. J. (1999).
+Probabilistic networks and expert systems. Springer.
+Cronbach, L. J. (1957). The two disciplines of scientific psychology.
+American Psychologist, 12, 671–684. https://doi.org/10.1037/h0043943
+Cronbach, L. J. (1975). Beyond the two disciplines of scientific psychology.
+American Psychologist, 30, 116–127. https://doi.org/10.1037/h0076829
+Cryer, P. E. (2003). Glucose homestasis and hypoglycemia. In P. R. Larsen
+(Ed.), Williams textbook of endocrinology (10th ed.). W.B. Saunders.
+Curran, P. J. (2003). Have multilevel models been structural equation
+models all along? Multivariate Behavioral Research, 38, 529–569.
+https://doi.org/10.1207/s15327906mbr3804_5
+Danaei, G., Finucane, M. M., Lu, Y., Singh, G. M., Cowan, M. J.,
+Paciorek, C. J., Lin, J. K., Farzadfar, F., Khang, Y.-H., Stevens, G. A.,
+Rao, M., Ali, M. K., Riley, L. M., Robinson, C. A., & Ezzati, M. (2011).
+National, regional, and global trends in fasting plasma glucose and
+diabetes prevalence since 1980: Systematic analysis of health examination surveys and epidemiological studies with 370 country-years and
+2·7 million participants. The Lancet, 378, 31–40. https://doi.org/10.
+1016/S0140-6736(11)60679-X
+Ding, P., & VanderWeele, T. J. (2016). Sensitivity analysis without
+assumptions. Epidemiology, 27, 368–377. https://doi.org/10.1097/EDE.
+0000000000000457
+Elwert, F. (2013). Graphical causal models. In S. Morgan (Ed.), Handbook of
+causal analysis for social research (pp. 245–273). Springer.
+Fuller, W. A. (1987). Measurement error models. John Wiley & Sons.
+Gische, C., & Voelkle, M. C. (2020). Beyond the mean: A flexible framework for studying causal effects using linear models. Retrieved from
+https://www.researchgate.net/publication/335030449_Gische_
+Voelkle_Causal_Inference_in_Linear_Models
+Giugliano, D., Marfella, R., Coppola, L., Verrazzo, G., Acampora, R.,
+Giunta, R., Nappo, F., Lucarelli, C., & D’Onofrio, F. (1997). Vascular
+effects of acute hyperglycemia in humans are reversed by l-arginine.
+Circulation, 7, 1783–1790. https://doi.org/10.1161/01.CIR.95.7.1783
+Hamaker, E. L., Dolan, C. V., & Molenaar, P. C. M. (2005). Statistical
+modeling of the individual: Rationale and application of multivariate
+stationary time series analysis. Multivariate Behavioral Research, 40,
+207–233. https://doi.org/10.1207/s15327906mbr4002_3
+Hamilton, J. (1994). Time series analysis. Princeton, NJ: Princeton
+University Press.
+Holland, P. (1986). Statistics and Causal Inference. Journal of the
+American Statistical Association, 81, 945–960. https://doi.org/10.2307/
+2289064
+Hsiao, C. (2014). Analysis of panel data (3rd ed.). Cambridge University Press.
+Imai, K., Keele, L., & Yamamoto, T. (2010). Identification, inference and
+sensitivity analysis for causal mediation effects. Statistical Science, 25,
+51–71. https://doi.org/10.1214/10-STS321
+490 GISCHE ET AL.
+Ito, K., Wada, T., Makimura, H., Matsuoka, A., Maruyama, H., &
+Saruta, T. (1998). Vector autoregressive modeling analysis of frequently
+sampled oral glucose tolerance test results. The Keio Journal of
+Medicine, 47, 28–36. https://doi.org/10.2302/kjm.47.28
+Jordan, M. I. (Ed.). (1998). Learning in graphical models. Kluwer
+Academic Press.
+Kang, C., & Tian, J. (2009). Markov properties for linear causal models with
+correlated errors. Journal of Machine Learning Research, 10, 41–70.
+Koller, D., & Friedman, N. (2009). Probabilistic graphical models:
+Principles and techniques - adaptive computation and machine learning.
+The MIT Press.
+Kuroki, M., & Cai, Z. (2007). Evaluation of the causal effect of control
+plans in nonrecursive structural equation models. In Proceedings of the
+twenty-third conference on uncertainty in artificial intelligence (pp.
+227–234). AUAI Press.
+Lee, S.-Y. (2007). Structural equation modeling: A Bayesian approach. John
+Wiley & Sons.
+Loehlin, J. C., & Beaujean, A. A. (2017). Latent variable models: An introduction to factor, path, and structural equation models (5th ed.). Routledge.
+Molenaar, P. C. M. (1985). A dynamic factor model for the analysis of
+multivariate time series. Psychometrika, 50, 181–202. https://doi.org/
+10.1007/BF02294246
+Molenaar, P. C. M. (2004). A manifesto on psychology as idiographic
+science: Bringing the person back into scientific psychology, this time
+forever. Measurement, 2, 201–218. https://doi.org/10.1207/
+s15366359mea0204_1
+Monnier, L., Colette, C., Wojtusciszyn, A., Dejager, S., Renard, E.,
+Molinari, N., & Owens, D. R. (2017). Toward defining the threshold
+between low and high glucose variability in diabetes. Diabetes Care, 40,
+832–838. https://doi.org/10.2337/dc16-1769
+Oud, J., & Delsing, M (2010). Continuous Time Modeling of Panel Data by
+Means of SEM. In van Monfort, K., Oud, J., and Satorra, A. (Eds.),
+Longitudinal Research with Latent Variables (Ch. 7). New York, NY:
+Springer.
+Pearl, J. (2009). Causality (2nd ed.). Cambridge University Press.
+Pearl, J., Glymour, M., & Jewell, N. P. (2016). Causal inference in statistics:
+A primer. John Wiley & Sons.
+Peters, J., Janzing, D., & Schölkopf, B. (2017). Elements of causal inference.
+The MIT Press.
+Rao, C. (1973). Linear statistical inference and its applications (2nd ed.).
+Wiley.
+Richardson, T. (2003). Markov properties for acyclic directed mixed
+graphs. Scandinavian Journal of Statistics, 30, 145–157. https://doi.
+org/10.1111/1467-9469.00323
+Rosenbaum, P. (2011). Observational studies (2nd ed.). Springer.
+Schumacker, R., & Marcoulides, G. (1998). Interaction and nonlinear effects
+in structural equation modeling. Lawrence Erlbaum Associates.
+Shadish, W. R., Cook, T. D., & Campbell, D. T. (2002). Experimental and quasiexperimental designs for generalized causal inference. Houghton Mifflin.
+Shipley, B. (2003). Testing recursive path models with correlated errors
+using d-separation. Structural Equation Modeling, 10, 214–221. https://
+doi.org/10.1207/S15328007SEM1002_3
+Shpitser, I., & Pearl, J. (2006). Identification of conditional interventional
+distributions. In R. Dechter & S. T. Richardson (Eds.), Proceedings of
+the 22nd conference on uncertainty in artificial intelligence (pp.
+437–444). AUAI Press.
+Sidman, M. (1960). Tactics of scientific research. Basic Books.
+Singer, J. D., & Willett, J. B. (2003). Applied longitudinal data analysis:
+Modeling change and event occurrence. Oxford University Press.
+Spirtes, P., Glymour, C., & Scheines, R. (2000). Causation, prediction, and
+search (2nd ed.). The MIT Press.
+Suk, H. W., West, S. G., Fine, K. L., & Grimm, K. J. (2019). Nonlinear
+growth curve modeling using penalized spline models: A gentle
+introduction. Psychological Methods, 24, 269–290. https://doi.org/10.
+1037/met0000193
+Textor, J., van der Zander, B., Gilthorpe, M. S., Liśkiewicz, M., &
+Ellison, G. T. H. (2016). Robust causal inference using directed acyclic
+graphs: The R package ‘dagitty’. International Journal of Epidemiology,
+45, 1887–1894. https://doi.org/10.1093/ije/dyw341
+Thoemmes, F., Rosseel, Y., & Textor, J. (2018). Local fit evaluation of
+structural equation models using graphical criteria. Psychological
+Methods, 23, 27–41. https://doi.org/10.1037/met0000147
+Tian, J., & Pearl, J. (2002). On the testable implications of causal models
+with hidden variables. In A. Darwiche & N. Friedman (Eds.),
+Proceedings of the 18th conference on uncertainty in artificial intelligence
+(pp. 519–527). Morgan Kaufmann.
+Usami, S., Murayama, K., & Hamaker, E. L. (2019). A unified framework
+of longitudinal models to examine reciprocal relations. Psychological
+Methods, 24, 637–657. https://doi.org/10.1037/met0000210
+Voelkle, M. C., Gische, C., Driver, C. C., & Lindenberger, U. (2018). The
+role of time in the quest for understanding psychological mechanisms.
+Multivariate Behavioral Research, 53, 782–805. https://doi.org/10.1080/
+00273171.2018.1496813
+West, S. G., & Thoemmes, F. (2010). Campbell’s and Rubin’s perspectives
+on causal inference. Psychological Methods, 15, 18–37. https://doi.org/
+10.1037/a0015917
+Wooldridge, J. M. (2010). Econometric analysis of cross section and panel
+data (2nd ed.). MIT Press.
+Wright, S. (1934). The method of path coefficients. The Annals of
+Mathematical Statistics, 5, 161–215. https://doi.org/10.1214/aoms/
+1177732676
+Zyphur, M. J., Allison, P. D., Tay, L., Voelkle, M. C., Preacher, K. J.,
+Zhang, Z., … Diener, E. (2019). From data to causes I: Building
+a general cross-lagged panel model (GCLM). Organizational Research
+Methods. https://doi.org/10.1177/1094428119847278
+Appendix on Initial Variables
+In this Appendix, we provide a rationale for our treatment of initial
+variables and briefly discuss alternative approaches. We focus on the
+model depicted in Figure 5 that includes individual heterogeneity. The
+model depicted in Figure 1 can be viewed as a special case.
+The initial variables X1 and Y1 in Figure 5 are (a) connected by
+a bidirected dashed edge, (b) have incoming directed edges from the random intercepts ηx and ηy, and (c) the values of the structural coefficients
+corresponding to the directed edges are denoted by cx1ηx , cx1ηy
+, cy1ηx and
+cy1ηy
+. All three choices (a), (b), and (c) rest on the key assumptions depicted
+in Figure A1 that address the dynamics of the insulin–glucose relationship
+prior to the first measurement wave. The DAG depicted in Figure A1
+encodes the assumption, that the causal structure of the insulin glucose
+dynamics is time-stable. In other words, the dynamics prior to the first
+measurement (gray part) contains only autoregressive and cross-lagged
+effects of order one. Note that we do not assume that the values of the
+structural coefficients are necessarily time-stable prior to the first measurement wave as indicated by leaving out labels for the directed edges in the
+gray part of the graph.
+Drawing (a) a bidirected edge among the initial variables in Figure 5
+indicates the existence of unobserved confounders. Assuming that
+the dynamics have already been going on before the first measurement wave (as displayed in Figure A1) implies that the X1-Y1 relationship is confounded by previous insulin and glucose levels.
+Examples for such confounding paths are X1 X0 ! Y1 or
+X1 Y0 ! Y1.
+Drawing (b) directed edges from the random intercepts to the
+initial variables can be justified as follows: Directed edges drawn
+from ηx to the insulin levels Xt reflect the assumption that the
+omitted person-specific time-invariant variables have direct causal
+effects on the insulin levels at time t. Since the timing of the first
+measurement wave was determined by factors outside of the system
+(e.g., grant money deadlines, availability of the lab) there is no
+reason to believe that ηx should not have a direct causal effect on
+the initial variable X1 in Figure 5. Including the past of the dynamic
+process prior to the first measurement (gray part in Figure A1)
+reveals that insulin level at time t ¼ 1 does not have a special status
+in the ongoing underlying real-world process. The fact that we treat
+STRUCTURAL EQUATION MODELING: A MULTIDISCIPLINARY JOURNAL 491
+it differently in our model (e.g., we assign the structural coefficient
+cx1ηx to the path ηx ! X1 instead of restricting its value to be equal to
+one) only arises due to the timing of our measurements which is
+determined by factors independent of the insulin-glucose dynamics
+(see Singer & Willett, 2003). The same argument holds true for the
+directed edge from ηy to the glucose level Y1.
+The directed edge from ηy to X1 in Figure 5 reflects the assumption that ηy has a direct causal effect on X1 in the depicted model.
+13
+Note that the model in Figure 5 omits those parts of the insulin
+glucose dynamics that were going on prior to the initial measurement wave. The DAG in depicted in Figure A1 explicitly contains
+the entire past of the insulin-glucose dynamics (gray part). As
+a consequence, ηy has indirect effects on X1 (e.g., ηy ! Y0 ! X1,
+ηy ! Y 1 ! X0 ! X1) in the model depicted in Figure A1. These
+indirect paths from Figure A1 translate to direct paths in the linear
+cross-lagged panel model with T ¼ 4 measurement waves as depicted
+in Figure 5. The same argument holds true for the directed edge
+from ηx to the insulin levels Y1.
+Statement (c) says that the values of the structural coefficients corresponding to the directed edges are denoted by cx1ηx
+, cx1ηy
+, cy1ηx and cy1ηy
+and are therefore not restricted to be equal to one. In practice, we
+recommend estimating the values of these coefficients from the data
+without imposing any restrictions. For our data simulation we used
+a particular set of values, namely cx1ηx ¼  4:00, cx1ηy ¼ 8:00, cy1ηx ¼
+ 12:00 and cy1ηy ¼ 19:00, as depicted in Figures 5 and 6 (see online
+supplementary material for a derivation of these values).
+13Note that the term direct effect is well-defined only with respect to a certain model. Saying that changes in insulin levels X have a direct effect on glucose levels Y
+might be a useful model for practicing physicians and patients suffering from diabetes. At the same time, this model excludes several chains of chemical reactions (i.e.,
+molecular processes) that are involved in the transmission of changes in X to changes in the levels of Y. These intermediate chemical processes might be of interest to
+biochemists or pharmacologists who develop a drug for patients suffering from diabetes. Thus, a direct effect of X on Y in the physician’s model will then be an indirect
+effect (i.e., a mediated effect) in the biochemists’ model that explicitly includes chemical reactions as intermediate variables.
+X1 X2 X3 X4
+Y1 Y2 Y3 Y4
+X−1 X0 · · ·
+· · · Y−1 Y0
+cxx = .05
+cyx=-.6
+cxx = .05
+cyx =-.6
+cxx = .05
+cyx =-.6
+cxy = .4
+cyy = 1.20
+cxy = .4
+cyy = 1.20
+cxy = .4
+cyy = 1.20
+ηx
+1 1 1 1
+ηy
+1 1 1 1
+Figure A1. The depicted causal diagram (DAG) extends Figure 5 to account for the fact that the insulin-glucose dynamics were going on in the individuals prior to the
+first measurement wave. The four measurement waves that are observed in our study are drawn in black whereas the unobserved past of the process is drawn in gray.
+The graph in Figure A1 encodes the assumption, that the causal structure of the insulin-glucose dynamics is time-stable. In other words, the dynamics prior to the first
+measurement contain only autoregressive and cross-lagged effects of order one as well as direct effects from ηx to the insulin measures and from ηy to the glucose
+measures. We do not necessarily assume that the values of the structural coefficients are time-stable prior to the first measurement wave as indicated by leaving the
+directed edges in the gray part of Figure A1 unlabeled.
+492 GISCHE ET AL.
