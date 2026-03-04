@@ -1,0 +1,57 @@
+\begin{table}[htbp]
+\centering
+\caption{Small-sample extrapolation: Path~1 (constant model) vs Path~2 (linear extrapolation).
+DGP is linear in event time. Path~1 fails catastrophically with dynamics (coverage \(\to 0\%\)).
+Path~2 is correctly specified and shows coverage improving with \(p\): 69\% (\(p=3\)) \(\to\) 99.5\% (\(p=10\)).}
+\label{tab:section8_3_combined}
+\begin{tabular}{lccccc}
+\toprule
+& \multicolumn{2}{c}{Path~1 (constant)} & \multicolumn{2}{c}{Path~2 (linear)} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\(p\) (periods) & Bias & Coverage & Bias & Coverage \\
+\midrule
+2 &
+-0.118
+ &
+63.0
+\% & --- & undefined \\
+3 &
+-0.159
+ &
+32.7
+\% &
+0.000325
+ &
+69.2
+\% \\
+4 &
+-0.204
+ &
+5.1
+\% &
+-0.00166
+ &
+83.4
+\% \\
+5 &
+-0.250
+ &
+0.0
+\% &
+-0.00264
+ &
+91.8
+\% \\
+10 &
+-0.475
+ &
+0.0
+\% &
+0.00169
+ &
+99.5
+\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+

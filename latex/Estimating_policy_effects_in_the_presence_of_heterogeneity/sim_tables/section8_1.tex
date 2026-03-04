@@ -1,0 +1,41 @@
+\begin{table}[htbp]
+\centering
+\caption{Path~2 under non-smooth dynamics: piecewise linear DGP with break at \(k=3\).
+All smooth parametric models fail to capture the sharp break, resulting in systematic bias
+and coverage collapse.}
+\label{tab:section8_1}
+\begin{tabular}{lcccc}
+\toprule
+Model & True FATT & Bias & RMSE & 95\% coverage \\
+\midrule
+Linear &
+0.617
+ &
+-0.135
+ &
+0.153
+ &
+38.7
+\% \\
+Quadratic &
+0.617
+ &
+-0.0611
+ &
+0.203
+ &
+46.8
+\% \\
+Spline (knot at \(t=4\)) &
+0.617
+ &
+-0.0559
+ &
+0.140
+ &
+58.9
+\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
