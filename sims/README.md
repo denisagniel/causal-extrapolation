@@ -35,6 +35,20 @@ Optional: create `sims/config/sim_config.R` to set variables (e.g. `n_replicates
 | `scripts/sim_section5_path1_vs_path2.R` | `section5_path1_vs_path2.rds` | Path 1 vs Path 2 on same DGP. |
 | `scripts/sim_section6_omega.R` | `section6_omega.rds` | Omega sensitivity (correct vs uniform weights). |
 
+## Section 8: Stress Tests and Edge Cases (NEW)
+
+Section 8 complements Sections 1-7 by showing **where methods fail** (research constitution §9 compliance). These adversarial simulations demonstrate method limitations:
+
+7. **Section 8.1** — Non-smooth dynamics: Path 2 (parametric extrapolation) fails when true dynamics have breaks.
+8. **Section 8.3** — Small-sample extrapolation: All paths show uncertainty explosion with few observed periods.
+
+Run Section 8:
+```r
+source("sims/run_section8.R")
+```
+
+**Purpose:** Build credibility by being honest about method boundaries. Shows where each path breaks, not just where it works.
+
 ## Demo
 
 `scripts/demo_linear.R` is the original one-shot linear extrapolation demo; it is not part of the section suite but can be run separately.
