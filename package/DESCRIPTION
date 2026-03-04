@@ -2,8 +2,8 @@ Package: extrapolateATT
 Title: Semiparametric Extrapolation of Future ATTs with Influence Functions
 Version: 0.0.0.9000
 Authors@R: c(
-    person(given = "Your", family = "Name", role = c("aut", "cre"),
-           email = "you@example.com")
+    person(given = "Daniel", family = "Agniel", role = c("aut", "cre"),
+           email = "dagniel@rand.org")
  )
 Description: Estimate group-time average treatment effects (ATTs) with the 'did'
     package, extrapolate to future time points via user-specified temporal models
@@ -15,14 +15,10 @@ Description: Estimate group-time average treatment effects (ATTs) with the 'did'
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: R (>= 4.1)
 Imports:
-    dplyr,
     tibble,
-    tidyr,
-    purrr,
-    ggplot2,
     rlang,
     stats,
     numDeriv,
@@ -32,8 +28,3 @@ Suggests:
     knitr,
     rmarkdown
 Config/testthat/edition: 3
-
-
-
-
-
