@@ -56,9 +56,10 @@ path1_aggregate <- function(gt_object, omega) {
     g <- groups[i]
     idx <- which(df$g == g)
     tau_g[i] <- mean(df$tau_hat[idx])
+
     # EIF for group mean = mean of EIFs over cells in that group (equal weight)
-    phi_mat <- do.call(cbind, phi_rows[idx])
-    if (is.null(dim(phi_mat))) phi_mat <- matrix(phi_mat, nrow = n, ncol = 1)
+    # Use fast_cbind_list for efficient matrix construction
+    phi_mat <- fast_cbind_list(phi_rows[idx])
     phi_g[[i]] <- as.numeric(rowMeans(phi_mat))
   }
 

@@ -53,6 +53,45 @@ to each group's observed \code{tau_hat} values to obtain future ATT estimates,
 and propagates EIFs via the chain rule. Optionally aggregates to overall future
 ATT with group weights \code{omega_g}.
 }
+\section{Custom temporal models}{
+
+To define a custom temporal extrapolation model, provide:
+
+\enumerate{
+\item \strong{h_fun} - A function factory with signature
+\code{function(times, future_time, ...)} that returns a function
+\code{function(tau_vector)} mapping observed ATTs to future ATT.
+
+\item \strong{dh_fun} - A function with signature
+\code{function(times, future_time, ...)} that returns the Jacobian
+(derivative) vector of length \code{length(times)}.
+}
+
+The asymmetric interface (factory vs direct return) is intentional:
+\code{extrapolate_ATT} calls \code{h_factory <- h_fun(times, future_value)}
+to construct the extrapolation function, then applies it. The Jacobian from
+\code{dh_fun} is used directly in matrix multiplication for EIF propagation.
+
+Example custom model (exponential decay):
+\preformatted{
+my_h <- function(times, future_time, decay_rate = 0.1) {
+  function(tau) {
+    # Fit exponential model and extrapolate
+    # (simplified example)
+    mean(tau) * exp(-decay_rate * (future_time - max(times)))
+  }
+}
+
+my_dh <- function(times, future_time, decay_rate = 0.1) {
+  # Return Jacobian weights
+  rep(1/length(times), length(times))  # Simplified
+}
+
+result <- extrapolate_ATT(gt_obj, h_fun = my_h, dh_fun = my_dh,
+                          future_value = 10, decay_rate = 0.2)
+}
+}
+
 \examples{
 # Create mock group-time ATT estimates (in practice, from estimate_group_time_ATT)
 set.seed(20260304)

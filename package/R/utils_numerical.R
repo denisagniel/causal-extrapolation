@@ -48,3 +48,45 @@ Possible causes:
 
   solve(XtX)
 }
+
+#' Fast matrix construction from list of vectors
+#'
+#' Efficiently constructs a matrix from a list of column vectors. For small lists
+#' (< 100 columns), uses do.call(cbind). For large lists, uses direct matrix
+#' construction which is O(n) instead of O(n^2).
+#'
+#' @param vec_list List of numeric vectors (all same length)
+#' @param threshold Number of columns above which to use optimized method (default 100)
+#' @return Matrix with length(vec_list) columns
+#' @keywords internal
+fast_cbind_list <- function(vec_list, threshold = 100) {
+  if (length(vec_list) == 0) {
+    stop("vec_list is empty", call. = FALSE)
+  }
+
+  # For small lists, do.call is fine
+  if (length(vec_list) < threshold) {
+    mat <- do.call(cbind, vec_list)
+    if (is.null(dim(mat))) {
+      # Single vector case
+      n <- length(vec_list[[1]])
+      mat <- matrix(mat, nrow = n, ncol = length(vec_list))
+    }
+    return(mat)
+  }
+
+  # For large lists, use direct matrix construction (much faster)
+  n_rows <- length(vec_list[[1]])
+  n_cols <- length(vec_list)
+
+  # Pre-allocate matrix
+  mat <- matrix(0, nrow = n_rows, ncol = n_cols)
+
+  # Fill columns (vectorized, O(n) not O(n^2))
+  for (j in seq_along(vec_list)) {
+    mat[, j] <- vec_list[[j]]
+  }
+
+  mat
+}
+

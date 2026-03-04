@@ -12,6 +12,21 @@
 #' singular design matrices (e.g., repeated time values) and will raise an
 #' informative error if the matrix X'X is near-singular.
 #'
+#' \strong{Interface design:}
+#' \itemize{
+#'   \item \code{hg_linear} returns a \emph{function factory}: it takes times and
+#'     future_time, then returns a function that can be applied to tau vectors.
+#'     This allows \code{extrapolate_ATT} to construct the extrapolation function
+#'     once and apply it to different tau values if needed.
+#'   \item \code{dh_linear} returns the Jacobian weights \emph{directly} as a vector.
+#'     These weights are used immediately in EIF propagation, so no factory is needed.
+#' }
+#'
+#' This asymmetric design is intentional: \code{h_fun} must be a factory because
+#' \code{extrapolate_ATT} internally calls \code{h_fun(times, future_value)} to
+#' construct a function, then applies that function. \code{dh_fun} is called once
+#' and its output (the weight vector) is used directly in matrix multiplication.
+#'
 #' @return `hg_linear()` returns a function that maps a vector of τ_{g,1:p} to τ_{g,p+m}.
 #' `dh_linear()` returns a numeric vector of length p giving ∂h_g/∂τ_{g,1:p}.
 #'

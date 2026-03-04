@@ -13,6 +13,14 @@
 #' distinct times) and will raise an informative error if the matrix X'X is
 #' near-singular.
 #'
+#' \strong{Interface design:}
+#' Like \code{\link{hg_linear}}, this follows an asymmetric interface:
+#' \itemize{
+#'   \item \code{hg_quadratic} is a function factory (returns a function)
+#'   \item \code{dh_quadratic} returns Jacobian weights directly (returns a vector)
+#' }
+#' See \code{\link{hg_linear}} for the rationale behind this design.
+#'
 #' @return `hg_quadratic()` returns a function that maps a vector of tau to the extrapolated value.
 #' `dh_quadratic()` returns the Jacobian vector of length length(times).
 #'

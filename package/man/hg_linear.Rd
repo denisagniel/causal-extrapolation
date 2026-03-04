@@ -27,6 +27,21 @@ The Jacobian w.r.t. past τ_{g,1:p} equals the OLS projection weights.
 Requires at least p >= 2 observations (intercept + slope). Checks for
 singular design matrices (e.g., repeated time values) and will raise an
 informative error if the matrix X'X is near-singular.
+
+\strong{Interface design:}
+\itemize{
+\item \code{hg_linear} returns a \emph{function factory}: it takes times and
+future_time, then returns a function that can be applied to tau vectors.
+This allows \code{extrapolate_ATT} to construct the extrapolation function
+once and apply it to different tau values if needed.
+\item \code{dh_linear} returns the Jacobian weights \emph{directly} as a vector.
+These weights are used immediately in EIF propagation, so no factory is needed.
+}
+
+This asymmetric design is intentional: \code{h_fun} must be a factory because
+\code{extrapolate_ATT} internally calls \code{h_fun(times, future_value)} to
+construct a function, then applies that function. \code{dh_fun} is called once
+and its output (the weight vector) is used directly in matrix multiplication.
 }
 \examples{
 # Observed ATTs at times 1, 2, 3
