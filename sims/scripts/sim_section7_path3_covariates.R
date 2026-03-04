@@ -90,24 +90,32 @@ for (r in seq_len(n_replicates)) {
   path2_est[r] <- ex$tau_future
   path2_covered[r] <- (true_fatt >= inf2$ci[1] && true_fatt <= inf2$ci[2])
 
-  # --- Path 3: Covariate integration (oracle version for demonstration) ---
-  # Oracle: Draw target covariates and compute mean(tau(X_i*)) = mean(alpha + beta * X_i*)
-  # This is what integrate_covariates() will do in Phase 4.
-  # For now, compute oracle estimate with correct EIF propagation (simplified).
+  # --- Path 3: Covariate integration (package implementation) ---
+  # Define conditional model: tau(X) = alpha + beta * X (linear-in-covariates)
+  conditional_model <- function(X_df, beta) {
+    # beta = c(alpha, beta_X)
+    beta[1] + beta[2] * X_df$X
+  }
+
+  # Target sample
   X_target <- generate_target_covariates(n_target = 200, mu_target = mu_target,
                                          sigma_X = sigma_X, seed = 7000L + r)
-  tau_X <- alpha + beta * X_target$X
-  path3_oracle <- mean(tau_X)
 
-  # Simplified EIF for Path 3 (oracle case):
-  # In reality, this would propagate through beta estimation from gt.
-  # For demonstration, we add noise matching the Path 1/2 variance structure.
-  path3_est[r] <- path3_oracle + rnorm(1, mean = 0, sd = sigma_tau)
+  # Group-level covariate means (for beta estimation)
+  x_group <- data.frame(g = 1:q, X_mean = mu_g)
 
-  # Simplified CI (oracle + noise)
-  path3_se <- sigma_tau  # Placeholder; true SE would come from EIF propagation
-  path3_ci <- path3_est[r] + c(-1, 1) * qnorm(1 - (1 - level) / 2) * path3_se
-  path3_covered[r] <- (true_fatt >= path3_ci[1] && true_fatt <= path3_ci[2])
+  # Integrate via package function
+  path3_result <- integrate_covariates(
+    gt, conditional_model,
+    x_group = x_group,
+    x_target = X_target,
+    validate = FALSE  # Skip validation for speed in simulation
+  )
+
+  inf3 <- compute_variance(path3_result$phi_future,
+                          estimate = path3_result$tau_future, level = level)
+  path3_est[r] <- path3_result$tau_future
+  path3_covered[r] <- (true_fatt >= inf3$ci[1] && true_fatt <= inf3$ci[2])
 }
 
 # Results summary
@@ -131,11 +139,11 @@ results_s7 <- list(
     coverage = mean(path2_covered),
     note = "Biased: extrapolates spurious trends from composition changes"
   ),
-  Path3_CovariateIntegration_Oracle = list(
+  Path3_CovariateIntegration = list(
     bias = mean(path3_est - true_fatt),
     rmse = sqrt(mean((path3_est - true_fatt)^2)),
     coverage = mean(path3_covered),
-    note = "Unbiased (oracle): tau(X) is regime-invariant"
+    note = "Unbiased: tau(X) is regime-invariant (package implementation)"
   ),
   n_replicates = n_replicates
 )
@@ -162,12 +170,12 @@ cat(sprintf("  Bias: %.4f, RMSE: %.4f, Coverage: %.2f%%\n",
             results_s7$Path2_TemporalExtrapolation$rmse,
             results_s7$Path2_TemporalExtrapolation$coverage * 100))
 
-cat("\nPath 3 (Covariate Integration, Oracle):\n")
+cat("\nPath 3 (Covariate Integration):\n")
 cat(sprintf("  Bias: %.4f, RMSE: %.4f, Coverage: %.2f%%\n",
-            results_s7$Path3_CovariateIntegration_Oracle$bias,
-            results_s7$Path3_CovariateIntegration_Oracle$rmse,
-            results_s7$Path3_CovariateIntegration_Oracle$coverage * 100))
+            results_s7$Path3_CovariateIntegration$bias,
+            results_s7$Path3_CovariateIntegration$rmse,
+            results_s7$Path3_CovariateIntegration$coverage * 100))
 
-cat("\n** Note: Path 3 is oracle version for demonstration (Phase 4 will implement full integrate_covariates()) **\n")
+cat("\n** Path 3 uses integrate_covariates() from extrapolateATT package **\n")
 
 message("\nSection 7 done: section7_path3_covariates.rds saved")

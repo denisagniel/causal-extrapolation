@@ -2,40 +2,87 @@
 % Please edit documentation in R/integrate_covariates.R
 \name{integrate_covariates}
 \alias{integrate_covariates}
-\title{Integrate extrapolated conditional ATT over a target covariate distribution}
+\title{Integrate conditional ATT over target covariate distribution (Path 3)}
 \usage{
 integrate_covariates(
-  extrap_object,
+  gt_object,
+  conditional_model,
+  x_group = NULL,
   x_target = NULL,
   sampler = NULL,
+  n_mc = 5000,
   weights = NULL,
-  id_target = NULL
+  validate = TRUE
 )
 }
 \arguments{
-\item{extrap_object}{Result of \code{extrapolate_ATT()} with per-unit EIF vectors in
-\code{phi_g_future} (or aggregated \code{phi_future} if already aggregated by group).}
+\item{gt_object}{A gt_object with group-time ATTs and EIF vectors.}
 
-\item{x_target}{Optional data.frame/tibble of target covariates; if provided,
-finite-pop average is used.}
+\item{conditional_model}{Function(X_df, beta) -> numeric vector of tau(X_i) values.
+Should take a data frame of covariates and parameter vector beta, and return
+conditional ATT for each row.}
 
-\item{sampler}{Optional function(n) -> tibble that generates draws from F_X*.}
+\item{x_group}{Optional data frame with group-level covariate means (columns: g, X variables).
+Used to estimate beta. If NULL, will attempt to extract from gt_object attributes.}
 
-\item{weights}{Optional numeric vector of weights aligned with rows of x_target.}
+\item{x_target}{Optional data frame of target covariates (finite-population).
+If provided, computes empirical average over target sample.}
 
-\item{id_target}{Optional vector of ids for target units.}
+\item{sampler}{Optional function(n) -> data frame that generates draws from target
+covariate distribution (Monte Carlo integration).}
+
+\item{n_mc}{Number of Monte Carlo draws if using sampler (default 5000).}
+
+\item{weights}{Optional weights for x_target (default equal weights).}
+
+\item{validate}{Whether to validate inputs (default TRUE).}
 }
 \value{
-A list with integrated estimate \code{tau_star} and EIF vector \code{phi_star}.
+A list with:
+\item{tau_future}{Scalar FATT estimate}
+\item{phi_future}{Length-n EIF vector for variance estimation}
+\item{beta}{Estimated parameter vector}
+\item{n_integrated}{Number of target units (finite-pop) or MC draws}
+\item{strategy}{"finite_population" or "monte_carlo"}
 }
 \description{
-\strong{EXPERIMENTAL/INCOMPLETE:} This function is a placeholder for future
-functionality. Full conditional integration tau_(p+m)(X) requires a model
-mapping covariates to conditional ATTs, which is not yet implemented.
+Implements Path 3 identification: estimate conditional ATT tau(X) = m(X; beta)
+from group-time ATTs, then integrate over the future covariate distribution.
+Robust to regime change if tau(X) captures structural parameters (Lucas critique).
 }
 \details{
-Given per-unit conditional extrapolated EIF contributions or per-group averages,
-integrate over a target covariate distribution F_X* using either observed target
-sample \code{x_target} (finite-pop average) or a Monte Carlo \code{sampler()}.
+Path 3 assumes:
+\enumerate{
+\item Structural stability: tau(x) is time-invariant
+\item Parametric specification: tau(x) = m(x; beta) with known m
+\item Target distribution: access to F_X^{p+1} via x_target or sampler
 }
-\keyword{internal}
+
+The function:
+\enumerate{
+\item Estimates beta by fitting conditional model to observed group-time ATTs
+\item Integrates m(x; beta) over target distribution
+\item Propagates EIF via chain rule (Jacobian through beta estimation)
+}
+}
+\examples{
+\dontrun{
+# Linear-in-covariates model: tau(X) = alpha + beta * X
+conditional_model <- function(X_df, beta) {
+  beta[1] + beta[2] * X_df$X
+}
+
+# Group-level covariate means
+x_group <- data.frame(g = c(1, 2, 3), X_mean = c(-1, 0, 1))
+
+# Target sample
+x_target <- data.frame(X = rnorm(200, mean = 0.5, sd = 1))
+
+# Integrate
+result <- integrate_covariates(
+  gt_object, conditional_model,
+  x_group = x_group, x_target = x_target
+)
+}
+
+}

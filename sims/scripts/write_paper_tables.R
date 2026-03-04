@@ -110,7 +110,12 @@ if (file.exists(file.path(results_dir, "section7_path3_covariates.rds"))) {
   p7 <- readRDS(file.path(results_dir, "section7_path3_covariates.rds"))
   p1 <- p7$Path1_TimeHomogeneity
   p2 <- p7$Path2_TemporalExtrapolation
-  p3 <- p7$Path3_CovariateIntegration_Oracle
+  # Try both old and new names for backward compatibility
+  p3 <- if (!is.null(p7$Path3_CovariateIntegration)) {
+    p7$Path3_CovariateIntegration
+  } else {
+    p7$Path3_CovariateIntegration_Oracle
+  }
   writeLines(c(
     "\\begin{table}[htbp]",
     "\\centering",
