@@ -70,6 +70,11 @@ path2_covered <- logical(n_replicates)
 path3_est <- numeric(n_replicates)
 path3_covered <- logical(n_replicates)
 
+# Generate FIXED target sample (used across all replications)
+# This is the finite-population case: we observe the target sample once and treat it as fixed
+X_target_fixed <- generate_target_covariates(n_target = 200, mu_target = mu_target,
+                                             sigma_X = sigma_X, seed = 9999L)
+
 for (r in seq_len(n_replicates)) {
   gt <- add_noise_and_eif(theta_gt, n = n, sigma_tau = sigma_tau, seed = 7000L + r)
 
@@ -97,18 +102,14 @@ for (r in seq_len(n_replicates)) {
     beta[1] + beta[2] * X_df$X
   }
 
-  # Target sample
-  X_target <- generate_target_covariates(n_target = 200, mu_target = mu_target,
-                                         sigma_X = sigma_X, seed = 7000L + r)
-
   # Group-level covariate means (for beta estimation)
   x_group <- data.frame(g = 1:q, X_mean = mu_g)
 
-  # Integrate via package function
+  # Integrate via package function (using FIXED target sample)
   path3_result <- integrate_covariates(
     gt, conditional_model,
     x_group = x_group,
-    x_target = X_target,
+    x_target = X_target_fixed,
     validate = FALSE  # Skip validation for speed in simulation
   )
 

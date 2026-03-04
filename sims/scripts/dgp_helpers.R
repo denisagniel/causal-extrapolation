@@ -92,20 +92,46 @@ true_backward_att <- function(theta_gt, weights = NULL) {
 #' @param seed Optional seed.
 #' @return A gt_object (list with data, phi, times, groups, n) compatible with extrapolate_ATT and path1_aggregate.
 #' @export
-add_noise_and_eif <- function(theta_gt, n, sigma_tau = 0.1, sigma_phi = 0.2, seed = NULL) {
+add_noise_and_eif <- function(theta_gt, n, sigma_tau = 0.1, sigma_phi = 0.2, seed = NULL,
+                               within_group_correlation = 0.98) {
   if (!is.null(seed)) set.seed(seed)
   J <- nrow(theta_gt)
   tau_hat <- theta_gt$theta_gt + stats::rnorm(J, mean = 0, sd = sigma_tau)
+
   # EIF for cell j: tau_hat[j] has variance sigma_tau^2, so we need Var(mean(phi_j)) = sigma_tau^2.
   # Hence Var(phi_j) = n * sigma_tau^2, i.e. SD(phi_j) = sigma_tau * sqrt(n).
-  phi_list <- lapply(seq_len(J), function(j) stats::rnorm(n, mean = 0, sd = sigma_tau * sqrt(n)))
+  #
+  # IMPORTANT: Cells within the same group should have correlated EIF vectors because
+  # they're based on the same individuals. Without this, variance is underestimated by factor of p
+  # (number of time periods per group), leading to severe undercoverage.
+  #
+  # Generate correlated EIF vectors within each group:
+  # phi_{gt,i} = sqrt(rho) * phi_{g,i} + sqrt(1-rho) * epsilon_{gt,i}
+  # where phi_{g,i} is group-level (shared across time) and epsilon is cell-specific noise.
+
+  groups <- sort(unique(theta_gt$g))
+  rho <- within_group_correlation
+
+  # Generate group-level EIF components (shared across cells within group)
+  phi_group <- lapply(groups, function(g) {
+    stats::rnorm(n, mean = 0, sd = sigma_tau * sqrt(n))
+  })
+  names(phi_group) <- groups
+
+  # Generate cell-level EIF vectors with within-group correlation
+  phi_list <- lapply(seq_len(J), function(j) {
+    g <- theta_gt$g[j]
+    # Correlated component (shared within group) + independent component (cell-specific)
+    sqrt(rho) * phi_group[[as.character(g)]] +
+      sqrt(1 - rho) * stats::rnorm(n, mean = 0, sd = sigma_tau * sqrt(n))
+  })
+
   data <- tibble::tibble(
     g = theta_gt$g,
     t = theta_gt$t,
     k = theta_gt$k,
     tau_hat = tau_hat
   )
-  groups <- sort(unique(theta_gt$g))
   times <- sort(unique(theta_gt$t))
   obj <- list(
     data = data,
