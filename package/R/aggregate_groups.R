@@ -5,6 +5,28 @@
 #' @param omega Numeric vector of group weights (same length as values_g).
 #'
 #' @return A list with aggregated value `value` and EIF vector `phi`.
+#'
+#' @examples
+#' # Per-group estimates
+#' values_g <- c(0.5, 0.3, 0.7)  # Three groups
+#'
+#' # Per-group EIF vectors (n=50 observations)
+#' set.seed(20260304)
+#' eif_list <- list(
+#'   rnorm(50, sd = 0.1),
+#'   rnorm(50, sd = 0.1),
+#'   rnorm(50, sd = 0.1)
+#' )
+#'
+#' # Group weights (proportional to group size)
+#' omega <- c(0.5, 0.3, 0.2)
+#'
+#' # Aggregate
+#' result <- aggregate_groups(values_g, eif_list, omega)
+#'
+#' print(result$value)  # Weighted average: 0.5*0.5 + 0.3*0.3 + 0.2*0.7
+#' print(length(result$phi))  # EIF vector of length 50
+#'
 #' @export
 aggregate_groups <- function(values_g, eif_list, omega) {
   # Input validation

@@ -22,3 +22,25 @@ A list with elements var, se, ci (numeric length 2), and level.
 Computes Var(φ)/n, standard error, and Wald confidence interval for a scalar
 estimand using its efficient influence function (EIF) evaluations.
 }
+\examples{
+# Simulate EIF vector from a causal estimator
+set.seed(20260304)
+n <- 200
+phi <- rnorm(n, mean = 0, sd = 0.15)  # EIFs should have mean ≈ 0
+
+# Compute variance and 95\% confidence interval
+result <- compute_variance(phi, estimate = 0.45, level = 0.95)
+
+print(result$var)  # Variance estimate
+print(result$se)   # Standard error
+print(result$ci)   # 95\% CI
+
+# Try different confidence levels
+ci_99 <- compute_variance(phi, estimate = 0.45, level = 0.99)
+print(ci_99$ci)  # Wider CI
+
+# Without estimate, CI will be NA
+result_no_est <- compute_variance(phi, level = 0.95)
+print(result_no_est$ci)  # c(NA, NA)
+
+}

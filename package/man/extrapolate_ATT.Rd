@@ -53,3 +53,55 @@ to each group's observed \code{tau_hat} values to obtain future ATT estimates,
 and propagates EIFs via the chain rule. Optionally aggregates to overall future
 ATT with group weights \code{omega_g}.
 }
+\examples{
+# Create mock group-time ATT estimates (in practice, from estimate_group_time_ATT)
+set.seed(20260304)
+n <- 100
+gt_data <- tibble::tibble(
+  g = rep(c(0, 1), each = 3),
+  t = rep(1:3, 2),
+  tau_hat = rnorm(6, mean = 0.5, sd = 0.1),
+  k = t - g
+)
+
+# Create mock EIF vectors
+phi <- replicate(nrow(gt_data), rnorm(n, sd = 0.1), simplify = FALSE)
+
+# Build gt_object
+gt_obj <- list(
+  data = gt_data,
+  phi = phi,
+  times = sort(unique(gt_data$t)),
+  groups = sort(unique(gt_data$g)),
+  n = n
+)
+class(gt_obj) <- c("gt_object", "extrapolateATT")
+
+# Extrapolate to future time using linear model
+result <- extrapolate_ATT(
+  gt_obj,
+  h_fun = hg_linear,
+  dh_fun = dh_linear,
+  future_value = 5,
+  time_scale = "calendar",
+  per_group = TRUE
+)
+
+# Access per-group results
+print(result$tau_g_future)
+
+# Aggregate across groups with weights
+result_agg <- extrapolate_ATT(
+  gt_obj,
+  h_fun = hg_linear,
+  dh_fun = dh_linear,
+  future_value = 5,
+  time_scale = "calendar",
+  per_group = FALSE,
+  omega = c(0.6, 0.4)
+)
+
+# Overall future ATT estimate
+print(result_agg$tau_future)
+
+}

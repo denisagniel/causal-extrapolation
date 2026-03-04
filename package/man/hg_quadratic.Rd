@@ -29,3 +29,23 @@ Checks for singular design matrices (e.g., repeated time values, insufficient
 distinct times) and will raise an informative error if the matrix X'X is
 near-singular.
 }
+\examples{
+# Observed ATTs showing accelerating trend
+times <- c(1, 2, 3, 4)
+tau_observed <- c(0.1, 0.2, 0.4, 0.7)  # Quadratic growth
+
+# Extrapolate using quadratic model
+h <- hg_quadratic(times, future_time = 6)
+tau_future <- h(tau_observed)
+print(tau_future)
+
+# Compare with linear extrapolation
+h_linear <- hg_linear(times, future_time = 6)
+tau_future_linear <- h_linear(tau_observed)
+print(tau_future_linear)
+
+# Get Jacobian weights
+dh_weights <- dh_quadratic(times, future_time = 6)
+print(dh_weights)
+
+}

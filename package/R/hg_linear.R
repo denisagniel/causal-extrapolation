@@ -14,6 +14,25 @@
 #'
 #' @return `hg_linear()` returns a function that maps a vector of τ_{g,1:p} to τ_{g,p+m}.
 #' `dh_linear()` returns a numeric vector of length p giving ∂h_g/∂τ_{g,1:p}.
+#'
+#' @examples
+#' # Observed ATTs at times 1, 2, 3
+#' times <- c(1, 2, 3)
+#' tau_observed <- c(0.2, 0.3, 0.4)  # Linear increasing trend
+#'
+#' # Extrapolate to future time 5
+#' h <- hg_linear(times, future_time = 5)
+#' tau_future <- h(tau_observed)
+#' print(tau_future)  # Should be around 0.6 if trend continues
+#'
+#' # Get Jacobian weights for EIF propagation
+#' dh_weights <- dh_linear(times, future_time = 5)
+#' print(dh_weights)  # Projection weights
+#'
+#' # Verify h uses dh internally
+#' manual_result <- sum(dh_weights * tau_observed)
+#' print(all.equal(tau_future, manual_result))
+#'
 #' @export
 hg_linear <- function(times, future_time) {
   force(times); force(future_time)
