@@ -76,22 +76,13 @@ estimate_group_time_ATT <- function(data, y, g, t, x = NULL, cluster = NULL, ...
                      gname = g_name,
                      data = df,
                      ...)
-  # Extract estimates and EIFs using helper
-  ext <- did_extract_gt(att)
-  est_df <- ext$data
-  phi_list <- ext$phi
 
-  res <- list(
-    data = est_df,
-    phi = phi_list,
-    times = sort(unique(est_df$t)),
-    groups = sort(unique(est_df$g)),
-    event_times = sort(unique(est_df$k)),
-    n = n,
-    ids = NULL,
-    meta = list(call = match.call(), did_object = att)
-  )
-  class(res) <- c("gt_object", "extrapolateATT")
-  res
+  # Convert to gt_object using new converter
+  gt_obj <- as_gt_object(att, extract_eif = TRUE)
+
+  # Add call to metadata
+  gt_obj$meta$call <- match.call()
+
+  gt_obj
 }
 

@@ -137,13 +137,15 @@ validate_gt_object <- function(gt_obj, name = "gt_object") {
          call. = FALSE)
   }
 
-  # Check alignment between phi and data
-  if (length(gt_obj$phi) != nrow(gt_obj$data)) {
-    phi_len <- length(gt_obj$phi)
-    data_rows <- nrow(gt_obj$data)
-    stop(stringr::str_glue(
-      "{name}$phi has length {phi_len} but {name}$data has {data_rows} rows. These must match."
-    ), call. = FALSE)
+  # Check alignment between phi and data (if phi is not NULL)
+  if (!is.null(gt_obj$phi)) {
+    if (length(gt_obj$phi) != nrow(gt_obj$data)) {
+      phi_len <- length(gt_obj$phi)
+      data_rows <- nrow(gt_obj$data)
+      stop(stringr::str_glue(
+        "{name}$phi has length {phi_len} but {name}$data has {data_rows} rows. These must match."
+      ), call. = FALSE)
+    }
   }
 
   # Validate data structure
