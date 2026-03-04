@@ -24,10 +24,15 @@ Imports:
     numDeriv,
     did,
     purrr,
-    stringr
+    stringr,
+    dplyr,
+    tidyr
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
-    fixest
+    fixest,
+    ggplot2,
+    sandwich
 Config/testthat/edition: 3
+VignetteBuilder: knitr

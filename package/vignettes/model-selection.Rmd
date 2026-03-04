@@ -1,0 +1,331 @@
+---
+title: "Model Selection for Temporal Extrapolation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Model Selection for Temporal Extrapolation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Introduction
+
+When extrapolating treatment effects to future time periods using temporal models (Path 2 in the paper), the choice of functional form $f(g,t;\gamma)$ is critical. A linear-in-time model may underfit if effects are accelerating; a quadratic may overfit and produce unstable extrapolations. This vignette demonstrates the **time-series cross-validation framework** from Section 5.2 of the paper, which evaluates candidate models based on their extrapolation performance on held-out periods.
+
+This vignette shows how to:
+
+1. Specify candidate temporal models
+2. Run time-series cross-validation to compute mean squared prediction error (MSPE)
+3. Select the best model based on MSPE
+4. Use the selected model for extrapolation
+5. Optionally average across models with exponential weights
+
+## Setup
+
+```{r}
+library(extrapolateATT)
+set.seed(20260304)
+```
+
+## Example: Quadratic vs Linear Extrapolation
+
+We'll simulate data where the true group-time effects follow a **quadratic trend**, then use cross-validation to see if the procedure correctly selects the quadratic model over linear.
+
+### Step 1: Generate Data with Quadratic Trend
+
+```{r}
+# Parameters
+n <- 200  # Sample size
+n_groups <- 2
+times <- 1:7
+groups <- c(0, 1)
+
+# Generate data with quadratic temporal pattern
+# True DGP: tau_{gt} = 0.1 + 0.05*t + 0.02*t^2
+data_list <- list()
+phi_list <- list()
+idx <- 1
+
+for (g in groups) {
+  for (t in times) {
+    # Quadratic trend
+    tau_true <- 0.1 + 0.05 * t + 0.02 * t^2
+
+    # Add small noise
+    tau_hat <- tau_true + rnorm(1, sd = 0.02)
+
+    data_list[[idx]] <- data.frame(
+      g = g,
+      t = t,
+      tau_hat = tau_hat,
+      k = t - g
+    )
+
+    # Generate EIF vectors (influence functions)
+    phi_list[[idx]] <- rnorm(n, mean = 0, sd = 0.15)
+    idx <- idx + 1
+  }
+}
+
+# Combine into gt_object structure
+data <- do.call(rbind, data_list)
+
+gt_object <- list(
+  data = data,
+  phi = phi_list,
+  times = sort(unique(data$t)),
+  groups = sort(unique(data$g)),
+  event_times = sort(unique(data$k)),
+  n = n
+)
+class(gt_object) <- c("gt_object", "extrapolateATT")
+
+print(gt_object$data)
+```
+
+### Step 2: Build Candidate Models
+
+We'll test three models: linear, quadratic, and a constant baseline.
+
+```{r}
+# Built-in models (linear and quadratic)
+models <- build_model_specs(c("linear", "quadratic"))
+
+# Optionally add a custom constant model
+constant_model <- list(
+  constant = list(
+    h_fun = function(times, future_time) {
+      function(tau_g) mean(tau_g)
+    },
+    dh_fun = function(times, future_time) {
+      rep(1 / length(times), length(times))
+    },
+    name = "constant"
+  )
+)
+
+models <- build_model_specs(c("linear", "quadratic"), custom_models = constant_model)
+
+names(models)
+```
+
+### Step 3: Run Time-Series Cross-Validation
+
+We hold out the last 1, 2, and 3 periods as test sets, fit each model on earlier data, and compute MSPE on the held-out periods.
+
+```{r}
+cv_result <- cv_extrapolate_ATT(
+  gt_object,
+  model_specs = models,
+  horizons = 1:3,           # Test 1, 2, and 3 periods ahead
+  future_value = 8,         # Actual future time we care about
+  time_scale = "calendar",
+  compute_coverage = FALSE  # Skip for speed (can enable for coverage metrics)
+)
+
+print(cv_result)
+```
+
+### Step 4: Examine Results
+
+```{r}
+# Detailed summary
+summary(cv_result)
+
+# Visualize MSPE by horizon
+plot(cv_result)
+```
+
+The quadratic model should have the lowest MSPE since the true DGP is quadratic.
+
+### Step 5: Select and Use Best Model
+
+```{r}
+# Select best model by MSPE
+best_model_name <- select_best_model(cv_result, criterion = "mspe")
+cat("Selected model:", best_model_name, "\n")
+
+# Extract the best model specification
+best_spec <- models[[best_model_name]]
+
+# Use it to extrapolate to future time 8
+result <- extrapolate_ATT(
+  gt_object,
+  h_fun = best_spec$h_fun,
+  dh_fun = best_spec$dh_fun,
+  future_value = 8,
+  time_scale = "calendar",
+  per_group = TRUE
+)
+
+print(result$tau_g_future)
+```
+
+### Compare with Other Models
+
+To see how much the model choice matters, let's compare extrapolations from all three models:
+
+```{r}
+# Extrapolate with each model
+extrapolations <- lapply(names(models), function(model_name) {
+  spec <- models[[model_name]]
+  res <- extrapolate_ATT(
+    gt_object,
+    h_fun = spec$h_fun,
+    dh_fun = spec$dh_fun,
+    future_value = 8,
+    time_scale = "calendar",
+    per_group = TRUE
+  )
+
+  data.frame(
+    model = model_name,
+    g = res$tau_g_future$g,
+    tau_future = res$tau_g_future$tau_future
+  )
+})
+
+comparison <- do.call(rbind, extrapolations)
+print(comparison)
+
+# True value at t=8 for comparison
+true_tau_8 <- 0.1 + 0.05 * 8 + 0.02 * 8^2
+cat("\nTrue tau at t=8:", round(true_tau_8, 3), "\n")
+```
+
+The quadratic model should be closest to the truth.
+
+## Model Averaging
+
+Instead of selecting a single model, we can average across all models using exponential weights based on MSPE. Models with lower MSPE get higher weight.
+
+```{r}
+# Model-averaged extrapolation
+avg_result <- average_models(
+  cv_result,
+  gt_object,
+  future_value = 8,
+  time_scale = "calendar",
+  temperature = 1,  # Controls weight concentration (default)
+  per_group = TRUE
+)
+
+print(avg_result)
+
+# Check the weights
+cat("\nModel weights:\n")
+print(avg_result$weights)
+```
+
+The model-averaged estimate combines predictions from all models, weighted by their cross-validated performance. This acknowledges model uncertainty and can improve robustness when multiple models perform similarly.
+
+### Temperature Parameter
+
+The `temperature` parameter controls how concentrated the weights are:
+
+- Low temperature (e.g., 0.1): Winner-take-all (nearly all weight on best model)
+- Default (1.0): Standard exponential weighting
+- High temperature (e.g., 10): Nearly uniform weights (equal averaging)
+
+```{r}
+# Winner-take-all weighting
+avg_concentrated <- average_models(
+  cv_result, gt_object, future_value = 8,
+  time_scale = "calendar", temperature = 0.1, per_group = TRUE
+)
+
+# Uniform weighting
+avg_uniform <- average_models(
+  cv_result, gt_object, future_value = 8,
+  time_scale = "calendar", temperature = 10, per_group = TRUE
+)
+
+cat("Concentrated weights (temp=0.1):\n")
+print(avg_concentrated$weights)
+
+cat("\nUniform weights (temp=10):\n")
+print(avg_uniform$weights)
+```
+
+## Coverage-Based Model Selection
+
+If you care about uncertainty quantification as well as point prediction, you can select models based on both MSPE and coverage. This requires computing confidence intervals for test predictions (set `compute_coverage = TRUE`).
+
+```{r, eval=FALSE}
+# Run CV with coverage computation (slower)
+cv_with_coverage <- cv_extrapolate_ATT(
+  gt_object,
+  model_specs = models,
+  horizons = 1:2,
+  future_value = 8,
+  time_scale = "calendar",
+  compute_coverage = TRUE,  # Enable coverage
+  level = 0.95
+)
+
+summary(cv_with_coverage)
+
+# Select model with good coverage among those with low MSPE
+best_with_coverage <- select_best_model(
+  cv_with_coverage,
+  criterion = "coverage",
+  tolerance = 0.15  # Consider models within 15% of best MSPE
+)
+
+cat("Best model (coverage criterion):", best_with_coverage, "\n")
+
+# Or use combined criterion (ranks both MSPE and coverage)
+best_combined <- select_best_model(
+  cv_with_coverage,
+  criterion = "combined"
+)
+
+cat("Best model (combined criterion):", best_combined, "\n")
+```
+
+## Practical Workflow Summary
+
+1. **Specify candidate models:** Use `build_model_specs()` for common models (linear, quadratic), or add custom models.
+
+2. **Run cross-validation:** Call `cv_extrapolate_ATT()` with a range of horizons (e.g., 1-3 periods). The function holds out each horizon as a test set and computes MSPE.
+
+3. **Examine results:** Use `print()`, `summary()`, and `plot()` to understand which models perform best. Check if MSPE differences are substantial.
+
+4. **Select or average:**
+   - If one model clearly dominates, select it with `select_best_model()`.
+   - If multiple models perform similarly, use `average_models()` to hedge against model uncertainty.
+
+5. **Extrapolate:** Use the selected model or averaged result to predict future ATTs.
+
+6. **Report sensitivity:** Include extrapolations from the top 2-3 models to show how sensitive results are to functional form choice.
+
+## Recommendations
+
+- **Start simple:** Test linear and quadratic models as a baseline.
+- **Use multiple horizons:** Don't rely on a single horizon (e.g., h=1). Test 2-3 horizons to see if a model extrapolates well both near-term and longer-term.
+- **Check coverage:** If inference is critical, enable coverage computation to ensure your selected model produces well-calibrated confidence intervals.
+- **Model average when uncertain:** If MSPE differences are small (e.g., ratio < 1.5), model averaging is safer than picking a single model.
+- **Plot diagnostics:** Always visualize MSPE by horizon and look at individual predictions (stored in `cv_result$predictions`).
+
+## Limitations
+
+Time-series CV evaluates extrapolation performance **within the observed time window**. It cannot test extrapolation to periods that differ fundamentally from observed periods (e.g., due to regime changes, policy reforms, or distributional shifts). See paper Section 5.2 for a discussion of when CV is valid and when structural assumptions are needed.
+
+## References
+
+This vignette implements the model selection framework from **Section 5.2** of:
+
+> Agniel, D. (2026). Estimating policy effects in the presence of heterogeneity. *Manuscript in preparation*.
+
+Key theoretical results:
+- **Section 5.1:** EIF propagation through temporal models
+- **Section 5.2:** Time-series cross-validation for model selection
+- **Section 7.7:** Simulation study comparing linear, quadratic, and spline models

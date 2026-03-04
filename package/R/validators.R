@@ -200,3 +200,131 @@ validate_lengths_match <- function(x, y, name_x = "x", name_y = "y") {
 
   invisible(TRUE)
 }
+
+#' Validate model specification list
+#'
+#' @param model_specs Named list of model specifications
+#' @param name Variable name for error messages
+#' @keywords internal
+validate_model_specs <- function(model_specs, name = "model_specs") {
+  # Check it's a list
+  if (!is.list(model_specs)) {
+    stop(stringr::str_glue("{name} must be a list, got {class(model_specs)[1]}"),
+         call. = FALSE)
+  }
+
+  # Check it's not empty
+  if (length(model_specs) == 0) {
+    stop(stringr::str_glue("{name} is an empty list"), call. = FALSE)
+  }
+
+  # Check it's named
+  if (is.null(names(model_specs)) || any(names(model_specs) == "")) {
+    stop(stringr::str_glue("{name} must be a named list (all elements need names)"),
+         call. = FALSE)
+  }
+
+  # Check each element has required fields
+  required_fields <- c("h_fun", "dh_fun", "name")
+
+  for (i in seq_along(model_specs)) {
+    spec <- model_specs[[i]]
+    spec_name <- names(model_specs)[i]
+
+    # Check it's a list
+    if (!is.list(spec)) {
+      stop(stringr::str_glue(
+        "{name}[['{spec_name}']] must be a list, got {class(spec)[1]}"
+      ), call. = FALSE)
+    }
+
+    # Check required fields present
+    missing <- setdiff(required_fields, names(spec))
+    if (length(missing) > 0) {
+      missing_str <- stringr::str_c(missing, collapse = ", ")
+      stop(stringr::str_glue(
+        "{name}[['{spec_name}']] is missing required fields: {missing_str}"
+      ), call. = FALSE)
+    }
+
+    # Check h_fun is a function
+    if (!is.function(spec$h_fun)) {
+      stop(stringr::str_glue(
+        "{name}[['{spec_name}']]$h_fun must be a function, got {class(spec$h_fun)[1]}"
+      ), call. = FALSE)
+    }
+
+    # Check dh_fun is a function
+    if (!is.function(spec$dh_fun)) {
+      stop(stringr::str_glue(
+        "{name}[['{spec_name}']]$dh_fun must be a function, got {class(spec$dh_fun)[1]}"
+      ), call. = FALSE)
+    }
+
+    # Check name is a character scalar
+    if (!is.character(spec$name) || length(spec$name) != 1) {
+      stop(stringr::str_glue(
+        "{name}[['{spec_name}']]$name must be a character scalar"
+      ), call. = FALSE)
+    }
+  }
+
+  invisible(TRUE)
+}
+
+#' Validate CV horizons
+#'
+#' @param horizons Integer vector of forecast horizons
+#' @param max_available Maximum available time periods (optional)
+#' @param name Variable name for error messages
+#' @keywords internal
+validate_horizons <- function(horizons, max_available = NULL, name = "horizons") {
+  # Check numeric
+  if (!is.numeric(horizons)) {
+    stop(stringr::str_glue("{name} must be numeric, got {class(horizons)[1]}"),
+         call. = FALSE)
+  }
+
+  # Check not empty
+  if (length(horizons) == 0) {
+    stop(stringr::str_glue("{name} cannot be empty"), call. = FALSE)
+  }
+
+  # Check no NA or Inf FIRST (before any comparisons that might fail with NA)
+  if (any(is.na(horizons))) {
+    stop(stringr::str_glue("{name} contains NA values"), call. = FALSE)
+  }
+  if (any(is.infinite(horizons))) {
+    stop(stringr::str_glue("{name} contains Inf values"), call. = FALSE)
+  }
+
+  # Check all positive
+  if (any(horizons <= 0)) {
+    n_nonpos <- sum(horizons <= 0)
+    stop(stringr::str_glue(
+      "{name} must contain only positive values (found {n_nonpos} non-positive value(s))"
+    ), call. = FALSE)
+  }
+
+  # Check all integers
+  if (any(horizons != floor(horizons))) {
+    n_nonint <- sum(horizons != floor(horizons))
+    stop(stringr::str_glue(
+      "{name} must contain only integers (found {n_nonint} non-integer value(s))"
+    ), call. = FALSE)
+  }
+
+  # Check against max_available if provided
+  if (!is.null(max_available)) {
+    if (any(horizons >= max_available)) {
+      bad_h <- horizons[horizons >= max_available]
+      bad_h_str <- stringr::str_c(bad_h, collapse = ", ")
+      stop(stringr::str_glue(
+        "{name} contains values ({bad_h_str}) >= max available time periods ({max_available}). ",
+        "Need at least one training observation for each horizon."
+      ), call. = FALSE)
+    }
+  }
+
+  invisible(TRUE)
+}

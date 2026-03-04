@@ -20,6 +20,10 @@ The package provides a three-step workflow for extrapolating treatment effects:
 \enumerate{
 \item \strong{Estimate group-time ATTs:} Use \code{\link{estimate_group_time_ATT}}
 to extract \eqn{\hat{\tau}_{g,t}} and EIFs from \code{did::att_gt()}.
+\item \strong{Select temporal model:} (Optional but recommended) Use
+\code{\link{cv_extrapolate_ATT}} to evaluate candidate models via time-series
+cross-validation, then select with \code{\link{select_best_model}} or
+average with \code{\link{average_models}}.
 \item \strong{Extrapolate to future:} Apply temporal model \code{h_g(·)} via
 \code{\link{extrapolate_ATT}}, propagating EIFs by chain rule.
 \item \strong{Compute uncertainty:} Use \code{\link{compute_variance}} to obtain
@@ -43,6 +47,19 @@ and returning a function that maps observed ATT vector to future ATT
 }
 }
 
+\section{Model selection}{
+
+Choose among candidate temporal models using time-series cross-validation:
+\itemize{
+\item \code{\link{build_model_specs}}: Construct model specifications (linear, quadratic, custom)
+\item \code{\link{cv_extrapolate_ATT}}: Evaluate models via time-series CV with MSPE
+\item \code{\link{select_best_model}}: Select best model by MSPE, coverage, or combined criteria
+\item \code{\link{average_models}}: Model averaging with exponential weights based on MSPE
+}
+
+See \code{vignette("model-selection")} for detailed workflow and examples.
+}
+
 \section{Aggregation}{
 
 Aggregate across groups or time periods:
@@ -58,6 +75,8 @@ Aggregate across groups or time periods:
 \item \strong{Semiparametric efficiency:} Uses efficient influence functions
 for asymptotically valid inference
 \item \strong{Flexible temporal models:} Linear, quadratic, or custom extrapolation
+\item \strong{Model selection:} Time-series cross-validation to choose among candidate models
+\item \strong{Model averaging:} Exponential weighting based on out-of-sample performance
 \item \strong{Time scales:} Calendar time or event time extrapolation
 \item \strong{Uncertainty quantification:} Propagates EIFs via chain rule for valid SEs
 \item \strong{Safe numerics:} Automatic singularity detection in matrix operations
@@ -70,8 +89,11 @@ for asymptotically valid inference
 The semiparametric theory and EIF propagation formulas are described in:
 
 Agniel (2026). "Estimating policy effects in the presence of heterogeneity."
-Section 5.1 provides the formal derivation of EIF propagation through
-temporal extrapolation models.
+\itemize{
+\item Section 5.1: EIF propagation through temporal extrapolation models
+\item Section 5.2: Time-series cross-validation for model selection
+\item Section 7.7: Simulation study comparing temporal models
+}
 }
 
 \section{Basic example}{
@@ -104,7 +126,8 @@ library(extrapolateATT)
 
 \itemize{
 \item \code{did} package for difference-in-differences estimation
-\item Package vignettes (when available) for detailed workflows
+\item \code{vignette("model-selection")} for model selection workflow
+\item Paper Section 5.2 for theoretical foundation of time-series CV
 }
 }
 

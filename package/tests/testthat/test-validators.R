@@ -181,3 +181,160 @@ test_that("validate_lengths_match catches length mismatches", {
     "Length mismatch"
   )
 })
+
+# Tests for validate_model_specs ----
+
+test_that("validate_model_specs accepts valid model specifications", {
+  specs <- list(
+    linear = list(
+      h_fun = hg_linear,
+      dh_fun = dh_linear,
+      name = "linear"
+    )
+  )
+  expect_silent(validate_model_specs(specs))
+})
+
+test_that("validate_model_specs rejects non-list input", {
+  expect_error(
+    validate_model_specs("not a list"),
+    "must be a list"
+  )
+})
+
+test_that("validate_model_specs rejects empty list", {
+  expect_error(
+    validate_model_specs(list()),
+    "empty list"
+  )
+})
+
+test_that("validate_model_specs rejects unnamed list", {
+  specs <- list(
+    list(h_fun = hg_linear, dh_fun = dh_linear, name = "linear")
+  )
+  expect_error(
+    validate_model_specs(specs),
+    "must be a named list"
+  )
+})
+
+test_that("validate_model_specs catches missing required fields", {
+  specs <- list(
+    incomplete = list(
+      h_fun = hg_linear
+      # missing dh_fun and name
+    )
+  )
+  expect_error(
+    validate_model_specs(specs),
+    "missing required fields"
+  )
+})
+
+test_that("validate_model_specs checks h_fun is a function", {
+  specs <- list(
+    bad_hfun = list(
+      h_fun = "not a function",
+      dh_fun = dh_linear,
+      name = "bad"
+    )
+  )
+  expect_error(
+    validate_model_specs(specs),
+    "h_fun must be a function"
+  )
+})
+
+test_that("validate_model_specs checks dh_fun is a function", {
+  specs <- list(
+    bad_dhfun = list(
+      h_fun = hg_linear,
+      dh_fun = "not a function",
+      name = "bad"
+    )
+  )
+  expect_error(
+    validate_model_specs(specs),
+    "dh_fun must be a function"
+  )
+})
+
+test_that("validate_model_specs checks name is character scalar", {
+  specs <- list(
+    bad_name = list(
+      h_fun = hg_linear,
+      dh_fun = dh_linear,
+      name = c("multiple", "names")
+    )
+  )
+  expect_error(
+    validate_model_specs(specs),
+    "name must be a character scalar"
+  )
+})
+
+# Tests for validate_horizons ----
+
+test_that("validate_horizons accepts valid horizons", {
+  expect_silent(validate_horizons(c(1, 2, 3)))
+  expect_silent(validate_horizons(1))
+  expect_silent(validate_horizons(1:5))
+})
+
+test_that("validate_horizons rejects non-numeric input", {
+  expect_error(
+    validate_horizons(c("1", "2", "3")),
+    "must be numeric"
+  )
+})
+
+test_that("validate_horizons rejects empty vector", {
+  expect_error(
+    validate_horizons(numeric(0)),
+    "cannot be empty"
+  )
+})
+
+test_that("validate_horizons rejects non-positive values", {
+  expect_error(
+    validate_horizons(c(1, 2, 0)),
+    "must contain only positive values"
+  )
+  expect_error(
+    validate_horizons(c(1, 2, -1)),
+    "must contain only positive values"
+  )
+})
+
+test_that("validate_horizons rejects non-integer values", {
+  expect_error(
+    validate_horizons(c(1, 2.5, 3)),
+    "must contain only integers"
+  )
+})
+
+test_that("validate_horizons rejects NA and Inf", {
+  expect_error(
+    validate_horizons(c(1, NA, 3)),
+    "contains NA values"
+  )
+  expect_error(
+    validate_horizons(c(1, Inf, 3)),
+    "contains Inf values"
+  )
+})
+
+test_that("validate_horizons checks against max_available", {
+  expect_silent(validate_horizons(c(1, 2, 3), max_available = 10))
+
+  expect_error(
+    validate_horizons(c(1, 2, 10), max_available = 10),
+    "max available time periods"
+  )
+
+  expect_error(
+    validate_horizons(c(1, 2, 15), max_available = 10),
+    "max available time periods"
+  )
+})
