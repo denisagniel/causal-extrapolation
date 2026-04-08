@@ -40,13 +40,20 @@ causal-extrapolation/
 ├── CLAUDE.md                 # This file (project-specific agent guidance)
 ├── MEMORY.md                 # Session-persistent learning
 ├── README.md                 # Project overview and build instructions
-├── .claude/                  # Rules, skills, agents, hooks (from agent-assisted-research-meta)
+├── .claude/                  # Rules, skills, agents, hooks
 ├── meta-spec/                # Research constitution, background (authoritative)
 ├── templates/                # Session log, quality report, requirements-spec
 ├── latex-dotfiles/           # Shared LaTeX style files
-├── package/                  # extrapolateATT R package source
+├── DESCRIPTION               # Package metadata
+├── NAMESPACE                 # Package exports
+├── R/                        # Package code (extrapolateATT package)
+├── tests/                    # Package tests
+├── man/                      # Generated documentation (roxygen2)
+├── vignettes/                # Package vignettes
+├── inst/
+│   └── paper/                # LaTeX paper (canonical: R package + paper)
+│       └── main.tex          # "Estimating policy effects in the presence of heterogeneity"
 ├── sims/                     # Simulation suite and demos
-├── latex/                    # Paper: "Estimating policy effects in the presence of heterogeneity"
 ├── development-docs/         # Development notes, paper planning, simulation ideas
 ├── session_notes/            # Session notes (feed daily notes; see meta-spec/META_PROJECT_NOTES.md)
 ├── refs/                     # References and literature
