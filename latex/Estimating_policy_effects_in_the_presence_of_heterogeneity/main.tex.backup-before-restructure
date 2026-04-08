@@ -93,7 +93,7 @@ In the presence of heterogeneity -- especially heterogeneity in how policy effec
 where $G_i = \min_t tI\{A_{it} = 1\}$, the time when the policy first occurred, and $\P_t$ is the distribution of the data at time $t$: $\cO_t = \{\bX_i, Y_{it}(0), Y_{it}(1), A_{it}\}_{i = 1, ..., n} \sim \P_t$. This is important to solve some infelicities with trying to estimate $\theta$ directly with a single linear model \citep{sunEstimatingDynamicTreatment2021} and to draw attention to the fact that causal effects may both vary across calendar time and have different effects as implementation continues -- i.e., effects may differ in the first year of implementation from the fifth year, say. These sub-ATTs are typically then aggregated up into an overall effect estimate across groups/times.
 
 \subsection{Identification of the backward-looking ATT}
-The results in Section~\ref{sec:general-framework} (covering all three identification paths) assume that the researcher has secured identification of the ATT $\theta$ and, where relevant, the group-time ATTs $\theta_{gt}$, under some design. For example, under parallel trends in difference-in-differences, $\theta_{gt}$ is identified from the observed data \citep{callawayDifferenceindifferencesMultipleTime2021,sunEstimatingDynamicTreatment2021}; under unconfoundedness or other designs, different identification formulas apply. We do not restrict the first-stage identification strategy: it may be difference-in-differences, synthetic control, or another approach. The contribution of this paper is to show when and how these backward-looking estimands coincide with or can be used to identify the policy-relevant FATT (and related future estimands), given time homogeneity assumptions (Path~1, Section~\ref{sec:path1}), a parametric model for dynamics (Path~2, Section~\ref{sec:path2}), or structural covariate-driven effects (Path~3, Section~\ref{sec:path3}). Thus the full identification argument has two steps: (a) under the researcher's design, $\theta$ or $\theta_{gt}$ are identified from observables; (b) under the extrapolation assumptions we state below, the FATT is identified from $\theta$ or $\theta_{gt}$.
+The results in Sections 4--6 assume that the researcher has secured identification of the ATT $\theta$ and, where relevant, the group-time ATTs $\theta_{gt}$, under some design. For example, under parallel trends in difference-in-differences, $\theta_{gt}$ is identified from the observed data \citep{callawayDifferenceindifferencesMultipleTime2021,sunEstimatingDynamicTreatment2021}; under unconfoundedness or other designs, different identification formulas apply. We do not restrict the first-stage identification strategy: it may be difference-in-differences, synthetic control, or another approach. The contribution of this paper is to show when and how these backward-looking estimands coincide with or can be used to identify the policy-relevant FATT (and related future estimands), given time homogeneity assumptions (Section~4), a parametric model for dynamics (Section~5), or structural covariate-driven effects (Section~6). Thus the full identification argument has two steps: (a) under the researcher's design, $\theta$ or $\theta_{gt}$ are identified from observables; (b) under the extrapolation assumptions we state below, the FATT is identified from $\theta$ or $\theta_{gt}$.
 
 However, regardless of how they are aggregated, these effects are typically not directly relevant to current policy or decisionmaking \citep{egamiElementsExternalValidity2023,khosrowiExtrapolationCausalEffects2019}. These ATTs necessarily correspond to what has happened \textit{in the past}. While assessing the effects of policies in the past may have some utility -- e.g., for electoral purposes -- for a decisionmaker considering implementing a new policy or repealing a policy that is currently on the books, these backward-looking estimands are not germane without further assumptions. 
 
@@ -131,60 +131,11 @@ if they continued the policy compared to if they discontinued the policy at time
 
 Unlike the ATT and sub-ATTs above, none of the counterfactuals are observed. In fact, unlike for any backward-looking estimand, we lack any direct knowledge of the distribution of $\P_{p+k}$. We therefore require additional machinery to connect the observed data to the policy-relevant distribution $\P_{p+k}$. We outline below two different options: either taking time heterogeneity \textit{less} seriously -- by making time homogeneity assumptions -- or taking it \textit{more} seriously and formally modeling how policy effects change. \textbf{In the remainder of the paper we take $k=1$ (one period ahead);} extension to $k > 1$ is analogous and noted where it differs. 
 
-\section{Identification via Extrapolation Functions}
-
-Forward-looking estimands like the FATT at $p+1$ require extrapolation beyond the observed data. The three identification paths we present can be unified under a single conceptual framework: each path specifies an \emph{extrapolation function} $f$ and assumes that some structural relationship is invariant across time. What differs across paths is the choice of $f$---what it depends on and what is assumed stable.
-
-\subsection{General framework}\label{sec:general-framework}
-
-All three paths share a common principle: they express the group-time treatment effects $\theta_{gt}$ as a function of parameters and ``information'' available at time $t$, then extrapolate this relationship to $t = p+1$. Formally, we write
-\begin{align*}
-\theta_{gt} = f(g, \mathcal{I}_t; \btheta), \quad t = 1, \ldots, p,
-\end{align*}
-where $f(\cdot)$ is an extrapolation function, $\mathcal{I}_t$ represents available information at time $t$, and $\btheta$ are parameters identified from the observed $\{\theta_{gt}\}_{t \leq p, g \in \cG}$. The FATT is then
-\begin{align*}
-\theta_{p+1} = \sum_{g \in \cG} \omega_g f(g, \mathcal{I}_{p+1}; \btheta),
-\end{align*}
-where $\omega_g = \Prob(G_i = g | A_{ip} = 1)$ is the probability of cohort $g$ among units treated by period $p$.
-
-The three paths differ in their specification of $f$ and $\mathcal{I}_t$:
-
-\begin{table}[h]
-\centering
-\caption{Three identification paths as choices of extrapolation function}
-\label{tab:three-paths}
-\begin{tabular}{llll}
-\toprule
-\textbf{Path} & \textbf{Function $f$} & \textbf{Input $\mathcal{I}_t$} & \textbf{What's Invariant} \\
-\midrule
-1 & $\gamma_g$ (constant in $t$) & Group index only & Group-specific effects \\
-2 & $f(g,t; \bgamma)$ & (Group, Time) & Temporal functional form \\
-3 & $\int m(x; \bbeta) \, dF_{\bX}^t(x)$ & Covariate dist.\ at $t$ & Conditional effect $m(x; \bbeta)$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{itemize}
-    \item \textbf{Path 1 (time homogeneity):} $f$ is constant over time within each group; $\mathcal{I}_t$ contains only the group index $g$. This assumes group-specific treatment effects do not change over time.
-
-    \item \textbf{Path 2 (parametric extrapolation):} $f$ is a parametric function of group and time (or event time $k = t - g$); $\mathcal{I}_t$ encodes temporal dynamics. This assumes effects follow a smooth functional form that continues into the future.
-
-    \item \textbf{Path 3 (covariate integration):} $f$ depends on the covariate distribution $F_{\bX}^t$ at time $t$; $\mathcal{I}_t$ is the population composition. This assumes the conditional effect $\tau(x) = m(x; \bbeta)$ is invariant, even if the covariate distribution shifts.
-\end{itemize}
-
-\paragraph{General identification principle.} Identification of $\theta_{p+1}$ requires: (i)~the extrapolation function $f$ is correctly specified; (ii)~the structural relationship encoded in $f$ holds at $t = p+1$ (extrapolation validity); (iii)~the parameters $\btheta$ are identified from observed data $\{\theta_{gt}\}_{t \leq p}$. When these conditions hold, plugging in the estimated $\widehat{\btheta}$ and known or forecasted $\mathcal{I}_{p+1}$ yields an identified estimator of the FATT. The choice among paths should be guided by which structural assumption---time homogeneity, temporal stability, or covariate-conditional invariance---is most credible in the application at hand.
-
-We now present each path in detail, stating the choice of $f$, the required assumptions, and the identification result.
-
-\subsection{Path 1: Time-homogeneous functions}\label{sec:path1}
+\section{Taking dynamic effects less seriously: time homogeneity assumptions}
 
 There is such a rich and growing literature on estimation of the ATT and sub-ATTs \citep{wangAdvancesDifferenceindifferencesMethods2024a,sunEstimatingDynamicTreatment2021} that researchers may be interested in still using these tools to estimate forward-looking, policy-relevant estimands. Here, we outline in what cases this may be justified. We take as given that the researcher's design (e.g., parallel trends in DiD) has secured identification of the backward-looking $\theta$ or $\theta_{gt}$; the assumptions below are \emph{extrapolation} assumptions that connect those quantities to the FATT.
 
-\subsubsection{Choice of $f$ and identifying assumptions}
-
-\textbf{Path 1 extrapolation function:} We specify $f_1(g) = \gamma_g$, a function that depends only on the group index $g$ and is constant over time. The input space is simply $\mathcal{I}_t = \{g\}$; no temporal information is used. This corresponds to assuming that within-group treatment effects do not vary with calendar time or event time.
-
-\paragraph{Connecting the FATT to the ATT.}
+\subsection{Connecting the FATT to the ATT}
 We now consider what assumptions would be required to identify the FATT by the ATT. First, we could require homogeneity in effects that would rule out dynamic treatment effects:
 \begin{assumption}[Strict ATT time homogeneity]
     $\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) | A_{it} = 1\} = \E_{\P_s}\{Y_{is}(1) - Y_{is}(0) | A_{is} = 1\}, \text{ for all } s, t$.\label{strict-time-homogeneity}
@@ -194,7 +145,7 @@ We further need to place moderate limits on the between-state heterogeneity:
 \begin{assumption}[Limited between-state ATT heterogeneity]
     $\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1\}$\label{p-to-p-plus-one-heterogeneity}
 \end{assumption}
-Assumption \ref{p-to-p-plus-one-heterogeneity} limits the between-state heterogeneity such that the treatment effect among states who had implemented the law at the end of the study period (at time $p$) is the same as the treatment effect among states who will have implemented the law in the future (at time $p+1$). In most cases, these two groups of states are nearly identical: most states that implemented the law at time $p$ keep it through to $p+1$, and most states do not newly implement the law at time $p+1$. So this assumption is generally relatively weak.\footnote{For multi-group extrapolation (Path~2, Section~\ref{sec:path2}), this assumption applies within each group $g$: units in group $g$ who will be treated at $p+1$ have similar potential outcomes to those treated earlier in group $g$. This is invoked in the proof of Proposition~\ref{prop:path2}.}
+Assumption \ref{p-to-p-plus-one-heterogeneity} limits the between-state heterogeneity such that the treatment effect among states who had implemented the law at the end of the study period (at time $p$) is the same as the treatment effect among states who will have implemented the law in the future (at time $p+1$). In most cases, these two groups of states are nearly identical: most states that implemented the law at time $p$ keep it through to $p+1$, and most states do not newly implement the law at time $p+1$. So this assumption is generally relatively weak.
 
 Under Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}, we have 
 \begin{align*}
@@ -258,15 +209,11 @@ Under Assumptions \ref{within-group-strict-time-homogeneity} and \ref{within-gro
 We assume that $G_i$ is a function of $A_i$ (e.g., time of first adoption), so that $\P(G_i=g|A_{ip}=1)$ is the distribution of cohorts among units treated by period $p$.
 This states that, if within-group ATTs are not dynamic -- i.e., they do not change over time -- then a convex combination of group-specific ATTs may be used to extrapolate forward in time to time $p+1$. 
 
-\subsection{Path 2: Temporal parametric functions}\label{sec:path2}
+\section{Taking dynamic effects more seriously: formal modeling}
 
-Much of the recent panel data literature with staggered adoption has either explicitly \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a,brownDynamicTreatmentEffect2025} or implicitly \citep{stockIdentificationEstimationDynamic2018} taken the view that assuming time homogeneity is too restrictive. Acknowledgment of the perverse effects of time heterogeneity in two-way fixed effects models \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a} spurred much of the recent literature on staggered adoption in difference-in-differences. However, unrestricted time heterogeneity renders future-looking estimands like the FATT inestimable and undercuts policy relevance of any estimated quantities. Instead, the heterogeneity of treatment effects must be restricted so that information from the observed data may be used to extrapolate to the future time period \citep{khosrowiExtrapolationCausalEffects2019,khosrowiExtrapolatingExperimentsConfidently2023,maebaExtrapolationTreatmentEffect2024}. An alternative would be to report bounds or conduct sensitivity analysis without imposing a functional form \citep{manskiPublicPolicyUncertain2013}; the parametric path we take here trades that generality for point identification and extrapolation. Researchers should prefer Path~2 over Path~1 when they are unwilling to assume that within-group effects are constant over time but are willing to specify how effects evolve (e.g., as a function of event time).
+Much of the recent panel data literature with staggered adoption has either explicitly \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a,brownDynamicTreatmentEffect2025} or implicitly \citep{stockIdentificationEstimationDynamic2018} taken the view that assuming time homogeneity is too restrictive. Acknowledgment of the perverse effects of time heterogeneity in two-way fixed effects models \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a} spurred much of the recent literature on staggered adoption in difference-in-differences. However, unrestricted time heterogeneity renders future-looking estimands like the FATT inestimable and undercuts policy relevance of any estimated quantities. Instead, the heterogeneity of treatment effects must be restricted so that information from the observed data may be used to extrapolate to the future time period \citep{khosrowiExtrapolationCausalEffects2019,khosrowiExtrapolatingExperimentsConfidently2023,maebaExtrapolationTreatmentEffect2024}. An alternative would be to report bounds or conduct sensitivity analysis without imposing a functional form \citep{manskiPublicPolicyUncertain2013}; the parametric path we take here trades that generality for point identification and extrapolation. Researchers should prefer this section's approach (Path 2) over the time-homogeneity path in Section~4 when they are unwilling to assume that within-group effects are constant over time but are willing to specify how effects evolve (e.g., as a function of event time).
 
-\subsubsection{Choice of $f$ and identifying assumptions}
-
-\textbf{Path 2 extrapolation function:} We specify $f_2(g, t; \bgamma)$ as a parametric function of group $g$ and time $t$ (or event time $k = t - g$). The input space is $\mathcal{I}_t = \{g, t\}$, encoding both group identity and temporal dynamics. Common specifications include linear-in-event-time ($f(g,t;\bgamma) = \alpha_g + \beta_g (t-g)$), quadratic, or flexible splines. The key assumption is that effects evolve according to a smooth functional form that can be extrapolated beyond the observed time window.
-
-To estimate the FATT under Path~2, researchers must parameterize the time-varying group-time ATTs in terms of time \citep{brownDynamicTreatmentEffect2025,maebaExtrapolationTreatmentEffect2024}. For example, one could specify
+To this end, to estimate the FATT, researchers must parameterize the time-varying ATTs or sub-ATTs in terms of time \citep{brownDynamicTreatmentEffect2025,maebaExtrapolationTreatmentEffect2024}. For example, one could specify
 \begin{align*}
     \theta_{gt} = f(g, t; \bgamma), \qquad t = 1, ..., p+1; g \in \cG
 \end{align*}
@@ -283,17 +230,96 @@ Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data 
 See Appendix \ref{app:prop2}.
 \end{proof}
 
-\subsection{Path 3: Covariate-distribution functions}\label{sec:path3}
+\subsection{Semiparametric estimation and EIF}
+We do not commit to a specific identification or first-stage estimation strategy. We assume that the group-time ATTs $\theta_{gt}$ are identified under the researcher's chosen design (e.g., difference-in-differences, synthetic control, or other methods); we do not restrict the identification strategy. We further assume that for each $(g,t)$, the researcher has access to an estimator $\widehat{\theta}_{gt}$ that is asymptotically linear with influence function $\phi_{gt}$: $\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \phi_{gt,i} + o_{\P}(1)$. Such estimators exist in the literature for various designs \citep{callawayDifferenceindifferencesMultipleTime2021} and may be constructed with or without cross-fitting; our results hold for any such first-stage estimators.
+
+The contribution of this subsection is to derive the efficient influence function (EIF) for the policy-relevant FATT $\theta_{p+1}$ as a functional of the group-time ATTs and their influence functions, so that any asymptotically linear estimators of $\theta_{gt}$ yield an asymptotically linear estimator of $\theta_{p+1}$ with limiting variance given by the propagated EIF.
+
+\paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). By linearity (see Appendix \ref{app:eif1}), the EIF for $\psi_1 = \theta_{p+1}$ is
+\begin{align*}
+    \phi_{\psi_1} = \sum_g \omega_g \, \phi_{\theta_{g\cdot}} \; + \; \sum_g \theta_{g\cdot} \phi_{\omega_g},
+\end{align*}
+where $\phi_{\omega_g}$ is the influence function of the estimator of $\omega_g$ (e.g., for the empirical proportion among units with $A_{ip}=1$, unit $i$ contributes $\mathbf{1}\{G_i=g, A_{ip}=1\}/\P(A_{ip}=1) - \omega_g$); if $\omega_g$ is known, the second sum vanishes. Thus any asymptotically linear estimators of $\theta_{g\cdot}$ yield an asymptotically linear estimator of $\psi_1$ with the stated influence function.
+
+\paragraph{Path 2 (extrapolation).} Under $\theta_{gt} = f(g,t;\bgamma)$, we have $\theta_{p+1} = \Psi(\theta, \omega) = \sum_g \omega_g f(g, p+1; \bgamma)$, where $\bgamma$ is a smooth functional of $\theta = (\theta_{g,t})_{g,t}$. Take as given the EIF $\phi_{gt}$ for each $\theta_{gt}$ from whatever first-stage the researcher uses. By the chain rule (see Appendix \ref{app:eif2}), the EIF for $\psi_2 = \theta_{p+1}$ is
+\begin{align*}
+    \phi_{\psi_2} = \frac{\partial \Psi}{\partial \theta} \phi_{\theta} + \frac{\partial \Psi}{\partial \omega} \phi_{\omega},
+\end{align*}
+with the obvious vectorization over $(g,t)$ and, if $\omega_g$ is estimated, an additional term $\sum_g f(g,p+1;\bgamma) \phi_{\omega_g}$. The Jacobian $\frac{\partial \Psi}{\partial \theta}$ is the row vector with entries $\frac{\partial \Psi}{\partial \theta_{gt}} = \frac{\partial \Psi}{\partial \bgamma}^\top \frac{\partial \bgamma}{\partial \theta_{gt}}$, where $\frac{\partial \Psi}{\partial \bgamma} = \sum_g \omega_g \frac{\partial f(g,p+1;\bgamma)}{\partial \bgamma}$; thus stacking the $\phi_{gt}$ and multiplying by this row gives the contribution from the first-stage. Within the model that restricts $\theta_{gt} = f(g,t;\bgamma)$, this $\phi$ is the efficient influence function for $\theta_{p+1}$.
+
+\begin{proposition}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]\label{prop:asymp}
+Under the assumptions of Path 1 or Path 2 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$ or $\phi_{\psi_2}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.
+\end{proposition}
+
+\begin{proof}
+See Appendix \ref{app:prop3}.
+\end{proof}
+
+\paragraph{Variance and asymptotics.} The semiparametric variance bound is $\sigma^2 = \E[\phi^2]$. Under standard regularity conditions (see Appendix \ref{app:regularity}), $\sqrt{n}(\widehat{\psi} - \psi) = n^{-1/2}\sum_{i=1}^n \phi_i + o_{\P}(1)$, so $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$. The variance may be estimated by $\widehat{\sigma}^2/n$ with $\widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2$ (or the sample variance of $\widehat{\phi}_i$); Wald confidence intervals are $\widehat{\psi} \pm z_{\alpha/2} \widehat{\sigma}/\sqrt{n}$. The estimated $\widehat{\phi}_i$ is a plug-in that uses $\widehat{\theta}_{gt}$, $\widehat{\bgamma}$, and possibly $\widehat{\omega}_g$; under standard regularity, this does not affect the first-order limit distribution. If the researcher uses flexible (e.g., machine-learning) estimation when forming $\widehat{\theta}_{p+1}$ (e.g., when estimating $\bgamma$ or $\omega_g$), $K$-fold cross-fitting can relax Donsker requirements: the aggregation or extrapolation step (estimate $\bgamma$ or $\omega_g$ on folds $\cI_{-k}$, evaluate the EIF on $\cI_k$) is cross-fit; only rate conditions (e.g., $o_{\P}(n^{-1/4})$) are needed. The paper does not require cross-fitting for the first-stage $\widehat{\theta}_{gt}$; the results hold for any asymptotically linear first-stage. A limitation of the parametric extrapolation approach is that bias and inference can be sensitive to the choice of $f$: if the temporal model is misspecified, $\widehat{\theta}_{p+1}$ need not be consistent for the FATT.
+
+\subsection{Model selection for extrapolation}\label{sec:model-selection}
+
+Path~2 requires the researcher to specify a parametric form $f(g,t;\bgamma)$ for the temporal evolution of group-time effects. The choice of $f$ is substantive: it encodes the researcher's belief about how treatment effects evolve over event time or calendar time. Common specifications include linear-in-event-time, quadratic, or flexible splines; the extrapolated FATT $\widehat{\theta}_{p+1}$ can differ substantially across these choices, especially when projecting multiple periods ahead. This section addresses a practical question: \emph{how should researchers select among candidate models for extrapolation?}
+
+\paragraph{The problem with standard model selection criteria.}
+Standard approaches such as AIC, BIC, or cross-validated in-sample prediction error measure fit \emph{within} the observed data. For model selection aimed at extrapolation, these criteria are misaligned with the task: a model that fits the observed $\theta_{gt}$ for $t \leq p$ well may extrapolate poorly to $t = p+1$. Overfitting to the observed time pattern can produce overconfident extrapolations that fail when the true functional form differs from $f$. Conversely, underfitting (e.g., imposing strict linearity when effects are nonlinear) can introduce systematic bias in the extrapolated estimate. What is needed is a criterion that directly evaluates \emph{extrapolation performance}.
+
+\paragraph{Time-series cross-validation for extrapolation.}
+We propose a time-series cross-validation (CV) strategy that leverages the temporal structure of the observed data to test extrapolation. The key idea is to withhold late-period observations, fit candidate models on earlier periods, and evaluate prediction error on the held-out future periods---thereby mimicking the extrapolation task.
+
+Let $\cF = \{f_1, f_2, \ldots, f_M\}$ denote a set of candidate models (e.g., $f_1$ is linear-in-event-time, $f_2$ is quadratic, $f_3$ is a spline). For each model $f_m$, define the extrapolation error on held-out periods as follows:
+
+\begin{enumerate}
+    \item \textbf{Training window:} Fit the model using $\theta_{gt}$ for $t \in \{1, \ldots, p - h\}$, estimating parameters $\widehat{\bgamma}_m^{(h)}$ via weighted least squares or maximum likelihood.
+    \item \textbf{Test window:} Predict $\widehat{\theta}_{gt}^{(h)} = f_m(g, t; \widehat{\bgamma}_m^{(h)})$ for the held-out periods $t \in \{p - h + 1, \ldots, p\}$.
+    \item \textbf{Extrapolation error:} Compute the mean squared prediction error (MSPE) on the test window:
+    \[
+    \text{MSPE}_m(h) = \frac{1}{|\cG| \cdot h} \sum_{g \in \cG} \sum_{t = p-h+1}^{p} \left( \widehat{\theta}_{gt}^{(h)} - \theta_{gt} \right)^2,
+    \]
+    where $\theta_{gt}$ are the observed (first-stage estimated) group-time effects.
+    \item \textbf{Aggregation:} Repeat for multiple horizons $h \in \{1, 2, \ldots, H\}$ (e.g., holding out the last 1, 2, or 3 periods). The overall extrapolation error for model $m$ is
+    \[
+    \text{MSPE}_m = \frac{1}{H} \sum_{h=1}^H \text{MSPE}_m(h).
+    \]
+\end{enumerate}
+
+\textbf{Model selection rule:} Select the model $\widehat{m} = \argmin_{m \in \{1,\ldots,M\}} \text{MSPE}_m$. This model minimizes the average extrapolation error across the validation experiments.
+
+\paragraph{Coverage-based model selection.}
+An alternative or complementary criterion is to evaluate whether the model's confidence intervals achieve nominal coverage on held-out periods. For each candidate model $f_m$ and horizon $h$, construct prediction intervals for $\theta_{gt}$ in the test window (e.g., using the EIF-based variance from Section~5.1). Define the \emph{coverage rate} as the proportion of held-out $(g,t)$ pairs for which the 95\% confidence interval contains the observed $\theta_{gt}$:
+\[
+\text{Coverage}_m(h) = \frac{1}{|\cG| \cdot h} \sum_{g \in \cG} \sum_{t = p-h+1}^{p} \mathbb{1}\left\{ \theta_{gt} \in \left[\widehat{\theta}_{gt}^{(h)} \pm 1.96 \cdot \widehat{\text{SE}}_{gt}^{(h)} \right] \right\}.
+\]
+A model with high extrapolation MSPE but poor coverage may be overfitting and underestimating uncertainty; a model with coverage near 95\% and low MSPE is preferable.
+
+\paragraph{Practical workflow.}
+We recommend the following approach for researchers using Path~2:
+
+\begin{enumerate}
+    \item \textbf{Specify candidate models:} Choose a small set of plausible functional forms based on substantive knowledge (e.g., linear, quadratic, log-linear in event time; or splines with varying degrees of freedom).
+    \item \textbf{Run time-series CV:} Apply the procedure above to compute $\text{MSPE}_m$ and $\text{Coverage}_m$ for each candidate model. If the time series is short (e.g., $p \leq 5$), hold out only 1--2 periods; if longer, hold out more to test longer-horizon extrapolation.
+    \item \textbf{Select or average:} Either select the single best model $\widehat{m}$ (lowest MSPE, coverage near nominal), or report a model-averaged estimate $\widehat{\theta}_{p+1} = \sum_m w_m \widehat{\theta}_{p+1,m}$ where $w_m \propto \exp(-\text{MSPE}_m)$ (exponential weighting). Model averaging acknowledges model uncertainty and can improve robustness.
+    \item \textbf{Report sensitivity:} In addition to the selected or averaged estimate, report $\widehat{\theta}_{p+1}$ under the top 2--3 models to convey sensitivity to functional form. If estimates differ substantially, the extrapolation is highly model-dependent and should be interpreted with caution.
+    \item \textbf{Graphical diagnostics:} Plot the fitted $f(g, t; \widehat{\bgamma})$ against observed $\theta_{gt}$ for each group $g$, extending the curves to $t = p+1$. Visual inspection can reveal whether the extrapolation is a modest continuation of observed trends or a large leap beyond the data.
+\end{enumerate}
+
+\paragraph{Limitations and caveats.}
+Time-series CV evaluates how well a model extrapolates \emph{within the observed time window}. It does not, and cannot, test extrapolation to $t = p+1$ if that period involves regime change, distributional shifts, or other violations of the structural stability assumptions underlying Path~2. The CV procedure assumes that the data-generating process for $\theta_{gt}$ is stable across $t \leq p$, so that performance on held-out $t \in \{p-h+1, \ldots, p\}$ is predictive of performance at $t = p+1$. If $\P_{p+1}$ differs markedly from $\P_t$ for $t \leq p$---for example, due to policy reforms, economic shocks, or compositional changes in the treated population---then even the best model selected via CV may be biased.
+
+Moreover, if the true functional form is not in the candidate set $\cF$, CV selects the best approximation within $\cF$, but this may still yield biased extrapolations. Researchers should use substantive knowledge to ensure that $\cF$ includes plausible models and, where possible, include flexible forms (e.g., splines) that can approximate a wide class of smooth functions.
+
+Finally, the MSPE criterion averages over groups and time; it may mask heterogeneity in extrapolation performance across groups. If different groups exhibit different temporal patterns (e.g., one group has linear effects, another quadratic), a single global model $f(g,t;\bgamma)$ may extrapolate poorly for some groups even if it minimizes average MSPE. Group-specific diagnostics (plotting fitted trends for each $g$) can help identify such cases.
+
+\paragraph{Relation to post-selection inference.}
+The CV procedure selects a model based on the data, introducing an additional source of randomness beyond the first-stage estimation of $\theta_{gt}$. Formally accounting for model selection in inference (e.g., via selective inference frameworks or simultaneous inference over $\cF$) is an active area of research \citep{tibshiraniExactPostselectionInference2016,chenValidInferenceModel2021}. The influence function derivation in Section~5.1 conditions on the chosen model $f$ and thus does not account for the uncertainty introduced by selection. In practice, if the selected model is stable across CV folds and clearly dominates alternatives, the impact of selection on coverage may be modest. If selection is highly variable or multiple models perform similarly, model averaging or simultaneous confidence bands may be warranted. We leave formal post-selection inference for Path~2 to future work, but emphasize that the CV-based workflow provides a principled empirical foundation for model choice that is aligned with the extrapolation task.
+
+\section{Structural covariates and regime-invariant effects}
 
 Both Path~1 (time homogeneity) and Path~2 (parametric extrapolation of temporal patterns) rely on reduced-form stability: either effects are constant over time, or they follow a smooth trend that continues into the future. These assumptions fail under \emph{regime change}---structural shifts in the policy environment, implementation context, or economic conditions that break historical patterns. The Lucas Critique \citep{lucasjrEconometricPolicyEvaluation1976} emphasizes that reduced-form relationships estimated under one policy regime need not hold under another. If the data-generating process itself changes at $p+1$, extrapolating reduced-form time trends (Path~2) or assuming temporal stability (Path~1) may yield biased estimates of the FATT.
 
 Path~3 offers an alternative: instead of assuming temporal invariance of effects, we assume that treatment effects are driven by observable covariates that capture ``deep parameters''---structural determinants that remain invariant even when the policy regime changes. If heterogeneity in treatment effects is well-explained by pre-treatment covariates $\bX_i$, and if the conditional treatment effect $\tau(x) = \E[Y_{i,p+1}(1) - Y_{i,p+1}(0) | \bX_i = x]$ is stable across periods (including at $p+1$), then the FATT can be identified by estimating $\tau(x)$ from historical data and integrating it over the \emph{future} covariate distribution. This approach is robust to regime change in the sense that temporal patterns in the marginal ATTs $\theta_{gt}$ may shift (violating Paths~1 and~2), but the conditional structure $\tau(x)$ remains predictive. This is the essence of the Lucas Critique's prescription: estimate parameters that are invariant to the policy intervention itself.
 
-\subsubsection{Choice of $f$ and identifying assumptions}
-
-\textbf{Path 3 extrapolation function:} We specify $f_3(F_{\bX}^t; \bbeta) = \int m(x; \bbeta) \, dF_{\bX}^t(x)$, where $F_{\bX}^t$ is the covariate distribution at time $t$. The input space is $\mathcal{I}_t = \{F_{\bX}^t\}$, the population composition at time $t$. The key structural object is the conditional effect function $m(x; \bbeta)$, which we assume is invariant across time. Temporal variation in the marginal effect $\theta_{gt}$ arises solely through changes in the covariate distribution $F_{\bX}^t$, not through changes in the conditional effect itself. This is the deep-parameter assumption of the Lucas Critique: $m(x; \bbeta)$ captures regime-invariant relationships, while $F_{\bX}^t$ may shift with policy or economic changes.
-
-\paragraph{Identification via covariate integration.}
+\subsection{Identification via covariate integration}
 
 Let $\bX_i$ denote pre-treatment covariates (either time-invariant or, if time-varying, forecasted to $p+1$). Define the conditional ATT at the future period:
 \begin{align*}
@@ -315,8 +341,6 @@ The conditional ATT function $\tau(x)$ is invariant across periods $t \in \{1,\l
 \end{assumption}
 
 Assumption~\ref{assump:struct-stab} is the analog of time homogeneity (Assumption~1) but is conditional on covariates rather than marginal over time. It states that the effect of treatment for units with covariate value $x$ does not change over time, even though the marginal distribution of $\bX$ (and hence the marginal ATT $\theta_t$) may shift. This is weaker than marginal time homogeneity when covariate-driven selection or composition changes occur: for instance, if early adopters differ systematically from later adopters in observed $\bX$, Assumption~\ref{assump:struct-stab} can hold even when marginal $\theta_t$ varies over time. Conversely, if unobserved factors drive time-varying effects that are not captured by $\bX$, this assumption fails.
-
-Importantly, Assumption~\ref{assump:struct-stab} implies \emph{conditional exchangeability}: conditional on covariates $\bX = x$, potential outcomes at $p+1$ are governed by the same function $\tau(x)$ as in observed periods. This means that among units with $\bX_i = x$, those who will be treated at $p+1$ and those treated in earlier periods have similar potential outcomes---analogous to the limited between-state heterogeneity assumption (Assumption~\ref{p-to-p-plus-one-heterogeneity}), but applied conditionally on $x$ rather than marginally. This conditional exchangeability is invoked in the proof of Proposition~\ref{prop:path3}.
 
 \begin{assumption}[Parametric specification of $\tau(x)$]\label{assump:param-tau}
 The conditional ATT has a known functional form $\tau(x) = m(x; \bbeta)$, where $m$ is a specified function and $\bbeta \in \R^d$ is a finite-dimensional parameter.
@@ -345,7 +369,7 @@ where $\bbeta_0$ is the true parameter satisfying the above system of equations.
 \end{proposition}
 
 \begin{proof}
-See Appendix \ref{app:prop3-path3}.
+See Appendix \ref{app:prop4}.
 \end{proof}
 
 \paragraph{Interpretation and credibility.} Path~3 shifts the extrapolation burden from time to covariates. Instead of assuming that temporal patterns continue (Path~2) or that effects are stable over time (Path~1), we assume that the conditional effect $\tau(x)$ is regime-invariant. This is credible when $\bX$ captures the key drivers of treatment effect heterogeneity---what the Lucas Critique calls ``deep parameters.'' For example, if the effect of a policy depends on units' economic conditions, demographic composition, or institutional capacity, and these are observed in $\bX$, then $\tau(x)$ may be stable even when the policy regime changes. On the other hand, if treatment effects are driven by unobserved time-varying factors (e.g., political sentiment, enforcement intensity, or spillover effects not captured by $\bX$), Path~3 will fail just as Paths~1 and~2 do.
@@ -387,92 +411,6 @@ Within the parametric model $m(x;\bbeta)$ and conditional on the target covariat
 
 \paragraph{When to use Path~3.} Path~3 is most compelling when: (i)~substantial treatment effect heterogeneity is driven by observable covariates; (ii)~temporal stability (Path~1) is implausible due to composition changes or regime shifts; (iii)~extrapolating temporal trends (Path~2) is dubious because the policy environment is changing; (iv)~the key drivers of heterogeneity are observed and well-measured, so that $\tau(x)$ is likely regime-invariant. Path~3 is less appealing when heterogeneity is driven by unobserved factors, when the functional form $m(x;\bbeta)$ is uncertain, or when the target covariate distribution $F_{\bX}^{p+1}$ is poorly known.
 
-\section{Semiparametric Estimation and Inference}\label{sec:eif}
-
-All three identification paths require estimation and inference for the FATT $\theta_{p+1}$. We do not commit to a specific identification or first-stage estimation strategy. We assume that the group-time ATTs $\theta_{gt}$ are identified under the researcher's chosen design (e.g., difference-in-differences, synthetic control, or other methods); we do not restrict the identification strategy. We further assume that for each $(g,t)$, the researcher has access to an estimator $\widehat{\theta}_{gt}$ that is asymptotically linear with influence function $\phi_{gt}$: $\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \phi_{gt,i} + o_{\P}(1)$. Such estimators exist in the literature for various designs \citep{callawayDifferenceindifferencesMultipleTime2021} and may be constructed with or without cross-fitting; our results hold for any such first-stage estimators.
-
-\subsection{Efficient influence functions}\label{sec:eif-derivation}
-
-The contribution of this subsection is to derive the efficient influence function (EIF) for the policy-relevant FATT $\theta_{p+1}$ as a functional of the group-time ATTs and their influence functions, so that any asymptotically linear estimators of $\theta_{gt}$ yield an asymptotically linear estimator of $\theta_{p+1}$ with limiting variance given by the propagated EIF. We present the EIF for Paths~1 and~2 here; the EIF for Path~3 (covariate integration) was derived in Section~\ref{sec:path3}.
-
-\paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). By linearity (see Appendix \ref{app:eif1}), the EIF for $\psi_1 = \theta_{p+1}$ is
-\begin{align*}
-    \phi_{\psi_1} = \sum_g \omega_g \, \phi_{\theta_{g\cdot}} \; + \; \sum_g \theta_{g\cdot} \phi_{\omega_g},
-\end{align*}
-where $\phi_{\omega_g}$ is the influence function of the estimator of $\omega_g$ (e.g., for the empirical proportion among units with $A_{ip}=1$, unit $i$ contributes $\mathbf{1}\{G_i=g, A_{ip}=1\}/\P(A_{ip}=1) - \omega_g$); if $\omega_g$ is known, the second sum vanishes. Thus any asymptotically linear estimators of $\theta_{g\cdot}$ yield an asymptotically linear estimator of $\psi_1$ with the stated influence function.
-
-\paragraph{Path 2 (extrapolation).} Under $\theta_{gt} = f(g,t;\bgamma)$, we have $\theta_{p+1} = \Psi(\theta, \omega) = \sum_g \omega_g f(g, p+1; \bgamma)$, where $\bgamma$ is a smooth functional of $\theta = (\theta_{g,t})_{g,t}$. Take as given the EIF $\phi_{gt}$ for each $\theta_{gt}$ from whatever first-stage the researcher uses. By the chain rule (see Appendix \ref{app:eif2}), the EIF for $\psi_2 = \theta_{p+1}$ is
-\begin{align*}
-    \phi_{\psi_2} = \frac{\partial \Psi}{\partial \theta} \phi_{\theta} + \frac{\partial \Psi}{\partial \omega} \phi_{\omega},
-\end{align*}
-with the obvious vectorization over $(g,t)$ and, if $\omega_g$ is estimated, an additional term $\sum_g f(g,p+1;\bgamma) \phi_{\omega_g}$. The Jacobian $\frac{\partial \Psi}{\partial \theta}$ is the row vector with entries $\frac{\partial \Psi}{\partial \theta_{gt}} = \frac{\partial \Psi}{\partial \bgamma}^\top \frac{\partial \bgamma}{\partial \theta_{gt}}$, where $\frac{\partial \Psi}{\partial \bgamma} = \sum_g \omega_g \frac{\partial f(g,p+1;\bgamma)}{\partial \bgamma}$; thus stacking the $\phi_{gt}$ and multiplying by this row gives the contribution from the first-stage. Within the model that restricts $\theta_{gt} = f(g,t;\bgamma)$, this $\phi$ is the efficient influence function for $\theta_{p+1}$.
-
-\begin{proposition}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]\label{prop:asymp}
-Under the assumptions of Path 1, Path 2, or Path 3 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$, or $\widehat{\bbeta}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$, $\phi_{\psi_2}$, or $\phi_{\psi_3}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.
-\end{proposition}
-
-\begin{proof}
-See Appendix \ref{app:prop-asymp}.
-\end{proof}
-
-\paragraph{Variance and asymptotics.} The semiparametric variance bound is $\sigma^2 = \E[\phi^2]$. Under standard regularity conditions (see Appendix \ref{app:regularity}), $\sqrt{n}(\widehat{\psi} - \psi) = n^{-1/2}\sum_{i=1}^n \phi_i + o_{\P}(1)$, so $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$. The variance may be estimated by $\widehat{\sigma}^2/n$ with $\widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2$ (or the sample variance of $\widehat{\phi}_i$); Wald confidence intervals are $\widehat{\psi} \pm z_{\alpha/2} \widehat{\sigma}/\sqrt{n}$. The estimated $\widehat{\phi}_i$ is a plug-in that uses $\widehat{\theta}_{gt}$, $\widehat{\bgamma}$, and possibly $\widehat{\omega}_g$; under standard regularity, this does not affect the first-order limit distribution. If the researcher uses flexible (e.g., machine-learning) estimation when forming $\widehat{\theta}_{p+1}$ (e.g., when estimating $\bgamma$ or $\omega_g$), $K$-fold cross-fitting can relax Donsker requirements: the aggregation or extrapolation step (estimate $\bgamma$ or $\omega_g$ on folds $\cI_{-k}$, evaluate the EIF on $\cI_k$) is cross-fit; only rate conditions (e.g., $o_{\P}(n^{-1/4})$) are needed. The paper does not require cross-fitting for the first-stage $\widehat{\theta}_{gt}$; the results hold for any asymptotically linear first-stage. A limitation of the parametric extrapolation approach is that bias and inference can be sensitive to the choice of $f$: if the temporal model is misspecified, $\widehat{\theta}_{p+1}$ need not be consistent for the FATT.
-
-\subsection{Model selection for extrapolation}\label{sec:model-selection}
-
-Path~2 requires the researcher to specify a parametric form $f(g,t;\bgamma)$ for the temporal evolution of group-time effects. The choice of $f$ is substantive: it encodes the researcher's belief about how treatment effects evolve over event time or calendar time. Common specifications include linear-in-event-time, quadratic, or flexible splines; the extrapolated FATT $\widehat{\theta}_{p+1}$ can differ substantially across these choices, especially when projecting multiple periods ahead. This section addresses a practical question: \emph{how should researchers select among candidate models for extrapolation?}
-
-\paragraph{The problem with standard model selection criteria.}
-Standard approaches such as AIC, BIC, or cross-validated in-sample prediction error measure fit \emph{within} the observed data. For model selection aimed at extrapolation, these criteria are misaligned with the task: a model that fits the observed $\theta_{gt}$ for $t \leq p$ well may extrapolate poorly to $t = p+1$. Overfitting to the observed time pattern can produce overconfident extrapolations that fail when the true functional form differs from $f$. Conversely, underfitting (e.g., imposing strict linearity when effects are nonlinear) can introduce systematic bias in the extrapolated estimate. What is needed is a criterion that directly evaluates \emph{extrapolation performance}.
-
-\paragraph{Time-series cross-validation for extrapolation.}
-We propose a time-series cross-validation (CV) strategy that leverages the temporal structure of the observed data to test extrapolation. The key idea is to withhold late-period observations, fit candidate models on earlier periods, and evaluate prediction error on the held-out future periods---thereby mimicking the extrapolation task.
-
-Let $\cF = \{f_1, f_2, \ldots, f_M\}$ denote a set of candidate models (e.g., $f_1$ is linear-in-event-time, $f_2$ is quadratic, $f_3$ is a spline). For each model $f_m$, define the extrapolation error on held-out periods as follows:
-
-\begin{enumerate}
-    \item \textbf{Training window:} Fit the model using $\theta_{gt}$ for $t \in \{1, \ldots, p - h\}$, estimating parameters $\widehat{\bgamma}_m^{(h)}$ via weighted least squares or maximum likelihood.
-    \item \textbf{Test window:} Predict $\widehat{\theta}_{gt}^{(h)} = f_m(g, t; \widehat{\bgamma}_m^{(h)})$ for the held-out periods $t \in \{p - h + 1, \ldots, p\}$.
-    \item \textbf{Extrapolation error:} Compute the mean squared prediction error (MSPE) on the test window:
-    \[
-    \text{MSPE}_m(h) = \frac{1}{|\cG| \cdot h} \sum_{g \in \cG} \sum_{t = p-h+1}^{p} \left( \widehat{\theta}_{gt}^{(h)} - \theta_{gt} \right)^2,
-    \]
-    where $\theta_{gt}$ are the observed (first-stage estimated) group-time effects.
-    \item \textbf{Aggregation:} Repeat for multiple horizons $h \in \{1, 2, \ldots, H\}$ (e.g., holding out the last 1, 2, or 3 periods). The overall extrapolation error for model $m$ is
-    \[
-    \text{MSPE}_m = \frac{1}{H} \sum_{h=1}^H \text{MSPE}_m(h).
-    \]
-\end{enumerate}
-
-\textbf{Model selection rule:} Select the model $\widehat{m} = \argmin_{m \in \{1,\ldots,M\}} \text{MSPE}_m$. This model minimizes the average extrapolation error across the validation experiments.
-
-\paragraph{Coverage-based model selection.}
-An alternative or complementary criterion is to evaluate whether the model's confidence intervals achieve nominal coverage on held-out periods. For each candidate model $f_m$ and horizon $h$, construct prediction intervals for $\theta_{gt}$ in the test window (e.g., using the EIF-based variance from Section~\ref{sec:eif-derivation}). Define the \emph{coverage rate} as the proportion of held-out $(g,t)$ pairs for which the 95\% confidence interval contains the observed $\theta_{gt}$:
-\[
-\text{Coverage}_m(h) = \frac{1}{|\cG| \cdot h} \sum_{g \in \cG} \sum_{t = p-h+1}^{p} \mathbb{1}\left\{ \theta_{gt} \in \left[\widehat{\theta}_{gt}^{(h)} \pm 1.96 \cdot \widehat{\text{SE}}_{gt}^{(h)} \right] \right\}.
-\]
-A model with high extrapolation MSPE but poor coverage may be overfitting and underestimating uncertainty; a model with coverage near 95\% and low MSPE is preferable.
-
-\paragraph{Practical workflow.}
-We recommend the following approach for researchers using Path~2:
-
-\begin{enumerate}
-    \item \textbf{Specify candidate models:} Choose a small set of plausible functional forms based on substantive knowledge (e.g., linear, quadratic, log-linear in event time; or splines with varying degrees of freedom).
-    \item \textbf{Run time-series CV:} Apply the procedure above to compute $\text{MSPE}_m$ and $\text{Coverage}_m$ for each candidate model. If the time series is short (e.g., $p \leq 5$), hold out only 1--2 periods; if longer, hold out more to test longer-horizon extrapolation.
-    \item \textbf{Select or average:} Either select the single best model $\widehat{m}$ (lowest MSPE, coverage near nominal), or report a model-averaged estimate $\widehat{\theta}_{p+1} = \sum_m w_m \widehat{\theta}_{p+1,m}$ where $w_m \propto \exp(-\text{MSPE}_m)$ (exponential weighting). Model averaging acknowledges model uncertainty and can improve robustness.
-    \item \textbf{Report sensitivity:} In addition to the selected or averaged estimate, report $\widehat{\theta}_{p+1}$ under the top 2--3 models to convey sensitivity to functional form. If estimates differ substantially, the extrapolation is highly model-dependent and should be interpreted with caution.
-    \item \textbf{Graphical diagnostics:} Plot the fitted $f(g, t; \widehat{\bgamma})$ against observed $\theta_{gt}$ for each group $g$, extending the curves to $t = p+1$. Visual inspection can reveal whether the extrapolation is a modest continuation of observed trends or a large leap beyond the data.
-\end{enumerate}
-
-\paragraph{Limitations and caveats.}
-Time-series CV evaluates how well a model extrapolates \emph{within the observed time window}. It does not, and cannot, test extrapolation to $t = p+1$ if that period involves regime change, distributional shifts, or other violations of the structural stability assumptions underlying Path~2. The CV procedure assumes that the data-generating process for $\theta_{gt}$ is stable across $t \leq p$, so that performance on held-out $t \in \{p-h+1, \ldots, p\}$ is predictive of performance at $t = p+1$. If $\P_{p+1}$ differs markedly from $\P_t$ for $t \leq p$---for example, due to policy reforms, economic shocks, or compositional changes in the treated population---then even the best model selected via CV may be biased.
-
-Moreover, if the true functional form is not in the candidate set $\cF$, CV selects the best approximation within $\cF$, but this may still yield biased extrapolations. Researchers should use substantive knowledge to ensure that $\cF$ includes plausible models and, where possible, include flexible forms (e.g., splines) that can approximate a wide class of smooth functions.
-
-Finally, the MSPE criterion averages over groups and time; it may mask heterogeneity in extrapolation performance across groups. If different groups exhibit different temporal patterns (e.g., one group has linear effects, another quadratic), a single global model $f(g,t;\bgamma)$ may extrapolate poorly for some groups even if it minimizes average MSPE. Group-specific diagnostics (plotting fitted trends for each $g$) can help identify such cases.
-
-\paragraph{Relation to post-selection inference.}
-The CV procedure selects a model based on the data, introducing an additional source of randomness beyond the first-stage estimation of $\theta_{gt}$. Formally accounting for model selection in inference (e.g., via selective inference frameworks or simultaneous inference over $\cF$) is an active area of research \citep{tibshiraniExactPostselectionInference2016,chenValidInferenceModel2021}. The influence function derivation in Section~\ref{sec:eif-derivation} conditions on the chosen model $f$ and thus does not account for the uncertainty introduced by selection. In practice, if the selected model is stable across CV folds and clearly dominates alternatives, the impact of selection on coverage may be modest. If selection is highly variable or multiple models perform similarly, model averaging or simultaneous confidence bands may be warranted. We leave formal post-selection inference for Path~2 to future work, but emphasize that the CV-based workflow provides a principled empirical foundation for model choice that is aligned with the extrapolation task.
-
 \section{Simulations}
 
 Policy-relevant questions concern the FATT at $p+1$, whereas standard panel-data methods target backward-looking objects such as the ATT or group-time effects over the observed window. We use simulations to show when and how the three paths---time homogeneity (Path~1), parametric extrapolation (Path~2), and covariate integration (Path~3)---succeed or fail to identify the FATT, and that EIF-based inference is valid when the model is correct. All designs use $q=3$ groups, $p=5$ periods, $n=500$ units, and 1000 replicates, except where noted.
@@ -492,7 +430,7 @@ When the slope in event time is non-zero, the two curves in Figure~\ref{fig:back
 
 Path~1 assumes within-group time homogeneity and forms $\widehat{\theta}_{p+1} = \sum_g \omega_g \bar{\theta}_{g\cdot}$, where $\bar{\theta}_{g\cdot}$ is the average of $\widehat{\theta}_{gt}$ over $t$ for group $g$.
 \input{sim_tables/section2}
-Scenario A (constant effects within group) shows small bias and coverage near 95\%, consistent with Section~\ref{sec:path1}. Scenario B (linear dynamics) shows substantial bias and coverage collapsing to zero for the FATT---Path~1 then estimates a different object (the constant-within-group extrapolant) and is invalid for the FATT. This underscores that Path~1 is only appropriate when time homogeneity is plausible.
+Scenario A (constant effects within group) shows small bias and coverage near 95\%, consistent with Section~4. Scenario B (linear dynamics) shows substantial bias and coverage collapsing to zero for the FATT---Path~1 then estimates a different object (the constant-within-group extrapolant) and is invalid for the FATT. This underscores that Path~1 is only appropriate when time homogeneity is plausible.
 
 Path~2 fits a parametric model $f(g,t;\widehat{\bgamma})$ to $\widehat{\theta}_{gt}$ and extrapolates to $p+1$.
 \input{sim_tables/section3}
@@ -584,7 +522,7 @@ Assumptions \ref{RC1}--\ref{RC3} and \ref{RC6} are standard for semiparametric i
 
 \subsection{Proof of Proposition 1}\label{app:prop1}
 
-We restate and prove Proposition~\ref{prop:path1} from Section~\ref{sec:path1} (Path~1).
+We restate and prove Proposition 1 from Section 4.
 
 \begin{proposition*}[Identification of the FATT under time homogeneity]
 Under Assumptions \ref{strict-time-homogeneity} (strict time homogeneity) and \ref{p-to-p-plus-one-heterogeneity} (limited between-state heterogeneity), if the backward-looking ATT $\theta$ is identified, then the FATT $\theta_{p+1}$ is identified and equals $\theta$.
@@ -624,7 +562,7 @@ Assumption \ref{p-to-p-plus-one-heterogeneity} is crucial: it allows swapping th
 
 \subsection{Proof of Proposition 2}\label{app:prop2}
 
-We restate and prove Proposition~\ref{prop:path2} from Section~\ref{sec:path2} (Path~2).
+We restate and prove Proposition 2 from Section 5.
 
 \begin{proposition*}[Identification of the FATT under parametric dynamics]
 Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose $\theta_{gt} = f(g,t;\bgamma)$ with $\bgamma$ uniquely determined by $(\theta_{gt})_{g,t,\, t \leq p}$. Then the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma)$.
@@ -668,9 +606,9 @@ Therefore $\theta_{p+1}$ is identified by the observed data (which identifies $\
 The structural assumption that $f(g,t;\bgamma)$ continues to hold at $t = p+1$ is crucial and untestable. It reflects a belief that the dynamic process generating $\theta_{gt}$ for $t \leq p$ persists into the future. Misspecification of $f$ leads to bias (see Simulations in Section 7).
 \end{remark}
 
-\subsection{Proof of Proposition 3}\label{app:prop3-path3}
+\subsection{Proof of Proposition 4}\label{app:prop4}
 
-We restate and prove Proposition~\ref{prop:path3} from Section~\ref{sec:path3} (Path~3).
+We restate and prove Proposition 4 from Section 6 (Path 3).
 
 \begin{proposition*}[Identification via covariate integration]
 Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose Assumptions~\ref{assump:struct-stab}--\ref{assump:target-dist} hold (structural stability of conditional effects, parametric specification, and access to target distribution), and suppose further that the mapping $\bbeta \mapsto (\theta_{g1}, \ldots, \theta_{gp})_{g \in \cG}$ is injective, so that $\bbeta$ is uniquely determined by the observed group-time ATTs via the relationship
@@ -884,9 +822,9 @@ Simplifying for the finite-population case:
 For the Monte Carlo case where $F_{\bX}^{p+1}$ is accessed via a sampler (generating $M$ draws $\{\bX_j\}_{j=1}^M$), the integral $\int m(x;\bbeta) \, dF_{\bX}^{p+1}(x)$ is approximated by $M^{-1}\sum_{j=1}^M m(\bX_j;\bbeta)$. The derivation is similar, but the Monte Carlo error contributes an additional variance term that vanishes as $M \to \infty$. Typically, MC integration error is $O(M^{-1/2})$, which is faster than the $O(n^{-1/2})$ rate from estimating $\bbeta$, so the MC error is negligible for large $M$ and does not affect the first-order asymptotics. For finite $M$, the total variance includes both the EIF-based variance from estimating $\bbeta$ and the MC variance from approximating the integral.
 \end{remark}
 
-\subsection{Proof of Asymptotic Distribution Proposition}\label{app:prop-asymp}
+\subsection{Proof of Proposition 3}\label{app:prop3}
 
-We restate and prove Proposition~\ref{prop:asymp} from Section~\ref{sec:eif-derivation} (extended to cover all three paths).
+We restate and prove Proposition 3 from Section 5.1 (extended to cover all three paths).
 
 \begin{proposition*}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]
 Under the assumptions of Path~1, Path~2, or Path~3 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$, or $\widehat{\bbeta}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$, $\phi_{\psi_2}$, or $\phi_{\psi_3}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.

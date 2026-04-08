@@ -1,0 +1,55 @@
+\subsection{Model selection for extrapolation}\label{sec:model-selection}
+
+Path~2 requires the researcher to specify a parametric form $f(g,t;\bgamma)$ for the temporal evolution of group-time effects. The choice of $f$ is substantive: it encodes the researcher's belief about how treatment effects evolve over event time or calendar time. Common specifications include linear-in-event-time, quadratic, or flexible splines; the extrapolated FATT $\widehat{\theta}_{p+1}$ can differ substantially across these choices, especially when projecting multiple periods ahead. This section addresses a practical question: \emph{how should researchers select among candidate models for extrapolation?}
+
+\paragraph{The problem with standard model selection criteria.}
+Standard approaches such as AIC, BIC, or cross-validated in-sample prediction error measure fit \emph{within} the observed data. For model selection aimed at extrapolation, these criteria are misaligned with the task: a model that fits the observed $\theta_{gt}$ for $t \leq p$ well may extrapolate poorly to $t = p+1$. Overfitting to the observed time pattern can produce overconfident extrapolations that fail when the true functional form differs from $f$. Conversely, underfitting (e.g., imposing strict linearity when effects are nonlinear) can introduce systematic bias in the extrapolated estimate. What is needed is a criterion that directly evaluates \emph{extrapolation performance}.
+
+\paragraph{Time-series cross-validation for extrapolation.}
+We propose a time-series cross-validation (CV) strategy that leverages the temporal structure of the observed data to test extrapolation. The key idea is to withhold late-period observations, fit candidate models on earlier periods, and evaluate prediction error on the held-out future periods---thereby mimicking the extrapolation task.
+
+Let $\cF = \{f_1, f_2, \ldots, f_M\}$ denote a set of candidate models (e.g., $f_1$ is linear-in-event-time, $f_2$ is quadratic, $f_3$ is a spline). For each model $f_m$, define the extrapolation error on held-out periods as follows:
+
+\begin{enumerate}
+    \item \textbf{Training window:} Fit the model using $\theta_{gt}$ for $t \in \{1, \ldots, p - h\}$, estimating parameters $\widehat{\bgamma}_m^{(h)}$ via weighted least squares or maximum likelihood.
+    \item \textbf{Test window:} Predict $\widehat{\theta}_{gt}^{(h)} = f_m(g, t; \widehat{\bgamma}_m^{(h)})$ for the held-out periods $t \in \{p - h + 1, \ldots, p\}$.
+    \item \textbf{Extrapolation error:} Compute the mean squared prediction error (MSPE) on the test window:
+    \[
+    \text{MSPE}_m(h) = \frac{1}{|\cG| \cdot h} \sum_{g \in \cG} \sum_{t = p-h+1}^{p} \left( \widehat{\theta}_{gt}^{(h)} - \theta_{gt} \right)^2,
+    \]
+    where $\theta_{gt}$ are the observed (first-stage estimated) group-time effects.
+    \item \textbf{Aggregation:} Repeat for multiple horizons $h \in \{1, 2, \ldots, H\}$ (e.g., holding out the last 1, 2, or 3 periods). The overall extrapolation error for model $m$ is
+    \[
+    \text{MSPE}_m = \frac{1}{H} \sum_{h=1}^H \text{MSPE}_m(h).
+    \]
+\end{enumerate}
+
+\textbf{Model selection rule:} Select the model $\widehat{m} = \argmin_{m \in \{1,\ldots,M\}} \text{MSPE}_m$. This model minimizes the average extrapolation error across the validation experiments.
+
+\paragraph{Coverage-based model selection.}
+An alternative or complementary criterion is to evaluate whether the model's confidence intervals achieve nominal coverage on held-out periods. For each candidate model $f_m$ and horizon $h$, construct prediction intervals for $\theta_{gt}$ in the test window (e.g., using the EIF-based variance from Section~5.1). Define the \emph{coverage rate} as the proportion of held-out $(g,t)$ pairs for which the 95\% confidence interval contains the observed $\theta_{gt}$:
+\[
+\text{Coverage}_m(h) = \frac{1}{|\cG| \cdot h} \sum_{g \in \cG} \sum_{t = p-h+1}^{p} \mathbb{1}\left\{ \theta_{gt} \in \left[\widehat{\theta}_{gt}^{(h)} \pm 1.96 \cdot \widehat{\text{SE}}_{gt}^{(h)} \right] \right\}.
+\]
+A model with high extrapolation MSPE but poor coverage may be overfitting and underestimating uncertainty; a model with coverage near 95\% and low MSPE is preferable.
+
+\paragraph{Practical workflow.}
+We recommend the following approach for researchers using Path~2:
+
+\begin{enumerate}
+    \item \textbf{Specify candidate models:} Choose a small set of plausible functional forms based on substantive knowledge (e.g., linear, quadratic, log-linear in event time; or splines with varying degrees of freedom).
+    \item \textbf{Run time-series CV:} Apply the procedure above to compute $\text{MSPE}_m$ and $\text{Coverage}_m$ for each candidate model. If the time series is short (e.g., $p \leq 5$), hold out only 1--2 periods; if longer, hold out more to test longer-horizon extrapolation.
+    \item \textbf{Select or average:} Either select the single best model $\widehat{m}$ (lowest MSPE, coverage near nominal), or report a model-averaged estimate $\widehat{\theta}_{p+1} = \sum_m w_m \widehat{\theta}_{p+1,m}$ where $w_m \propto \exp(-\text{MSPE}_m)$ (exponential weighting). Model averaging acknowledges model uncertainty and can improve robustness.
+    \item \textbf{Report sensitivity:} In addition to the selected or averaged estimate, report $\widehat{\theta}_{p+1}$ under the top 2--3 models to convey sensitivity to functional form. If estimates differ substantially, the extrapolation is highly model-dependent and should be interpreted with caution.
+    \item \textbf{Graphical diagnostics:} Plot the fitted $f(g, t; \widehat{\bgamma})$ against observed $\theta_{gt}$ for each group $g$, extending the curves to $t = p+1$. Visual inspection can reveal whether the extrapolation is a modest continuation of observed trends or a large leap beyond the data.
+\end{enumerate}
+
+\paragraph{Limitations and caveats.}
+Time-series CV evaluates how well a model extrapolates \emph{within the observed time window}. It does not, and cannot, test extrapolation to $t = p+1$ if that period involves regime change, distributional shifts, or other violations of the structural stability assumptions underlying Path~2. The CV procedure assumes that the data-generating process for $\theta_{gt}$ is stable across $t \leq p$, so that performance on held-out $t \in \{p-h+1, \ldots, p\}$ is predictive of performance at $t = p+1$. If $\P_{p+1}$ differs markedly from $\P_t$ for $t \leq p$---for example, due to policy reforms, economic shocks, or compositional changes in the treated population---then even the best model selected via CV may be biased.
+
+Moreover, if the true functional form is not in the candidate set $\cF$, CV selects the best approximation within $\cF$, but this may still yield biased extrapolations. Researchers should use substantive knowledge to ensure that $\cF$ includes plausible models and, where possible, include flexible forms (e.g., splines) that can approximate a wide class of smooth functions.
+
+Finally, the MSPE criterion averages over groups and time; it may mask heterogeneity in extrapolation performance across groups. If different groups exhibit different temporal patterns (e.g., one group has linear effects, another quadratic), a single global model $f(g,t;\bgamma)$ may extrapolate poorly for some groups even if it minimizes average MSPE. Group-specific diagnostics (plotting fitted trends for each $g$) can help identify such cases.
+
+\paragraph{Relation to post-selection inference.}
+The CV procedure selects a model based on the data, introducing an additional source of randomness beyond the first-stage estimation of $\theta_{gt}$. Formally accounting for model selection in inference (e.g., via selective inference frameworks or simultaneous inference over $\cF$) is an active area of research \citep{tibshiraniExactPostselectionInference2016,chenValidInferenceModel2021}. The influence function derivation in Section~5.1 conditions on the chosen model $f$ and thus does not account for the uncertainty introduced by selection. In practice, if the selected model is stable across CV folds and clearly dominates alternatives, the impact of selection on coverage may be modest. If selection is highly variable or multiple models perform similarly, model averaging or simultaneous confidence bands may be warranted. We leave formal post-selection inference for Path~2 to future work, but emphasize that the CV-based workflow provides a principled empirical foundation for model choice that is aligned with the extrapolation task.
