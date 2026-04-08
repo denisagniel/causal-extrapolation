@@ -25,6 +25,12 @@
 - **Quality gates** — nothing ships below 80/100 (commit); 90 PR; 95 excellence
 - **[LEARN] tags** — when corrected, save `[LEARN:category] wrong → right` to MEMORY.md
 
+**Exception - Exploration Mode:**
+- Threshold: 60/100 for experimental work in `explorations/`
+- No planning needed; code immediately
+- Decision point: Graduate to production (upgrade to 80/100) or archive
+- See `.claude/rules/exploration-fast-track.md`
+
 ---
 
 ## Folder Structure
