@@ -3,3 +3,16 @@
 .RData
 .Ruserdata
 .DS_Store
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.xdv
+
+# Redundant raw archive (CSVs extracted alongside)
+application/data/rstudio-export.zip

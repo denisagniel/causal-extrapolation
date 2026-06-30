@@ -3,44 +3,51 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: plainnat.bst
 Database file #1: heterogeneous-policy-effects.bib
-You've used 39 entries,
+Warning--I didn't find a database entry for "tibshiraniExactPostselectionInference2016"
+Warning--I didn't find a database entry for "chenValidInferenceModel2021"
+Warning--I didn't find a database entry for "cheng-hoekstra-2013"
+Warning--I didn't find a database entry for "callaway-santanna-2021"
+Warning--I didn't find a database entry for "chernozhukovDoubleDebiasedMachine2018"
+Warning--empty journal in brodersenInferringCausalImpact2015
+You've used 36 entries,
             2773 wiz_defined-function locations,
-            911 strings with 15231 characters,
-and the built_in function-call counts, 18769 in all, are:
-= -- 1768
-> -- 992
+            891 strings with 14534 characters,
+and the built_in function-call counts, 16842 in all, are:
+= -- 1589
+> -- 857
 < -- 32
-+ -- 336
-- -- 297
-* -- 1584
-:= -- 2882
-add.period$ -- 150
-call.type$ -- 39
-change.case$ -- 215
-chr.to.int$ -- 39
-cite$ -- 78
-duplicate$ -- 806
-empty$ -- 1534
-format.name$ -- 372
-if$ -- 3924
++ -- 291
+- -- 255
+* -- 1387
+:= -- 2582
+add.period$ -- 137
+call.type$ -- 36
+change.case$ -- 192
+chr.to.int$ -- 36
+cite$ -- 73
+duplicate$ -- 742
+empty$ -- 1400
+format.name$ -- 327
+if$ -- 3532
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 37
-newline$ -- 234
-num.names$ -- 158
-pop$ -- 366
+missing$ -- 34
+newline$ -- 215
+num.names$ -- 146
+pop$ -- 334
 preamble$ -- 1
-purify$ -- 176
+purify$ -- 156
 quote$ -- 0
-skip$ -- 619
+skip$ -- 569
 stack$ -- 0
-substring$ -- 861
-swap$ -- 85
+substring$ -- 752
+swap$ -- 81
 text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 419
-warning$ -- 0
-while$ -- 182
+type$ -- 386
+warning$ -- 1
+while$ -- 165
 width$ -- 0
-write$ -- 576
+write$ -- 527
+(There were 6 warnings)

@@ -1,0 +1,27 @@
+\begin{table}[htbp]
+\centering
+\caption{Data summary: Stand-your-ground laws and firearm homicide}
+\label{tab:app_data}
+\begin{tabular}{lcc}
+\toprule
+ & Training (1981--2015) & Validation (2016--2022) \\
+\midrule
+States & 50 & 50 \\
+Years & 35 & 7 \\
+Observations & 1750 & 350 \\
+\midrule
+Treated states & 30 & -- \\
+Never-treated states & 20 & -- \\
+\midrule
+Mean deaths/100k & 4.67 & 5.78 \\
+SD deaths/100k & 3.59 & 4.83 \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\textwidth}
+\vspace{0.1in}
+\footnotesize
+\textit{Notes:} Summary of state-level panel data on firearm homicide.
+Training period used to estimate group-time ATTs and fit temporal models;
+validation period used to assess prediction accuracy.
+\end{minipage}
+\end{table}

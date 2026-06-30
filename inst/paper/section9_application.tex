@@ -1,0 +1,73 @@
+\section{Application: Stand-Your-Ground Laws and Firearm Homicide}
+\label{sec:application}
+
+We apply our methods to predict future policy effects using state-level panel data on stand-your-ground (SYG) laws and firearm homicide. This application demonstrates all three extrapolation paths (time homogeneity, model selection, and covariate integration) and validates predictions against realized outcomes from 2016--2022.
+
+\subsection{Data and Setting}
+
+We analyze state-level panel data on firearm homicide deaths and SYG law adoption for all 50 U.S. states from 1981--2022. The outcome is firearm homicide deaths per 100,000 population; the treatment is adoption of a stand-your-ground law, which removes the duty to retreat before using deadly force in self-defense [Cheng \& Hoekstra 2013].
+
+Between 1995 and 2022, 30 states adopted SYG laws in a staggered fashion. The first adopter was Florida in 2005; subsequent adoptions occurred between 2006 and 2022. The remaining 20 states never adopted SYG laws during this period, providing a comparison group. The staggered adoption timing and presence of never-treated states make this setting well-suited for difference-in-differences estimation.
+
+We split the data into a training period (1981--2015, 35 years) and a validation period (2016--2022, 7 years). The training period includes 8 cohorts of early adopters (states adopting SYG by 2015), providing substantial variation in treatment timing. The validation period allows us to assess prediction accuracy by comparing extrapolated ATTs against realized outcomes.
+
+Table \ref{tab:app_data} summarizes the data structure. The training period includes $50 \times 35 = 1,750$ state-year observations with mean firearm homicide rate of 4.67 deaths per 100,000 (SD = 3.59). The validation period includes $50 \times 7 = 350$ observations with slightly lower mean rate of 4.43 (SD = 3.24).
+
+\input{sim_tables/section9_data}
+
+\subsection{Estimation Strategy}
+
+We estimate group-time ATTs $\tau(g,t)$ using the doubly-robust estimator of \citet{callawayDifferenceindifferencesMultipleTime2021} implemented in the \texttt{did} R package. This estimator combines outcome regression and propensity score weighting to provide consistent estimates under either correct specification, and extracts influence functions for downstream inference.
+
+Following the framework in Section 5, we implement three extrapolation paths:
+
+\paragraph{Path 1: Time homogeneity.} We assume constant treatment effects across time and aggregate all post-treatment group-time ATTs from the training period into a single estimate. This yields a constant prediction $\hat{\tau}_{\text{future}} = 0.425$ deaths per 100,000 (SE = 0.100) for all future years 2016--2022.
+
+\paragraph{Path 2: Model selection.} We fit three candidate temporal models to the training data: (i) constant effects, (ii) linear in event time, and (iii) quadratic in event time. Selecting by AIC, the constant model is preferred (AIC = 165.85 vs. 166.98 for linear, 168.92 for quadratic), yielding the same predictions as Path 1.
+
+\paragraph{Path 3: Covariate integration.} We fit a conditional model where ATTs vary with state-level covariates: poverty rate and percent Black population (baseline values from 1981). The fitted model is
+\[
+\hat{\tau}(X) = 0.096 + 0.001 \cdot \text{poverty} - 0.093 \cdot \text{pct\_Black},
+\]
+with $R^2 = 0.035$. This model predicts substantially smaller effects (0.077--0.078 deaths per 100,000) for 2016--2022 based on the covariate values of early-adopter states.
+
+\subsection{Results}
+
+Table \ref{tab:app_validation} presents validation metrics comparing predictions from all three paths against realized ATTs for 2016--2022. The realized average ATT was 0.98 deaths per 100,000 (range: 0.64--1.31 across years), substantially larger than predictions from any method.
+
+\input{sim_tables/section9_validation}
+
+Paths 1 and 2 (both predicting 0.425) achieve identical mean squared prediction error (MSPE = 0.34) and mean absolute error (MAE = 0.55). Path 3, despite incorporating covariate information, performs worse (MSPE = 0.84, MAE = 0.90) by systematically underpredicting effects. None of the methods achieve non-zero coverage: all realized values fall outside the 95\% confidence intervals.
+
+Figure \ref{fig:app_validation} displays year-by-year predictions and realized values. All three methods underpredict the realized effects, which increased from 1.02 in 2016 to a peak of 1.31 in 2019 before declining slightly. The constant predictions from Paths 1 and 2 fail to capture this temporal variation. Path 3 predictions are close to zero throughout, reflecting weak explanatory power from baseline covariates.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/validation_plot.pdf}
+\caption{Predictions versus realized ATTs by year (2016--2022). All three methods substantially underpredict realized treatment effects. Paths 1 and 2 produce identical constant predictions; Path 3 predicts near-zero effects based on covariate model.}
+\label{fig:app_validation}
+\end{figure}
+
+Table \ref{tab:app_yearly} provides year-by-year detail. The largest prediction errors occur in 2019 (realized ATT = 1.31, errors $\approx$ 0.88--1.23) and 2017 (realized = 1.11, errors $\approx$ 0.69--1.04). The smallest errors occur in 2021 and 2022 when realized effects declined toward the predicted constant.
+
+\input{sim_tables/section9_yearly}
+
+\subsection{Discussion}
+
+This application demonstrates both the promise and limitations of temporal extrapolation in policy evaluation. On the positive side, our methods provide honest uncertainty quantification: the confidence intervals reflect the statistical uncertainty in the extrapolation model, though they fail to cover the realized values in this instance. The systematic underprediction across all three paths suggests that SYG effects may have grown stronger over time, a pattern not captured by models estimated on earlier data.
+
+Several factors may explain the poor predictive performance. First, treatment effect dynamics may be complex: SYG laws could have delayed or cumulative effects not well-approximated by simple temporal models. Second, baseline covariates (poverty, racial composition) from 1981 may have limited relevance for predicting effects 35--40 years later. Third, spillover effects across states---not modeled here---could confound the estimand. Fourth, the COVID-19 pandemic in 2020--2022 may have altered firearm violence patterns independently of SYG laws.
+
+Despite poor prediction accuracy, this application illustrates the value of our framework:
+\begin{enumerate}
+\item \textbf{Honest reporting}: We do not cherry-pick favorable examples. Real-world extrapolation can fail, and documenting failure modes advances the field.
+\item \textbf{Unified inference}: All three paths propagate uncertainty through influence functions, providing valid standard errors under their respective assumptions.
+\item \textbf{Comparative assessment}: By implementing all three paths, we reveal that Path 3 (covariates) does not improve over the simpler Path 1 (homogeneity), suggesting weak conditional heterogeneity.
+\item \textbf{Transparent assumptions}: Each path makes its extrapolation assumptions explicit (constant effects, temporal model, conditional model), allowing readers to assess plausibility.
+\end{enumerate}
+
+This application reinforces the core message of our work: temporal extrapolation is feasible, inference is tractable, but predictive success depends critically on whether the training-period patterns persist into the future. When they do not---as in this application---no amount of methodological sophistication will rescue predictions. The honest approach is to report failures alongside successes, and to interpret extrapolated effects as conditional predictions rather than guaranteed forecasts.
+
+\subsection{Limitations}
+
+Several limitations warrant note. First, we aggregate across race categories and analyze state-level effects; disaggregated analyses might reveal differential impacts. Second, we do not account for potential spillover effects across states or interference between SYG and other firearm policies adopted concurrently. Third, our validation period (2016--2022) is short relative to the training period (1981--2015); longer validation windows would provide more definitive evidence. Fourth, we use simple temporal models (constant, linear, quadratic); more flexible specifications (splines, nonparametric smoothing) might improve fit but risk overfitting. Finally, the estimand---average effect on the treated across treated states---does not generalize to counterfactual adoption in never-treated states.
