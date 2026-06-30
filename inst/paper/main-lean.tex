@@ -157,20 +157,7 @@ In synthetic control studies $\cC_g$ is typically taken to be the pre-treatment 
 \noindent Under Assumptions~\ref{assump:consistency}, \ref{assump:overlap-unc}, and~\ref{assump:no-confounding}, $\theta_{gt}$ is identified via inverse probability weighting or outcome regression \citep{callawayDifferenceindifferencesMultipleTime2021}.
 
 \medskip
-This paper's contribution begins where first-stage identification ends. Given identified $\{\theta_{gt}\}_{g,\, t \leq p}$, when and how do these backward-looking estimands identify the forward-looking FATT and FATE? The full identification argument thus has two steps: (a) under the researcher's first-stage design, $\theta_{gt}$ is identified from observed data; (b) under the extrapolation assumptions of Section~\ref{sec:identification}, FATT and FATE are identified from $\theta_{gt}$. The three paths in Section~\ref{sec:identification} differ only in what they assume for step (b).
-
-\subsection{Efficient Influence Functions for First-Stage Estimators}
-\label{sec:eif-first-stage}
-
-To conduct valid inference for the forward-looking estimands, we need to propagate estimation uncertainty from the first-stage estimates $\widehat{\theta}_{gt}$ through to the final estimand. We do this via the efficient influence function (EIF) framework.
-
-We work at a level of abstraction that does not commit to a particular first-stage design. We assume only that each first-stage estimator $\widehat{\theta}_{gt}$ is \emph{asymptotically linear}: there exists a mean-zero function $\varphi_{gt}(O_i)$ satisfying $\E[\varphi_{gt}^2] < \infty$ such that
-\begin{equation}
-    \sqrt{n}\bigl(\widehat{\theta}_{gt} - \theta_{gt}\bigr) = \frac{1}{\sqrt{n}}\sum_{i=1}^{n} \varphi_{gt}(O_i) + o_{\P}(1). \label{eq:al}
-\end{equation}
-Here $O_i$ denotes all observed data for unit $i$. The function $\varphi_{gt}$ is the \emph{influence function} of $\widehat{\theta}_{gt}$; when $\widehat{\theta}_{gt}$ is a semiparametric efficient estimator, $\varphi_{gt}$ is the efficient influence function for $\theta_{gt}$ under the first-stage design. Asymptotically linear estimators exist for both DiD designs \citep{callawayDifferenceindifferencesMultipleTime2021} and unconfoundedness designs; the specific form of $\varphi_{gt}$ depends on which design is used, but the extrapolation theory in Sections~\ref{sec:identification}--\ref{sec:inference} requires only \eqref{eq:al}.
-
-Given an asymptotically linear first-stage estimator of the relevant object, standard semiparametric theory yields an asymptotically linear estimator of the forward-looking FATT for each identification path. For Paths~1 and~2 the relevant object is the group-time ATTs $\theta_{gt}$ and the FATT is a smooth, finite-dimensional functional of $(\theta_{gt}, \omega_g)$, so its influence function follows by the chain rule and functional delta method (Section~\ref{sec:inference}). For Path~3 the relevant object is the covariate-conditional effect $\tau(\cdot)$, which is estimated nonparametrically and need not be $\sqrt{n}$-consistent; there the FATT is recovered at the level of the scalar functional through a Neyman-orthogonal estimating equation, again yielding a valid influence function (Section~\ref{sec:inference}).
+This paper's contribution begins where first-stage identification ends. Given identified $\{\theta_{gt}\}_{g,\, t \leq p}$, when and how do these backward-looking estimands identify the forward-looking FATT, FATU, and FATE? The full identification argument thus has two steps: (a) under the researcher's first-stage design, the relevant first-stage object is identified from observed data; (b) under the extrapolation assumptions of Section~\ref{sec:identification}, the future estimands are identified from it. The three paths in Section~\ref{sec:identification} differ only in what they assume for step (b). We defer all questions of estimation and uncertainty---how the first-stage influence functions propagate to the future estimands---to Section~\ref{sec:inference}.
 
 \section{Forward-Looking Estimands}
 \label{sec:estimands}
@@ -276,30 +263,23 @@ To identify the FATT, FATU, and FATE, we must bridge from the data we can analyz
 Identification requires assumptions that connect the future to the past. Section~\ref{sec:identification} presents three strategies that differ in what they assume is invariant across time: effects themselves (Path~1), temporal patterns (Path~2), or structural covariate relationships (Path~3). We develop each primarily for the FATT and indicate how the FATU and FATE follow by changing the population over which the effect is averaged.
 
 
-\section{Identification via Extrapolation Functions}
+\section{Identification: Three Things One Might Hold Invariant}
 \label{sec:identification}
 
-% PAGE BUDGET: 7.5 pages
-% CONTENT: (1) General framework, (2) Path 1, (3) Path 2, (4) Path 3, (5) Synthesis
+% PAGE BUDGET: target <=6.5 pages
+% CONTENT: (1) General framework (what is invariant), (2) Path 1, (3) Path 2, (4) Path 3, (5) Synthesis
 
 \subsection{General Framework}
 
-% [TODO: 1.5 pages]
-% - Extrapolation function h(g,t;gamma) bridges past to future
-% - For observed times: h(g,t;gamma) = theta_gt
-% - For future times: h(g,t;gamma) extrapolates
-% - Parameter gamma estimated from observed {theta_gt: t <= p}
-% - Identification equation: FATT = sum_g pi_g h(g,p+m;gamma)
-% - Three paths differ in assumptions about h(·)
-
-All three paths follow a common template: plug an existing, asymptotically linear estimator of some \emph{relevant object} into a map to the future estimand, and propagate that estimator's influence function for inference. What differs is the relevant object and the invariance assumption that licenses the extrapolation. We introduce no new first-stage estimator; the contribution is the forward map and the uncertainty propagation.
-
-For Paths~1 and~2 the relevant object is the group-time ATTs $\theta_{gt}$, and we posit an \textbf{extrapolation function} $h(g,t;\gamma)$ with $h(g,t;\gamma) = \theta_{gt}$ for observed times $t \leq p$ and extending the pattern to future times $t > p$; $\gamma$ is identified from $\{\theta_{gt}: t \leq p\}$ and the FATT is $\sum_g \pi_g\, h(g,p+m;\gamma)$. For Path~3 the relevant object is instead the covariate-conditional effect $\tau(x)$, estimated directly from the unit-level data and transported to the future covariate distribution; it does not pass through the marginal $\theta_{gt}$ at all. The three paths differ as follows:
+The future estimands of Section~\ref{sec:estimands} are not identified without an assumption that links the future to the past. Each path makes such a link by holding one structural object \emph{invariant} across the gap from the observed window to $p+m$, and the paths are organized by \emph{what} they hold fixed:
 \begin{itemize}
-\item \textbf{Path 1:} $h(g,t;\gamma) = \theta_g$ (effects time-invariant within cohort).
-\item \textbf{Path 2:} $h(g,t;\gamma) = f(g,t;\gamma)$ for a known functional form $f$ (temporal pattern extrapolated).
-\item \textbf{Path 3:} $\tau_{\text{FATT}}(p+m) = \int \tau(x)\, dF^{p+m}_{X \mid A_{ip}=1}(x)$ (conditional effect held fixed, covariate distribution transported).
+\item \textbf{Path 1} holds the \emph{effects themselves} fixed---group-time ATTs are constant over calendar time.
+\item \textbf{Path 2} holds a \emph{temporal functional form} fixed---effects follow a known curve in event time that continues beyond $p$.
+\item \textbf{Path 3} holds the \emph{covariate-conditional effect} fixed---the effect for units with covariates $x$ is stable, while the covariate distribution may shift.
 \end{itemize}
+The assumptions are progressively weaker in what they hold constant (a number, a curve, a conditional function) and correspondingly more demanding in what they require of the data (nothing extra, a parametric form, rich covariates with overlap).
+
+The mechanics share a common template: plug an existing, asymptotically linear estimator of the relevant first-stage object into a map to the future estimand, then propagate that estimator's influence function for inference (Section~\ref{sec:inference}). We introduce no new first-stage estimator; the contribution is the forward map and the uncertainty propagation. For Paths~1 and~2 the relevant object is the group-time ATTs $\theta_{gt}$, and it is convenient to write the map through an \textbf{extrapolation function} $h(g,t;\gamma)$ with $h(g,t;\gamma)=\theta_{gt}$ for $t \leq p$, $\gamma$ identified from $\{\theta_{gt}: t\leq p\}$, and $\tau_{\text{FATT}}(p+m) = \sum_g \pi_g\, h(g,p+m;\gamma)$. Path~3 does not pass through the marginal $\theta_{gt}$ at all: it estimates the conditional effect $\tau(x)$ directly from the unit-level data and transports it, $\tau_{\text{FATT}}(p+m) = \int \tau(x)\, dF^{p+m}_{\bX \mid A_{ip}=1}(x)$. We treat each path in turn.
 
 \subsection{Path 1: Time Homogeneity}
 \label{sec:path1}
@@ -503,18 +483,13 @@ The paths are not mutually exclusive. Researchers can report results under multi
 
 \subsection{Efficient Influence Function Propagation}
 
-% [TODO: 1.5 pages]
-% - General structure: FATT is functional of (theta_gt, gamma, pi_g)
-% - Standard errors must account for: sampling variability, parameter estimation, aggregation
-% - EIF of FATT inherits from EIF of theta_gt
-% - Functional delta method: Chain rule
-% - Theorem 1 (statement only): Asymptotic normality
-% - Implementation: R package
+To conduct valid inference for the forward-looking estimands, we propagate estimation uncertainty from the first stage through to the final estimand via the efficient influence function (EIF) framework. We work at a level of abstraction that does not commit to a particular first-stage design, assuming only that the relevant first-stage estimator is \emph{asymptotically linear}. For Paths~1 and~2 this is each group-time estimator $\widehat{\theta}_{gt}$: there exists a mean-zero $\varphi_{gt}(O_i)$ with $\E[\varphi_{gt}^2] < \infty$ such that
+\begin{equation}
+    \sqrt{n}\bigl(\widehat{\theta}_{gt} - \theta_{gt}\bigr) = \frac{1}{\sqrt{n}}\sum_{i=1}^{n} \varphi_{gt}(O_i) + o_{\P}(1), \label{eq:al}
+\end{equation}
+where $O_i$ denotes all observed data for unit $i$. Such estimators exist for both DiD \citep{callawayDifferenceindifferencesMultipleTime2021} and unconfoundedness designs; our results require only \eqref{eq:al}.
 
-The FATT is a functional of the first-stage estimates $\{\theta_{gt}\}$ and, for Paths~2--3, additional parameters ($\gamma$ or $\theta(x,g)$). Standard errors must account for sampling variability in all components. We use the efficient influence function (EIF) framework to propagate uncertainty.
-
-% [TODO: High-level description of EIF propagation]
-% [TODO: Mention functional delta method, chain rule]
+The two path families propagate this differently. For Paths~1 and~2 the FATT is a smooth, finite-dimensional functional of $(\theta_{gt}, \omega_g)$, so its influence function follows from \eqref{eq:al} by the chain rule and functional delta method: the EIF of the FATT inherits from the $\varphi_{gt}$, with additional terms for the extrapolation parameter $\gamma$ (Path~2) and the aggregation weights $\omega_g$. For Path~3 the relevant first-stage object is instead the covariate-conditional effect $\tau(\cdot)$, which is estimated nonparametrically and need \emph{not} be $\sqrt{n}$-consistent. There the FATT is a pathwise-differentiable functional recovered at the scalar level through a Neyman-orthogonal (doubly-robust transport) estimating equation: cross-fitting the nuisances at $o_\P(n^{-1/4})$ rates yields a $\sqrt{n}$-consistent, asymptotically linear estimator whose influence function collapses to the ordinary ATT EIF when the future and observed covariate distributions coincide \citep{chernozhukovDoubleDebiasedMachine2018}. Full derivations for all three paths are in Appendix~B.
 
 \begin{theorem}
 \label{thm:asymptotic}
