@@ -1,3 +1,14 @@
+% =====================================================================
+% SEMI-DEPRECATED. main-lean.tex is CANONICAL for all ported content.
+% This file is retained for material not yet ported (full proofs, extended
+% simulations/application). Its Path 3 framing is STALE: §4.1 ("General
+% framework") still presents all three paths as theta_gt = f(g,I_t;theta)
+% and Path 3 as inverting the marginals — superseded. The canonical Path 3
+% (direct CATE estimation + covariate transport, doubly-robust EIF) lives
+% in main-lean.tex §4 (Path 3: Covariate Transport) and §5. Do not treat
+% this file's Path 3 / general-framework as current. See
+% quality_reports/2026-06-30_phase1-path3-theory-note.md.
+% =====================================================================
 \documentclass{article}
 \usepackage{graphicx} % Required for inserting images
 \usepackage{amsmath, amsfonts, amssymb, amsthm}
@@ -137,6 +148,13 @@ Unlike the ATT and sub-ATTs above, none of the counterfactuals are observed. In 
 Forward-looking estimands like the FATT at $p+1$ require extrapolation beyond the observed data. The three identification paths we present can be unified under a single conceptual framework: each path specifies an \emph{extrapolation function} $f$ and assumes that some structural relationship is invariant across time. What differs across paths is the choice of $f$---what it depends on and what is assumed stable.
 
 \subsection{General framework}\label{sec:general-framework}
+
+% STALE FRAMING (semi-deprecated): the "all three paths express theta_gt =
+% f(g,I_t;theta)" device below is superseded. It does not hold for Path 3,
+% which estimates the conditional effect tau(x) directly and never passes
+% through the marginal theta_gt. Canonical framing ("what is held invariant")
+% is in main-lean.tex §4. Retained here only because downstream proofs/sims
+% in this file reference it.
 
 All three paths share a common principle: they express the group-time treatment effects $\theta_{gt}$ as a function of parameters and ``information'' available at time $t$, then extrapolate this relationship to $t = p+1$. Formally, we write
 \begin{align*}

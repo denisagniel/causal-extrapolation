@@ -166,7 +166,7 @@ In synthetic control studies $\cC_g$ is typically taken to be the pre-treatment 
 \noindent Under Assumptions~\ref{assump:consistency}, \ref{assump:overlap-unc}, and~\ref{assump:no-confounding}, $\theta_{gt}$ is identified via inverse probability weighting or outcome regression \citep{callawayDifferenceindifferencesMultipleTime2021}.
 
 \medskip
-This paper's contribution begins where first-stage identification ends. Given identified $\{\theta_{gt}\}_{g,\, t \leq p}$, when and how do these backward-looking estimands identify the forward-looking FATT, FATU, and FATE? The full identification argument thus has two steps: (a) under the researcher's first-stage design, the relevant first-stage object is identified from observed data; (b) under the extrapolation assumptions of Section~\ref{sec:identification}, the future estimands are identified from it. The three paths in Section~\ref{sec:identification} differ only in what they assume for step (b). We defer all questions of estimation and uncertainty---how the first-stage influence functions propagate to the future estimands---to Section~\ref{sec:inference}.
+This paper's contribution begins where first-stage identification ends. Each path takes as given an existing, identified first-stage object---the group-time ATTs $\{\theta_{gt}\}_{g,\,t\leq p}$ for Paths~1 and~2, or the covariate-conditional effect $\tau(\cdot)$ for Path~3---and asks when and how it identifies the forward-looking FATT, FATU, and FATE. The full identification argument thus has two steps: (a) under the researcher's first-stage design, the relevant object is identified from observed data; (b) under the extrapolation assumptions of Section~\ref{sec:identification}, the future estimands are identified from it. The three paths differ in \emph{which} object plays role (a) and in what they assume for step (b). We defer all questions of estimation and uncertainty---how the first-stage influence functions propagate to the future estimands---to Section~\ref{sec:inference}.
 
 \section{Forward-Looking Estimands}
 \label{sec:estimands}
@@ -796,7 +796,7 @@ Our framework has several limitations:
 \item \textbf{Relies on structural stability:} All three paths assume some aspect of the causal structure extends from the training period to future periods. When this fails (as in our application), extrapolation is biased.
 \item \textbf{Single future period:} We focus on FATT at a single horizon $p+m$. Extending to multiple periods or forecasting entire trajectories is left for future work.
 \item \textbf{No formal sensitivity analysis:} We do not provide sensitivity bounds for violations of extrapolation assumptions. Developing such bounds is an important direction.
-\item \textbf{First-stage identification:} We assume $\theta_{gt}$ are identified. If first-stage assumptions (e.g., parallel trends) fail, bias propagates to the FATT.
+\item \textbf{First-stage identification:} We take the relevant first-stage object as identified---the group-time ATTs $\theta_{gt}$ (Paths~1--2) or the covariate-conditional effect $\tau(x)$ (Path~3). If the underlying design assumptions (e.g., parallel trends, or conditional unconfoundedness and covariate exogeneity for Path~3) fail, bias propagates to the future estimands.
 \end{itemize}
 
 \subsection{Extensions}
