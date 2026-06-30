@@ -12,7 +12,6 @@
 
 \newtheorem{assumption}{Assumption}
 \newtheorem*{proposition*}{Proposition}
-\newtheorem{lemma}{Lemma}
 \newtheorem*{lemma*}{Lemma}
 
 \setlength{\topmargin}{-.25in}
@@ -112,13 +111,13 @@ Let
 \begin{align*}
     \tau_{i,p+k} = Y_{i,p+k}(1) - Y_{i,p+k}(0)
 \end{align*} 
-be the future individual treatment effect (FITE) for unit $i$ at horizon $k$. The FITE is arguably the most relevant quantity for a citizen or policymaker belonging to unit $i$. For example, state lawmakers in California may likely be interested most in the FITE for California. The fact that individual treatment effects are not as a rule identifiable does not change the fact that it may be what is of primary importance. Do note also that none of the future causal effects we will discuss in this section are identifiable from the observed data without further assumptions. 
+be the future individual treatment effect (FITE) for unit $i$ at horizon $k$. The FITE is arguably the most relevant quantity for a citizen or policymaker belonging to unit $i$. For example, state lawmakers in California may likely be interested most in the FITE for California. The fact that individual treatment effects are not as a rule identifiable does not change the fact that it may be what is of primary importance. The FITE motivates the population-level estimands below but is not itself a target we identify; likewise none of the future causal effects in this section are identifiable from the observed data without further assumptions.
 
 Given the difficulties with estimating individual treatment effects, we may consider an alternative, the future average treatment effect among similar units (FATS). Given a distance measure $\rho$, we can define:
 \begin{align*}
     \tau_{i,p+k}(\eta; \rho) = \E_{\P_{p+k}}\left\{Y_{j,p+k}(1) - Y_{j,p+k}(0) | \rho(\bX_i, \bX_j) \leq \eta \right\}
 \end{align*} 
-i.e., the average treatment effect at $p+k$ among units $j$ such that $\rho(\bX_i, \bX_j) \leq \eta$; similarity is defined by distance in covariate space. (The backward-looking analog is the ATS: the average effect among units in that same set of units, under $\P_t$.) For example, policymakers in Massachusetts may be interested in the treatment effect among states in New England, or New York policymakers may be interested in the effect among other high-population states.
+i.e., the average treatment effect at $p+k$ among units $j$ such that $\rho(\bX_i, \bX_j) \leq \eta$; similarity is defined by distance in covariate space. (The backward-looking analog is the ATS: the average effect among units in that same set of units, under $\P_t$.) For example, policymakers in Massachusetts may be interested in the treatment effect among states in New England, or New York policymakers may be interested in the effect among other high-population states. Like the FITE, the FATS serves to motivate the policy questions; we treat it as a localized version of the population estimands below (recovered by restricting the target covariate distribution to a neighborhood of $\bX_i$) rather than as a separate object of study.
 
 When policymakers do not have a unit-specific focus, other treatment effects may be of interest. Consider the future-looking analogs of typical backward-looking estimands at horizon $k$:
 \begin{align*}
@@ -129,7 +128,9 @@ When policymakers do not have a unit-specific focus, other treatment effects may
 The FATE encodes the average outcome at time $p+k$ if all units implemented or continued the policy compared to if all units discontinued or remained without the policy. The FATE is similar to the average treatment effect (ATE), and considers the most extreme counterfactual scenario of all implementing units versus none. The FATT encodes the difference in average outcome for units with the policy implemented at time $p$ (the end of the study period)
 if they continued the policy compared to if they discontinued the policy at time $p+k$. The FATT is analogous to the ATT and is targeted at the effect of repealing the policy. The FATU similarly encodes the difference in average outcome among units without the policy at time $p$ if they newly implemented the policy compared to if they remained without at time $p+k$. The FATU is most relevant to policymakers considering whether they should implement the policy. 
 
-Unlike the ATT and sub-ATTs above, none of the counterfactuals are observed. In fact, unlike for any backward-looking estimand, we lack any direct knowledge of the distribution of $\P_{p+k}$. We therefore require additional machinery to connect the observed data to the policy-relevant distribution $\P_{p+k}$. We outline below two different options: either taking time heterogeneity \textit{less} seriously -- by making time homogeneity assumptions -- or taking it \textit{more} seriously and formally modeling how policy effects change. \textbf{In the remainder of the paper we take $k=1$ (one period ahead);} extension to $k > 1$ is analogous and noted where it differs. 
+These three estimands---FATT, FATU, and FATE---are the policy-relevant family we carry through the paper. They map directly to the three decisions a policymaker faces: whether to \emph{repeal} a policy currently in place (FATT), whether to \emph{adopt} one not yet in place (FATU), and the effect of \emph{universal} adoption (FATE). They also share identification machinery: each is the future conditional effect $\tau(x)$ averaged over a different target covariate distribution (treated units, untreated units, or the whole population), a structure we exploit directly in Path~3 (Section~\ref{sec:path3}) and which the FATE/FATU recover from the FATT via the relationships above. We develop identification primarily for the FATT and indicate throughout how the FATU and FATE follow.
+
+Unlike the ATT and sub-ATTs above, none of the counterfactuals are observed. In fact, unlike for any backward-looking estimand, we lack any direct knowledge of the distribution of $\P_{p+k}$. We therefore require additional machinery to connect the observed data to the policy-relevant distribution $\P_{p+k}$. We outline below two different options: either taking time heterogeneity \textit{less} seriously -- by making time homogeneity assumptions -- or taking it \textit{more} seriously and formally modeling how policy effects change. \textbf{In the remainder of the paper we take $k=1$ (one period ahead);} extension to $k > 1$ is analogous and noted where it differs.
 
 \section{Identification via Extrapolation Functions}
 
@@ -191,8 +192,10 @@ We now consider what assumptions would be required to identify the FATT by the A
 \end{assumption}
 This assumption states that ATTs are time-invariant: the ATT at time $t$ is the same as at time $s$ for all $s, t$. 
 We further need to place moderate limits on the between-state heterogeneity:
-\begin{assumption}[Limited between-state ATT heterogeneity]
-    $\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1\}$\label{p-to-p-plus-one-heterogeneity}
+\begin{assumption}[Limited between-state ATT heterogeneity]\label{p-to-p-plus-one-heterogeneity}
+\[
+\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid A_{ip} = 1\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid A_{i,p+1} = 1\}.
+\]
 \end{assumption}
 Assumption \ref{p-to-p-plus-one-heterogeneity} limits the between-state heterogeneity such that the treatment effect among states who had implemented the law at the end of the study period (at time $p$) is the same as the treatment effect among states who will have implemented the law in the future (at time $p+1$). In most cases, these two groups of states are nearly identical: most states that implemented the law at time $p$ keep it through to $p+1$, and most states do not newly implement the law at time $p+1$. So this assumption is generally relatively weak.\footnote{For multi-group extrapolation (Path~2, Section~\ref{sec:path2}), this assumption applies within each group $g$: units in group $g$ who will be treated at $p+1$ have similar potential outcomes to those treated earlier in group $g$. This is invoked in the proof of Proposition~\ref{prop:path2}.}
 
@@ -232,11 +235,16 @@ Under these (restrictive) assumptions, all of the proposed forward-looking estim
 
 
     Often this assumption of strict ITE homogeneity may not be believable. While this may preclude using methods for estimating the ATT to identify these future-looking estimands, it does not preclude using corresponding backward-looking versions of these estimands under weaker assumptions. For example, under assumptions analogous to Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}, one has that $\tau_{p+1} = \tau \equiv \E_\P\{Y_{it}(1) - Y_{it}(0)\}$ by removing the conditioning on $A_{it} = 1$ from Assumptions \ref{strict-time-homogeneity} and \ref{p-to-p-plus-one-heterogeneity}. We state this in some generality in the following assumptions.
-\begin{assumption}[Strict time homogeneity under $\cC_t$]
-    $\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) | \cC_t\} = \E_{\P_s}\{Y_{is}(1) - Y_{is}(0) | \cC_s\}$, for some conditioning event $\cC_t$ defined on $\P_t$ and all $s, t \in \{1, ..., p+1\}$.\label{general-strict-time-homogeneity}
+\begin{assumption}[Strict time homogeneity under $\cC_t$]\label{general-strict-time-homogeneity}
+\[
+\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) \mid \cC_t\} = \E_{\P_s}\{Y_{is}(1) - Y_{is}(0) \mid \cC_s\}
+\]
+for some conditioning event $\cC_t$ defined on $\P_t$ and all $s, t \in \{1, ..., p+1\}$.
 \end{assumption}
-\begin{assumption}[Limited between-state heterogeneity under $\cC_t$]
-    $\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | \cC_p\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | \cC_{p+1}\}$\label{general-p-to-p-plus-one-heterogeneity}
+\begin{assumption}[Limited between-state heterogeneity under $\cC_t$]\label{general-p-to-p-plus-one-heterogeneity}
+\[
+\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid \cC_p\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid \cC_{p+1}\}.
+\]
 \end{assumption}
 Under Assumptions \ref{general-strict-time-homogeneity} and \ref{general-p-to-p-plus-one-heterogeneity}, taking $\cC_t = \{A_{it} = 0\}$ yields equivalence between the backward-looking ATU and the FATU; taking $\cC_t = \emptyset$ yields equivalence between the backward-looking ATE and the FATE; and taking $\cC_t = \{\rho(\bX_i, \bX_j) \leq \eta\}$ yields equivalence between the backward-looking ATS and the FATS (Assumption \ref{general-p-to-p-plus-one-heterogeneity} not required for the FATS).
 
@@ -244,11 +252,13 @@ Under Assumptions \ref{general-strict-time-homogeneity} and \ref{general-p-to-p-
 Assumption \ref{strict-time-homogeneity} (and Assumption \ref{general-strict-time-homogeneity}) restricts treatment effects to be constant over time. A great deal of recent literature in causal inference for panel data has explicitly rejected this assumption, positing that treatment effects may vary over time in multiple ways \citep{sunEstimatingDynamicTreatment2021,brownDynamicTreatmentEffect2025}. Proposals for group-time effects $\theta_{gt}$ have attempted to capture variation in treatment effects by when the treatment was first implemented (by encoding this information in $G_i = g$) and also allowing treatment effects to vary dynamically over time thereafter. 
 
 One way to weaken Assumption \ref{strict-time-homogeneity} is to only require homogeneity within groups:
-\begin{assumption}[Strict withing-group ATT time homogeneity]
+\begin{assumption}[Strict within-group ATT time homogeneity]
     $\theta_{gt} = \theta_{gs} \equiv \theta_{g\cdot}$, for all $s, t \in \{1, ..., p+1\}$.\label{within-group-strict-time-homogeneity}
 \end{assumption}
-\begin{assumption}[Limited within-group between-state ATT heterogeneity]
-    $\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1, G_i = g\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1, G_i = g\}$\label{within-group-p-to-p-plus-one-heterogeneity}
+\begin{assumption}[Limited within-group between-state ATT heterogeneity]\label{within-group-p-to-p-plus-one-heterogeneity}
+\[
+\E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid A_{ip} = 1, G_i = g\} = \E_{\P_{p+1}}\{Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid A_{i,p+1} = 1, G_i = g\}.
+\]
 \end{assumption}
 Under Assumptions \ref{within-group-strict-time-homogeneity} and \ref{within-group-p-to-p-plus-one-heterogeneity}, we have that
 \begin{align*}
@@ -276,7 +286,7 @@ where $f(\cdot ; \bgamma)$ is a known function of a finite-dimensional parameter
 \end{align*}
 
 \begin{proposition}[Identification of the FATT under parametric dynamics]\label{prop:path2}
-Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose $\theta_{gt} = f(g,t;\bgamma)$ with $\bgamma$ uniquely determined by $(\theta_{gt})_{g,t,\, t \leq p}$. Then the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma)$.
+Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$; that $\theta_{gt} = f(g,t;\bgamma)$ with $\bgamma$ uniquely determined by $(\theta_{gt})_{g,t,\, t \leq p}$; and that within-group limited between-state heterogeneity (Assumption~\ref{within-group-p-to-p-plus-one-heterogeneity}) holds. Then the FATT $\theta_{p+1}$ is identified by $\theta_{p+1} = \sum_{g}\P(G_i = g | A_{ip} = 1) f(g, p+1; \bgamma)$.
 \end{proposition}
 
 \begin{proof}
@@ -291,62 +301,72 @@ Path~3 offers an alternative: instead of assuming temporal invariance of effects
 
 \subsubsection{Choice of $f$ and identifying assumptions}
 
-\textbf{Path 3 extrapolation function:} We specify $f_3(F_{\bX}^t; \bbeta) = \int m(x; \bbeta) \, dF_{\bX}^t(x)$, where $F_{\bX}^t$ is the covariate distribution at time $t$. The input space is $\mathcal{I}_t = \{F_{\bX}^t\}$, the population composition at time $t$. The key structural object is the conditional effect function $m(x; \bbeta)$, which we assume is invariant across time. Temporal variation in the marginal effect $\theta_{gt}$ arises solely through changes in the covariate distribution $F_{\bX}^t$, not through changes in the conditional effect itself. This is the deep-parameter assumption of the Lucas Critique: $m(x; \bbeta)$ captures regime-invariant relationships, while $F_{\bX}^t$ may shift with policy or economic changes.
+\textbf{Path 3 extrapolation function:} We specify $f_3(F_{\bX}^t; \tau) = \int \tau(x) \, dF_{\bX}^t(x)$, where $F_{\bX}^t$ is the covariate distribution at time $t$ and $\tau(\cdot)$ is the conditional ATT (defined below). The input space is $\mathcal{I}_t = \{F_{\bX}^t\}$, the population composition at time $t$. The key structural object is the conditional effect function $\tau(x)$, which we assume is invariant across time. Temporal variation in the marginal effect $\theta_{gt}$ arises solely through changes in the covariate distribution $F_{\bX}^t$, not through changes in the conditional effect itself. This is the deep-parameter assumption of the Lucas Critique: $\tau(x)$ captures regime-invariant relationships, while $F_{\bX}^t$ may shift with policy or economic changes. Unlike Paths~1 and~2, which extrapolate from the \emph{marginal} group-time ATTs $\theta_{gt}$, Path~3 estimates the conditional effect $\tau(x)$ directly from the unit-level data and transports it to the future covariate distribution; we never invert the marginals.
 
 \paragraph{Identification via covariate integration.}
 
-Let $\bX_i$ denote pre-treatment covariates (either time-invariant or, if time-varying, forecasted to $p+1$). Define the conditional ATT at the future period:
+Let $\bX_i$ denote pre-treatment covariates. Define the period-$t$ conditional ATT among the treated,
 \begin{align*}
-    \tau(x) = \E_{\P_{p+1}}[Y_{i,p+1}(1) - Y_{i,p+1}(0) | \bX_i = x, A_{i,p+1} = 1].
+    \tau_t(x) = \E_{\P_t}[Y_{it}(1) - Y_{it}(0) \mid \bX_i = x, A_{it} = 1],
 \end{align*}
-The FATT for units with treatment status $A_{ip}=1$ (i.e., units treated by the end of the study period, who continue treatment at $p+1$) is then
+and write $\tau(x)$ for its common value across periods under the stability assumption below. The FATT for units with treatment status $A_{ip}=1$ (units treated by the end of the study period, who continue treatment at $p+1$) is, by iterated expectations,
 \begin{align}
-    \theta_{p+1} = \int \tau(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x), \label{eq:fatt-cov-integral}
+    \theta_{p+1} = \int \tau_{p+1}(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x), \label{eq:fatt-cov-integral}
 \end{align}
-where $F_{\bX | A_{ip}=1}^{p+1}$ is the conditional distribution of $\bX$ among units with $A_{ip}=1$ at time $p+1$. If covariates are time-invariant, this is simply the empirical distribution of $\bX_i$ among treated units in the study sample. If covariates are time-varying or the target population differs (e.g., we wish to extrapolate to a different jurisdiction), $F_{\bX}^{p+1}$ may differ from the historical distribution and must be specified or forecasted.
+where $F_{\bX | A_{ip}=1}^{p+1}$ is the covariate distribution of treated units at $p+1$. Equation~\eqref{eq:fatt-cov-integral} is an identity, not yet an identification result: the conditional effect is evaluated at the unobserved period $p+1$, and the target distribution must be available. The two assumptions that follow supply each piece.
 
-The key identifying assumptions are as follows.
+\begin{assumption}[First-stage conditional identification]\label{assump:cond-ident}
+Under the researcher's design, the conditional ATT $\tau_t(x)$ is identified from the observed data ($t \leq p$) and estimable, with cross-fitting, at standard nonparametric rates. Two leading cases:
+\begin{itemize}
+    \item \emph{Unconfoundedness:} $\{Y_{it}(0), Y_{it}(1)\} \indep A_{it} \mid \bX_i$ with overlap, so $\tau_t(x) = \mu_{1t}(x) - \mu_{0t}(x)$ where $\mu_{at}(x) = \E[Y_{it} \mid \bX_i = x, A_{it} = a]$, estimable by any doubly-robust CATE learner.
+    \item \emph{Conditional parallel trends:} the difference-in-differences analog, with $\tau_t(x)$ estimated by a conditional doubly-robust DiD estimator \citep{santannaDoublyRobustDifferenceindifferences2020}.
+\end{itemize}
+\end{assumption}
+
+Assumption~\ref{assump:cond-ident} is the conditional-level analog of taking the group-time ATTs as identified in Paths~1 and~2: we import an existing estimator of $\tau(x)$ rather than developing one. We emphasize that the \emph{function} $\tau(\cdot)$ need not be estimated at the parametric $\sqrt{n}$ rate---with continuous $\bX$ it generally is not. As shown in Section~\ref{sec:eif}, the scalar FATT $\theta_{p+1}$ is nonetheless estimable at $\sqrt{n}$ via a Neyman-orthogonal estimating equation, provided the nuisance functions converge at the usual $o_\P(n^{-1/4})$ rate \citep{chernozhukovDoubleDebiasedMachine2018}.
 
 \begin{assumption}[Structural stability of conditional effects]\label{assump:struct-stab}
-The conditional ATT function $\tau(x)$ is invariant across periods $t \in \{1,\ldots,p,p+1\}$. That is, for all $x$ in the support of $\bX$ and all $t$,
+The conditional ATT is invariant across periods $t \in \{1,\ldots,p,p+1\}$: for all $x$ in the support of $\bX$ and all such $t$,
 \[
-\E_{\P_t}[Y_{it}(1) - Y_{it}(0) | \bX_i = x, A_{it} = 1] = \tau(x).
+\tau_t(x) = \tau(x).
 \]
 \end{assumption}
 
-Assumption~\ref{assump:struct-stab} is the analog of time homogeneity (Assumption~1) but is conditional on covariates rather than marginal over time. It states that the effect of treatment for units with covariate value $x$ does not change over time, even though the marginal distribution of $\bX$ (and hence the marginal ATT $\theta_t$) may shift. This is weaker than marginal time homogeneity when covariate-driven selection or composition changes occur: for instance, if early adopters differ systematically from later adopters in observed $\bX$, Assumption~\ref{assump:struct-stab} can hold even when marginal $\theta_t$ varies over time. Conversely, if unobserved factors drive time-varying effects that are not captured by $\bX$, this assumption fails.
+Assumption~\ref{assump:struct-stab} is the analog of time homogeneity (Assumption~1) but conditional on covariates rather than marginal over time. The effect for units with covariate value $x$ does not change over time, even though the marginal distribution of $\bX$ (and hence the marginal ATT $\theta_t$) may shift. This is weaker than marginal time homogeneity when composition changes: if early adopters differ systematically from later adopters in observed $\bX$, Assumption~\ref{assump:struct-stab} can hold even when marginal $\theta_t$ varies. Conversely, if unobserved factors drive time-varying effects not captured by $\bX$, it fails. As with the homogeneity assumption of Path~1, the assumption has a \emph{testable} component and an \emph{untestable} one. Over the observed periods $t \leq p$ it is testable: wherever $\tau_t(x)$ is identified at two or more periods, one can test whether the conditional effect functions coincide, and substantial drift in $\tau_t(\cdot)$ across observed periods is evidence against stability. The extrapolation to $t = p+1$, however, concerns $\P_{p+1}$ and is untestable; it can be supported only by substantive reasoning together with the observed-period evidence.
 
-Importantly, Assumption~\ref{assump:struct-stab} implies \emph{conditional exchangeability}: conditional on covariates $\bX = x$, potential outcomes at $p+1$ are governed by the same function $\tau(x)$ as in observed periods. This means that among units with $\bX_i = x$, those who will be treated at $p+1$ and those treated in earlier periods have similar potential outcomes---analogous to the limited between-state heterogeneity assumption (Assumption~\ref{p-to-p-plus-one-heterogeneity}), but applied conditionally on $x$ rather than marginally. This conditional exchangeability is invoked in the proof of Proposition~\ref{prop:path3}.
-
-\begin{assumption}[Parametric specification of $\tau(x)$]\label{assump:param-tau}
-The conditional ATT has a known functional form $\tau(x) = m(x; \bbeta)$, where $m$ is a specified function and $\bbeta \in \R^d$ is a finite-dimensional parameter.
+\begin{assumption}[Access to target covariate distribution and overlap]\label{assump:target-dist}
+Either (a) a sample $\{\bX_i^*\}_{i=1}^{n^*}$ from $F_{\bX | A_{ip}=1}^{p+1}$ is observed, or (b) draws are available via forecast or simulation. Moreover the density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1} / dF_{\bX}^{\mathrm{src}}(x)$, where $F_{\bX}^{\mathrm{src}}$ is the distribution on which $\tau$ is estimated, exists and is bounded.
 \end{assumption}
 
-Assumption~\ref{assump:param-tau} is analogous to the parametric model for temporal dynamics in Path~2 (Assumption~3, where we specified $\theta_{gt} = f(g,t;\bgamma)$). Common choices for $m$ include linear-in-covariates models, $\tau(x) = x^\top \bbeta$, or additive models with basis expansions. The parameter $\bbeta$ must be identified from observed data; we return to this point below.
-
-\begin{assumption}[Access to target covariate distribution]\label{assump:target-dist}
-Either (a) we observe a finite sample $\{\bX_i^*\}_{i=1}^{n^*}$ drawn from $F_{\bX}^{p+1}$, or (b) we can generate draws from $F_{\bX}^{p+1}$ via forecasting or simulation.
-\end{assumption}
-
-Assumption~\ref{assump:target-dist} ensures that the integral in \eqref{eq:fatt-cov-integral} is computable. In many applications, covariates are time-invariant (e.g., geographic or demographic characteristics of units), so the target distribution is simply the empirical distribution of $\bX_i$ among treated units in the sample. In other settings, covariates may be forecasted (e.g., population growth, economic indicators), or we may wish to transport the estimated $\tau(x)$ to a different target population with a known or estimable covariate distribution.
+In many applications covariates are time-invariant, so the target is simply the empirical distribution of $\bX_i$ among treated units in the sample and we may take $\bX_p$ as the target. When covariates are time-varying, $\bX$ may be forecasted to $p+1$ (population growth, economic indicators); sometimes $\bX_{p+1}$ is directly observed. The boundedness of $w$ is the overlap condition for transport: the future covariate support must be covered by the source. When it fails---heavy covariate shift into regions the historical data do not cover---transport is not credible and the estimator's variance degrades. This is the substantive limit of Path~3, and we return to it in the application.
 
 We now state the identification result.
 
-\begin{proposition}[Identification via covariate integration]\label{prop:path3}
-Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose Assumptions~\ref{assump:struct-stab}--\ref{assump:target-dist} hold, and suppose further that the mapping $\bbeta \mapsto (\theta_{g1}, \ldots, \theta_{gp})_{g \in \cG}$ is injective, so that $\bbeta$ is uniquely determined by the observed group-time ATTs via the relationship
+\begin{proposition}[Identification via covariate transport]\label{prop:path3}
+Under Assumptions~\ref{assump:cond-ident}--\ref{assump:target-dist}, the FATT is identified by
 \begin{align*}
-    \theta_{gt} = \int m(x; \bbeta) \, dF_{\bX | G_i=g}(x), \quad t \in \{g,\ldots,p\}, \, g \in \cG.
+    \theta_{p+1} = \int \tau(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x) = \E_{\mathrm{src}}\!\left[ w(\bX)\, \tau(\bX) \right].
 \end{align*}
-Then the FATT $\theta_{p+1}$ is identified by
-\begin{align*}
-    \theta_{p+1} = \int m(x; \bbeta_0) \, dF_{\bX | A_{ip}=1}^{p+1}(x),
-\end{align*}
-where $\bbeta_0$ is the true parameter satisfying the above system of equations.
 \end{proposition}
 
 \begin{proof}
 See Appendix \ref{app:prop3-path3}.
 \end{proof}
+
+\noindent The proof is immediate: \eqref{eq:fatt-cov-integral} is an identity; Assumption~\ref{assump:struct-stab} replaces the unobserved $\tau_{p+1}$ by the identified $\tau$ (Assumption~\ref{assump:cond-ident}); and the change of measure $\int \tau \, dF^{p+1} = \int \tau\, w\, dF^{\mathrm{src}} = \E_{\mathrm{src}}[w(\bX)\tau(\bX)]$ is valid because $w$ exists (Assumption~\ref{assump:target-dist}). No injectivity condition is required, because we do not recover $\tau$ from the marginal $\theta_{gt}$.
+
+\paragraph{A parametric special case.} A common implementation posits $\tau(x) = m(x;\bbeta)$ for a known $m$ (e.g.\ linear-in-covariates $\tau(x) = x^\top\bbeta$) with $\bbeta \in \R^d$; then $\tau$ is estimated at the parametric rate and the transport integral is $\int m(x;\widehat\bbeta)\, dF^{p+1}$. This is the analog of Path~2's parametric temporal model, and we use it in simulations for transparency, but Assumption~\ref{assump:cond-ident} accommodates fully nonparametric estimators of $\tau(x)$ (e.g.\ causal forests) as well.
+
+\paragraph{Extension to FATU and FATE.} The same machinery identifies the FATU and FATE by transporting $\tau(\cdot)$ to a different target distribution---the untreated units' covariates for the FATU (the relevant estimand for adoption decisions), and the full population's for the FATE (universal adoption). This requires one additional assumption.
+
+\begin{assumption}[Cross-group conditional transportability; needed only for FATU/FATE]\label{assump:cross-group}
+The future conditional effect does not depend on period-$p$ treatment status given covariates: for all $x$,
+\[
+\E_{\P_{p+1}}\{Y(1) - Y(0) \mid \bX = x, A_{ip} = 1\} = \E_{\P_{p+1}}\{Y(1) - Y(0) \mid \bX = x, A_{ip} = 0\} = \tau(x).
+\]
+\end{assumption}
+
+Assumption~\ref{assump:cross-group} is the standard external-validity condition: no effect modification beyond $\bX$. It is the price of extending an effect estimated among the treated to never-adopters (FATU) or the whole population (FATE). The FATT itself does not require it.
 
 \paragraph{Interpretation and credibility.} Path~3 shifts the extrapolation burden from time to covariates. Instead of assuming that temporal patterns continue (Path~2) or that effects are stable over time (Path~1), we assume that the conditional effect $\tau(x)$ is regime-invariant. This is credible when $\bX$ captures the key drivers of treatment effect heterogeneity---what the Lucas Critique calls ``deep parameters.'' For example, if the effect of a policy depends on units' economic conditions, demographic composition, or institutional capacity, and these are observed in $\bX$, then $\tau(x)$ may be stable even when the policy regime changes. On the other hand, if treatment effects are driven by unobserved time-varying factors (e.g., political sentiment, enforcement intensity, or spillover effects not captured by $\bX$), Path~3 will fail just as Paths~1 and~2 do.
 
@@ -354,36 +374,19 @@ The trade-off is as follows: Path~1 requires marginal temporal stability (strong
 
 \subsection{Semiparametric estimation and EIF}
 
-Under the parametric model $m(x;\bbeta)$, we estimate $\bbeta$ by fitting the model to the observed group-time ATTs $\theta_{gt}$ and their covariate distributions within groups. For instance, if we specify $\tau(x) = x^\top \bbeta$ (linear-in-covariates), then for each cohort $g$ and period $t \geq g$, we have
-\begin{align*}
-    \theta_{gt} = \int x^\top \bbeta \, dF_{\bX|G_i=g}(x) = \E[\bX_i | G_i=g]^\top \bbeta.
-\end{align*}
-This yields a system of equations: $\theta_{gt} = \bar{\bX}_g^\top \bbeta$ for each $(g,t)$, where $\bar{\bX}_g = \E[\bX_i | G_i=g]$. If the design matrix formed by stacking $\bar{\bX}_g$ (or more generally, $\bar{\bX}_{gt}$ if covariates vary within group-time cells) has full column rank, $\bbeta$ is identified. More generally, for nonlinear $m(x;\bbeta)$, we fit $\bbeta$ via weighted least squares or method-of-moments: minimize
-\begin{align*}
-    \sum_{g,t} w_{gt} \left( \widehat{\theta}_{gt} - \int m(x;\bbeta) \, d\widehat{F}_{\bX|G_i=g}(x) \right)^2,
-\end{align*}
-where $w_{gt}$ are weights (e.g., inverse variance or sample size of group-time cells) and $\widehat{F}_{\bX|G_i=g}$ is the empirical covariate distribution within group $g$.
-
-Once $\widehat{\bbeta}$ is obtained, the FATT estimator is
+Estimation under Path~3 has two ingredients, both off-the-shelf: an estimator $\widehat{\tau}(\cdot)$ of the conditional ATT and a target covariate sample. The FATT estimator integrates the first over the second,
 \begin{align}
-    \widehat{\theta}_{p+1} = \begin{cases}
-        \frac{1}{n^*} \sum_{i=1}^{n^*} m(\bX_i^*; \widehat{\bbeta}) & \text{(finite-population target sample)} \\
-        \frac{1}{M} \sum_{j=1}^{M} m(\bX_j; \widehat{\bbeta}) & \text{(Monte Carlo integration)},
-    \end{cases} \label{eq:fatt-path3-est}
+    \widehat{\theta}_{p+1} = \frac{1}{n^*}\sum_{i=1}^{n^*} \widehat{\tau}(\bX_i^*), \label{eq:fatt-path3-est}
 \end{align}
-where $\{\bX_i^*\}_{i=1}^{n^*}$ is the target sample (e.g., treated units in the study, or a new target population), or $\{\bX_j\}_{j=1}^M$ are draws from a sampler for $F_{\bX}^{p+1}$.
+where $\{\bX_i^*\}_{i=1}^{n^*}$ is a sample from the target distribution $F_{\bX | A_{ip}=1}^{p+1}$ (the treated units' covariates at $p+1$; the study sample's treated units when covariates are time-invariant, or forecasted/simulated draws otherwise). In the parametric special case $\widehat{\tau}(x) = m(x;\widehat{\bbeta})$ this is $n^{*-1}\sum_i m(\bX_i^*;\widehat{\bbeta})$; with a nonparametric learner $\widehat{\tau}$ (e.g.\ a causal forest) it is the average of the predicted conditional effects over the target sample.
 
-\paragraph{Path 3 EIF.} The efficient influence function for Path~3 is derived via the chain rule, accounting for estimation of $\bbeta$ from the group-time ATTs and integration over the target covariate distribution. By the functional delta method (see Appendix \ref{app:eif3}), the EIF for $\psi_3 = \theta_{p+1}$ is
-\begin{align*}
-    \phi_{\psi_3} = \left(\frac{\partial \Psi_3}{\partial \bbeta}\right)^\top \left( \sum_{g,t} \frac{\partial \bbeta}{\partial \theta_{gt}} \phi_{gt} \right) + \sum_{g,t} \left(\frac{\partial \Psi_3}{\partial \omega_{gt}}\right)^\top \phi_{\omega_{gt}},
-\end{align*}
-where $\Psi_3(\theta, \omega, \bbeta) = \int m(x;\bbeta) \, dF_{\bX}^{p+1}(x)$ and the Jacobian terms capture: (i)~the derivative of the FATT with respect to $\bbeta$; (ii)~the implicit derivative of $\bbeta$ with respect to each $\theta_{gt}$ (via the method-of-moments or least-squares fitting); (iii)~if covariate distributions or weights are estimated, their influence functions. For the finite-population case in \eqref{eq:fatt-path3-est}, we have
-\begin{align*}
-    \frac{\partial \Psi_3}{\partial \bbeta} = \frac{1}{n^*} \sum_{i=1}^{n^*} \frac{\partial m(\bX_i^*; \bbeta)}{\partial \bbeta}.
-\end{align*}
-For the linear-in-covariates case $m(x;\bbeta) = x^\top \bbeta$, this simplifies to $\bar{\bX}^*$, the mean of the target covariates. The implicit function theorem gives $\frac{\partial \bbeta}{\partial \theta_{gt}}$ by differentiating the first-order conditions for the least-squares or method-of-moments fit; the resulting Jacobian is a function of the Hessian of the objective and the gradient with respect to $\theta_{gt}$. Full details are in Appendix~\ref{app:eif3}.
+\paragraph{Path 3 EIF.} Because $\widehat{\tau}(\cdot)$ is in general not $\sqrt{n}$-consistent (with continuous $\bX$ it converges at a slower nonparametric rate), we do not propagate an influence function for $\widehat{\tau}$ itself. Instead, the scalar FATT $\theta_{p+1} = \E_{\mathrm{src}}[w(\bX)\tau(\bX)]$ is a pathwise-differentiable functional admitting a \emph{Neyman-orthogonal} estimating equation, and it is this functional that is $\sqrt{n}$-estimable. For the unconfoundedness design, with outcome regressions $\mu_a(x)$, propensity $e(x)$, and density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1}/dF_{\bX}^{\mathrm{src}}(x)$, the efficient influence function is the doubly-robust transport score
+\begin{align}
+    \phi_{\psi_3}(O_i) = w(\bX_i)\big(\tau(\bX_i) - \theta_{p+1}\big) + w(\bX_i)\left[\frac{A_i\big(Y_i - \mu_1(\bX_i)\big)}{e(\bX_i)} - \frac{(1-A_i)\big(Y_i - \mu_0(\bX_i)\big)}{1-e(\bX_i)}\right], \label{eq:eif-path3}
+\end{align}
+plus a correction term when $w$ is itself estimated from a finite target sample; the conditional parallel-trends design replaces the bracketed augmentation with the corresponding doubly-robust difference-in-differences score, reweighted by $w$. The derivation is in Appendix~\ref{app:eif3}. Because the score in \eqref{eq:eif-path3} is orthogonal to the nuisances $(\mu_a, e, w)$, plugging in cross-fitted nonparametric or machine-learning estimates of these nuisances at the usual $o_\P(n^{-1/4})$ rate yields an asymptotically linear, $\sqrt{n}$-consistent $\widehat{\theta}_{p+1}$ with influence function \eqref{eq:eif-path3} \citep{chernozhukovDoubleDebiasedMachine2018}.
 
-Within the parametric model $m(x;\bbeta)$ and conditional on the target covariate distribution $F_{\bX}^{p+1}$, the EIF $\phi_{\psi_3}$ achieves the semiparametric variance bound. If $m$ is misspecified, the EIF is valid for the pseudo-true parameter (the limit of $\widehat{\bbeta}$ under the misspecified model), but $\widehat{\theta}_{p+1}$ need not be consistent for the true FATT. Researchers should assess model fit and consider sensitivity to the choice of $m$ (e.g., linear vs nonlinear, which covariates to include).
+This is the same machinery used for Paths~1 and~2, with one structural difference: there the first-stage \emph{object} $\widehat{\theta}_{gt}$ is itself $\sqrt{n}$ and the map to $\theta_{p+1}$ is a finite-dimensional delta method, whereas here the first-stage \emph{function} $\widehat{\tau}$ is estimated slowly and $\sqrt{n}$ inference for the scalar $\theta_{p+1}$ is recovered through orthogonality. We note this so that the asymmetry is not mistaken for an inconsistency. If the conditional model is misspecified (e.g.\ a parametric $m$ that omits relevant heterogeneity), $\widehat{\theta}_{p+1}$ converges to a pseudo-true value rather than the FATT; researchers should assess conditional-model fit and the plausibility of the overlap condition (bounded $w$), discussed next.
 
 \paragraph{When to use Path~3.} Path~3 is most compelling when: (i)~substantial treatment effect heterogeneity is driven by observable covariates; (ii)~temporal stability (Path~1) is implausible due to composition changes or regime shifts; (iii)~extrapolating temporal trends (Path~2) is dubious because the policy environment is changing; (iv)~the key drivers of heterogeneity are observed and well-measured, so that $\tau(x)$ is likely regime-invariant. Path~3 is less appealing when heterogeneity is driven by unobserved factors, when the functional form $m(x;\bbeta)$ is uncertain, or when the target covariate distribution $F_{\bX}^{p+1}$ is poorly known.
 
@@ -393,7 +396,7 @@ All three identification paths require estimation and inference for the FATT $\t
 
 \subsection{Efficient influence functions}\label{sec:eif-derivation}
 
-The contribution of this subsection is to derive the efficient influence function (EIF) for the policy-relevant FATT $\theta_{p+1}$ as a functional of the group-time ATTs and their influence functions, so that any asymptotically linear estimators of $\theta_{gt}$ yield an asymptotically linear estimator of $\theta_{p+1}$ with limiting variance given by the propagated EIF. We present the EIF for Paths~1 and~2 here; the EIF for Path~3 (covariate integration) was derived in Section~\ref{sec:path3}.
+The contribution of this subsection is to derive the influence function for the policy-relevant FATT $\theta_{p+1}$ from an asymptotically linear first-stage estimator of the relevant object, so that valid standard errors propagate automatically. For Paths~1 and~2 that object is the group-time ATTs $\theta_{gt}$, and the FATT is a smooth finite-dimensional function of them; for Path~3 it is the conditional effect $\tau(\cdot)$, and the relevant influence function is the doubly-robust transport score derived in Section~\ref{sec:path3} and Appendix~\ref{app:eif3}. We present Paths~1 and~2 here.
 
 \paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). By linearity (see Appendix \ref{app:eif1}), the EIF for $\psi_1 = \theta_{p+1}$ is
 \begin{align*}
@@ -568,20 +571,20 @@ For all $g,t$: $\E[\phi_{gt,i}^4] < \infty$ (finite fourth moments for central l
 If using flexible or machine-learning first-stage with cross-fitting, the class of functions $\{\phi_{gt,i}(\cdot)\}$ either satisfies Donsker conditions, or the product of convergence rates satisfies $\|\widehat{\theta}_{gt} - \theta_{gt}\| \cdot \|\widehat{\bgamma} - \bgamma\| = o_{\P}(n^{-1/4})$ uniformly over $(g,t)$.
 \end{assumption}
 
-\begin{assumption}[Conditional model smoothness (Path 3)]\label{RC8}
-For Path 3, the conditional ATT model $m(x;\bbeta)$ is twice continuously differentiable in $\bbeta$ in a neighborhood of the true parameter $\bbeta_0$.
+\begin{assumption}[Nuisance estimation rates (Path 3)]\label{RC8}
+For Path 3, the nuisance functions---the conditional outcome means $\mu_a(x)$ and propensity $e(x)$ (unconfoundedness design), or their difference-in-differences analogs, together with the density ratio $w(x)$---are estimated by cross-fitting, with $L_2$ convergence rates whose products are $o_{\P}(n^{-1/4})$. The conditional effect $\widehat{\tau}(\cdot)$ need not be $\sqrt{n}$-consistent.
 \end{assumption}
 
-\begin{assumption}[Identifiability of $\bbeta$ (Path 3)]\label{RC9}
-The mapping $\bbeta \mapsto (\theta_{g1}, \ldots, \theta_{gp})_{g \in \cG}$ defined by $\theta_{gt} = \int m(x;\bbeta) \, dF_{\bX|G_i=g}(x)$ is injective, so that $\bbeta_0$ is uniquely determined by observed group-time ATTs.
+\begin{assumption}[Overlap for transport (Path 3)]\label{RC9}
+The density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1}/dF_{\bX}^{\mathrm{src}}(x)$ exists and is bounded, $\|w\|_\infty < \infty$ (or at least $\E_{\mathrm{src}}[w(\bX)^2] < \infty$); equivalently, the future target covariate support is contained in the support of the source distribution on which $\tau$ is estimated.
 \end{assumption}
 
 \begin{assumption}[Target distribution access (Path 3)]\label{RC10}
-Either (a) the target sample $\{\bX_i^*\}_{i=1}^{n^*}$ is representative of $F_{\bX}^{p+1}$ (e.g., drawn i.i.d. from the target distribution), or (b) the sampler faithfully generates draws from $F_{\bX}^{p+1}$ (i.e., the Monte Carlo integration error is $o_{\P}(n^{-1/2})$ as the number of draws $M \to \infty$).
+Either (a) the target sample $\{\bX_i^*\}_{i=1}^{n^*}$ is representative of $F_{\bX | A_{ip}=1}^{p+1}$ (e.g., drawn i.i.d. from the target distribution), or (b) a sampler faithfully generates draws from it. When the target is the study's treated units under time-invariant covariates, this holds by construction.
 \end{assumption}
 
 \begin{remark}
-Assumptions \ref{RC1}--\ref{RC3} and \ref{RC6} are standard for semiparametric inference with first-stage estimation. Assumptions \ref{RC4}--\ref{RC5} are specific to Path~2 (parametric extrapolation). Assumptions \ref{RC8}--\ref{RC10} are specific to Path~3 (covariate integration). Assumption \ref{RC7} relaxes Donsker when using modern machine-learning methods via cross-fitting, following \citet{chernozhukovDoubleDebiasedMachine2018}.
+Assumptions \ref{RC1}--\ref{RC3} and \ref{RC6} are standard for semiparametric inference with first-stage estimation. Assumptions \ref{RC4}--\ref{RC5} are specific to Path~2 (parametric extrapolation). Assumptions \ref{RC8}--\ref{RC10} are specific to Path~3 (covariate transport): \ref{RC8} gives the doubly-robust product-rate conditions, \ref{RC9} the overlap/bounded-density-ratio condition required for transport, and \ref{RC10} access to the target covariate distribution. Assumption \ref{RC7} relaxes Donsker when using modern machine-learning methods via cross-fitting, following \citet{chernozhukovDoubleDebiasedMachine2018}.
 \end{remark}
 
 \subsection{Proof of Proposition 1}\label{app:prop1}
@@ -674,70 +677,37 @@ The structural assumption that $f(g,t;\bgamma)$ continues to hold at $t = p+1$ i
 
 We restate and prove Proposition~\ref{prop:path3} from Section~\ref{sec:path3} (Path~3).
 
-\begin{proposition*}[Identification via covariate integration]
-Suppose the group-time ATTs $\theta_{gt}$ are identified from the observed data under the researcher's design for $t \leq p$, $g \in \cG$. Suppose Assumptions~\ref{assump:struct-stab}--\ref{assump:target-dist} hold (structural stability of conditional effects, parametric specification, and access to target distribution), and suppose further that the mapping $\bbeta \mapsto (\theta_{g1}, \ldots, \theta_{gp})_{g \in \cG}$ is injective, so that $\bbeta$ is uniquely determined by the observed group-time ATTs via the relationship
+\begin{proposition*}[Identification via covariate transport]
+Suppose the conditional ATT $\tau_t(x)$ is identified from the observed data ($t \leq p$) under the researcher's design (Assumption~\ref{assump:cond-ident}), that it is time-invariant (Assumption~\ref{assump:struct-stab}, $\tau_t(x) = \tau(x)$), and that the target distribution $F_{\bX | A_{ip}=1}^{p+1}$ is accessible with bounded density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1}/dF_{\bX}^{\mathrm{src}}(x)$ (Assumption~\ref{assump:target-dist}). Then the FATT is identified by
 \[
-\theta_{gt} = \int m(x; \bbeta) \, dF_{\bX | G_i=g}(x), \quad t \in \{g,\ldots,p\}, \, g \in \cG.
+\theta_{p+1} = \int \tau(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x) = \E_{\mathrm{src}}\!\left[w(\bX)\, \tau(\bX)\right].
 \]
-Then the FATT $\theta_{p+1}$ is identified by
-\[
-\theta_{p+1} = \int m(x; \bbeta_0) \, dF_{\bX | A_{ip}=1}^{p+1}(x),
-\]
-where $\bbeta_0$ is the true parameter satisfying the above system of equations.
 \end{proposition*}
 
 \begin{proof}
-\textit{Roadmap:} (1)~Express FATT as integral over conditional ATT; (2)~apply structural stability to swap $p+1$ for observed periods; (3)~show $\bbeta$ is identified from observed group-time ATTs via covariate distributions within groups; (4)~verify target integration is well-defined.
+\textit{Roadmap:} (1)~express the FATT as the future conditional effect integrated over the future treated covariate distribution (an identity); (2)~replace the unobserved future conditional effect by the identified observed-period one via structural stability; (3)~rewrite the integral against the target as a reweighted source expectation by change of measure.
 
-\textbf{Step 1 (Law of total probability):} By the definition of the FATT,
+\textbf{Step 1 (Iterated expectations).} By the definition of the FATT and the law of iterated expectations over $\bX$,
 \[
-\theta_{p+1} = \E_{\P_{p+1}}[Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{ip} = 1].
+\theta_{p+1} = \E_{\P_{p+1}}[Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid A_{ip} = 1] = \int \tau_{p+1}(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x),
 \]
-Conditioning on treatment status at $p+1$ (assuming limited between-state heterogeneity, analogous to Assumption~\ref{within-group-p-to-p-plus-one-heterogeneity} but for the covariate-conditional case), we have
-\[
-\theta_{p+1} \approx \E_{\P_{p+1}}[Y_{i,p+1}(1) - Y_{i,p+1}(0) | A_{i,p+1} = 1].
-\]
-By the law of total probability over covariates $\bX$,
-\[
-\theta_{p+1} = \int \E_{\P_{p+1}}[Y_{i,p+1}(1) - Y_{i,p+1}(0) | \bX_i = x, A_{i,p+1} = 1] \, dF_{\bX | A_{ip}=1}^{p+1}(x) = \int \tau(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x),
-\]
-where $\tau(x) = \E_{\P_{p+1}}[Y_{i,p+1}(1) - Y_{i,p+1}(0) | \bX_i = x, A_{i,p+1} = 1]$ is the conditional ATT at the future period.
+where $\tau_{p+1}(x) = \E_{\P_{p+1}}[Y_{i,p+1}(1) - Y_{i,p+1}(0) \mid \bX_i = x, A_{ip} = 1]$. This is an identity and requires no assumption; it merely expresses the marginal future effect as the future conditional effect averaged over the future treated covariate distribution.
 
-\textbf{Step 2 (Structural stability):} By Assumption~\ref{assump:struct-stab}, the conditional ATT $\tau(x)$ is time-invariant. That is, for all $x$ in the support of $\bX$ and all $t \in \{1,\ldots,p,p+1\}$,
+\textbf{Step 2 (Structural stability).} By Assumption~\ref{assump:struct-stab}, $\tau_{p+1}(x) = \tau(x)$, and by Assumption~\ref{assump:cond-ident} the common conditional effect $\tau(x)$ is identified from the observed periods $t \leq p$ under the researcher's design (conditional unconfoundedness, or conditional parallel trends for difference-in-differences). Substituting,
 \[
-\E_{\P_t}[Y_{it}(1) - Y_{it}(0) | \bX_i = x, A_{it} = 1] = \tau(x).
+\theta_{p+1} = \int \tau(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x),
 \]
-Thus $\tau(x)$ at $t = p+1$ equals $\tau(x)$ at any $t \leq p$, and the latter is identified under the researcher's design (e.g., via conditional exchangeability under parallel trends or unconfoundedness). Specifically, for observed periods, standard first-stage methods identify
-\[
-\tau(x) = \E[Y_{it}(1) - Y_{it}(0) | \bX_i = x, A_{it} = 1]
-\]
-for $t \leq p$.
+with every quantity on the right identified from observed data and the (assumed accessible) target distribution.
 
-\textbf{Step 3 (Parametric specification and identification of $\bbeta$):} By Assumption~\ref{assump:param-tau}, $\tau(x) = m(x;\bbeta_0)$ for a known functional form $m$ and unknown parameter $\bbeta_0 \in \R^d$. The observed group-time ATTs satisfy
+\textbf{Step 3 (Change of measure).} By Assumption~\ref{assump:target-dist} the density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1}/dF_{\bX}^{\mathrm{src}}(x)$ exists, so
 \[
-\theta_{gt} = \E_{\P_t}[Y_{it}(1) - Y_{it}(0) | G_i = g, A_{it} = 1] = \int \tau(x) \, dF_{\bX | G_i=g}(x) = \int m(x;\bbeta_0) \, dF_{\bX | G_i=g}(x).
+\int \tau(x) \, dF_{\bX | A_{ip}=1}^{p+1}(x) = \int \tau(x)\, w(x) \, dF_{\bX}^{\mathrm{src}}(x) = \E_{\mathrm{src}}\!\left[w(\bX)\, \tau(\bX)\right].
 \]
-This yields a system of equations: for each cohort $g$ and observed period $t \geq g$,
-\[
-\theta_{gt} = \int m(x;\bbeta_0) \, dF_{\bX | G_i=g}(x).
-\]
-By the identifiability assumption (Assumption~\ref{RC9}), the mapping $\bbeta \mapsto (\theta_{gt})_{g,t}$ is injective, so $\bbeta_0$ is uniquely determined by the observed $\{\theta_{gt}\}_{g,t \leq p}$. In practice, $\bbeta_0$ is estimated via weighted least squares or method-of-moments:
-\[
-\widehat{\bbeta} = \arg\min_{\bbeta} \sum_{g,t} w_{gt} \left( \widehat{\theta}_{gt} - \int m(x;\bbeta) \, d\widehat{F}_{\bX | G_i=g}(x) \right)^2,
-\]
-where $w_{gt}$ are weights (e.g., proportional to sample size or inverse variance).
-
-\textbf{Step 4 (Target integration):} By Assumption~\ref{assump:target-dist}, we have access to the target covariate distribution $F_{\bX | A_{ip}=1}^{p+1}$ (either via a finite sample $\{\bX_i^*\}_{i=1}^{n^*}$ or a sampler). Then the FATT is identified by
-\[
-\theta_{p+1} = \int m(x;\bbeta_0) \, dF_{\bX | A_{ip}=1}^{p+1}(x).
-\]
-In the finite-population case, this is $n^{-1}\sum_{i=1}^{n^*} m(\bX_i^*;\bbeta_0)$; in the Monte Carlo case, it is approximated by $M^{-1}\sum_{j=1}^M m(\bX_j;\bbeta_0)$ where $\{\bX_j\}_{j=1}^M$ are draws from the sampler.
-
-\textbf{Conclusion:} Under Assumptions~\ref{assump:struct-stab}--\ref{assump:target-dist} and the identifiability of $\bbeta$, the FATT $\theta_{p+1}$ is identified by the above expression. \qed
+\qed
 \end{proof}
 
 \begin{remark}
-The key assumption is structural stability (Assumption~\ref{assump:struct-stab})---that $\tau(x)$ remains invariant at $p+1$. This is the Lucas Critique condition: $\bX$ must capture ``deep parameters'' that are regime-invariant. If treatment effects are driven by time-varying latent factors not captured by $\bX$, Path~3 will be biased. Similarly, if the functional form $m(x;\bbeta)$ is misspecified, $\widehat{\theta}_{p+1}$ will converge to a pseudo-true parameter rather than the true FATT. Researchers should assess model fit and consider sensitivity to the choice of $m$ and the included covariates.
+No injectivity condition is required: unlike the marginal extrapolation of Paths~1 and~2, Path~3 estimates $\tau(\cdot)$ directly from the unit-level data, so $\bbeta$ (in the parametric special case) or $\tau$ (nonparametrically) is never recovered by inverting the marginal group-time ATTs. The substantive content is concentrated in Assumption~\ref{assump:struct-stab} (structural stability, the Lucas-Critique ``deep parameters'' condition---untestable at $p+1$, testable across observed periods) and the overlap condition that $w$ be bounded (Assumption~\ref{assump:target-dist}). If $\tau(\cdot)$ is modeled parametrically and the model is misspecified, $\widehat\theta_{p+1}$ converges to a pseudo-true value rather than the FATT. The extension to the FATU and FATE replaces the target distribution $F_{\bX | A_{ip}=1}^{p+1}$ by the untreated or population covariate distribution and additionally requires cross-group conditional transportability (Assumption~\ref{assump:cross-group}).
 \end{remark}
 
 \subsection{Derivation of Efficient Influence Functions}\label{app:eif}
@@ -771,7 +741,7 @@ The influence function is
 &= \sum_{g} \omega_g \phi_{\theta_{g\cdot}} + \sum_g \theta_{g\cdot} \phi_{\omega_g}.
 \end{align*}
 
-\textbf{(4)} \textit{Efficiency:} Within the nonparametric model (no restrictions on $\theta_{gt}$ beyond time homogeneity), this influence function achieves the semiparametric efficiency bound for estimating $\theta_{p+1}$.
+\textbf{(4)} \textit{Validity and efficiency:} $\widehat{\theta}_{p+1}$ is asymptotically linear with the stated influence function, so the propagated variance is valid for any asymptotically linear first-stage estimators of $\theta_{g\cdot}$. It attains the semiparametric efficiency bound for $\theta_{p+1}$ when the supplied first-stage influence functions $\phi_{\theta_{g\cdot}}$ and the aggregation weights $\omega_g$ are themselves efficient.
 
 \textbf{Result:} The Path 1 EIF is
 \[
@@ -814,7 +784,7 @@ Differentiating with respect to $\theta_{gt}$,
 \phi_{\psi_2,i} = \sum_{g,t \leq p} \left(\frac{\partial \Psi_2}{\partial \bgamma}\right)^\top \left(\frac{\partial \bgamma}{\partial \theta_{gt}}\right) \phi_{gt,i} + \sum_g f(g,p+1;\bgamma) \phi_{\omega_g,i}.
 \]
 
-\textbf{(5)} \textit{Efficiency:} Within the parametric model $\{\theta_{gt} = f(g,t;\bgamma)\}$, this is the semiparametric efficiency bound. Outside the model (misspecification), the estimator is biased but the variance formula remains valid for the limit distribution of the (possibly biased) estimator.
+\textbf{(5)} \textit{Validity and efficiency:} $\widehat{\theta}_{p+1}$ is asymptotically linear with the stated influence function. Within the parametric model $\{\theta_{gt} = f(g,t;\bgamma)\}$ it attains the semiparametric efficiency bound when the first-stage influence functions are efficient. Outside the model (misspecification), the estimator is biased for the FATT but the variance formula remains valid for the limit distribution of the (possibly biased) estimator.
 
 \textbf{Result:} The Path 2 EIF is
 \[
@@ -824,67 +794,29 @@ where $\phi_{\theta,i}$ stacks $(\phi_{gt,i})_{g \in \cG, t \leq p}$ and the Jac
 
 \subsubsection{Path 3 EIF}\label{app:eif3}
 
-\textit{Setup:} Under Path 3, the FATT is
+\textit{Setup:} Under Path~3 the target is the transported conditional effect
 \[
-\theta_{p+1} = \Psi_3(\theta, \omega, \bbeta) = \int m(x; \bbeta(\theta, \omega)) \, dF_{\bX}^{p+1}(x),
+\theta_{p+1} = \E_{\mathrm{src}}\!\left[w(\bX)\,\tau(\bX)\right], \qquad w(x) = \frac{dF_{\bX | A_{ip}=1}^{p+1}}{dF_{\bX}^{\mathrm{src}}}(x),
 \]
-where:
-\begin{itemize}
-\item $m(x;\bbeta)$ is the conditional ATT model (e.g., $m(x;\bbeta) = x^\top \bbeta$ for linear-in-covariates),
-\item $\bbeta = \bbeta(\theta, \omega)$ is defined implicitly by fitting $m$ to the observed group-time ATTs $\theta_{gt}$ (and possibly their weights $\omega_{gt}$ or group distributions),
-\item $F_{\bX}^{p+1}$ is the target covariate distribution (known or estimated).
-\end{itemize}
+where $\tau(x) = \mu_1(x) - \mu_0(x)$ under the unconfoundedness design, with $\mu_a(x) = \E[Y \mid \bX = x, A = a]$ and propensity $e(x) = \P(A=1 \mid \bX = x)$. Unlike Paths~1--2, $\theta_{p+1}$ is not a finite-dimensional smooth function of the marginal $\theta_{gt}$; it is a functional of the nuisances $(\mu_0, \mu_1, e, w)$, and the conditional effect $\tau$ is estimated nonparametrically. We therefore derive the influence function directly rather than by a delta method through $\bbeta$.
 
-\textit{Derivation via functional delta method:}
+\textit{Derivation.} The functional $\psi(P) = \E_P[w \tau]$ is pathwise differentiable; its efficient influence function combines (i) the variation of the covariate average of $\tau$ and (ii) the standard augmentation that makes the score orthogonal to the outcome and propensity nuisances. Taking a parametric submodel and differentiating, the term from averaging $\tau$ over the target gives $w(\bX)(\tau(\bX) - \psi)$, and the term from estimating $\tau = \mu_1 - \mu_0$ gives the inverse-propensity-weighted residual augmentation, also reweighted by $w$. Collecting,
+\[
+\phi_{\psi_3}(O) = w(\bX)\big(\tau(\bX) - \theta_{p+1}\big) + w(\bX)\left[\frac{A\big(Y - \mu_1(\bX)\big)}{e(\bX)} - \frac{(1-A)\big(Y - \mu_0(\bX)\big)}{1 - e(\bX)}\right] + r(O), \tag{$\ast$}
+\]
+where $r(O)$ is the contribution from estimating the density ratio $w$ when the target distribution is itself estimated from a finite sample (and $r \equiv 0$ when the target covariates are treated as fixed/known). For the conditional parallel-trends (difference-in-differences) design, the bracketed augmentation is replaced by the doubly-robust DiD score of \citet{santannaDoublyRobustDifferenceindifferences2020}, conditioned on $\bX$ and reweighted by $w$.
 
-\textbf{(1)} By the chain rule,
-\[
-\frac{d\Psi_3}{dP} = \frac{\partial \Psi_3}{\partial \bbeta} \frac{d\bbeta}{dP} + \text{(terms from } \omega \text{ if estimated)} + \text{(terms from } F_{\bX}^{p+1} \text{ if estimated)}.
-\]
+\textit{Orthogonality and rates.} The score $(\ast)$ is Neyman-orthogonal: its Gateaux derivative with respect to each of $\mu_a$, $e$, and $w$ vanishes at the truth. Consequently, estimating these nuisances by cross-fitted nonparametric or machine-learning methods at $L_2$ rate $o_\P(n^{-1/4})$ leaves the resulting product bias at $o_\P(n^{-1/2})$, so the one-step/estimating-equation estimator $\widehat\theta_{p+1}$ is asymptotically linear with influence function $(\ast)$, and $\sqrt{n}(\widehat\theta_{p+1} - \theta_{p+1}) \leadsto N(0, \E[\phi_{\psi_3}^2])$ \citep{chernozhukovDoubleDebiasedMachine2018}. We do \emph{not} require $\widehat\tau(\cdot)$ to be $\sqrt{n}$-consistent; the $\sqrt{n}$ rate is recovered at the level of the scalar functional through orthogonality.
 
-\textbf{(2)} For finite-population target sample $\{\bX_i^*\}_{i=1}^{n^*}$ (the case where covariates are observed for the target units),
+\begin{lemma}[Collapse to the ATT influence function]\label{lem:path3-collapse}
+If the target covariate distribution equals the source distribution, $F_{\bX | A_{ip}=1}^{p+1} = F_{\bX}^{\mathrm{src}}$, then $w \equiv 1$, $r \equiv 0$, and $(\ast)$ reduces to
 \[
-\Psi_3 = \frac{1}{n^*} \sum_{i=1}^{n^*} m(\bX_i^*; \bbeta).
+\phi_{\psi_3}(O) = \big(\tau(\bX) - \theta_{p+1}\big) + \frac{A\big(Y - \mu_1(\bX)\big)}{e(\bX)} - \frac{(1-A)\big(Y - \mu_0(\bX)\big)}{1 - e(\bX)},
 \]
-Then
-\[
-\frac{\partial \Psi_3}{\partial \bbeta} = \frac{1}{n^*} \sum_{i=1}^{n^*} \frac{\partial m(\bX_i^*; \bbeta)}{\partial \bbeta}.
-\]
-For the linear-in-covariates case $m(x;\bbeta) = x^\top \bbeta$, this simplifies to $\bar{\bX}^*$, the mean of the target covariates.
+which is exactly the efficient influence function of the (augmented inverse-propensity-weighted) average treatment effect. Thus Path~3 nests the no-covariate-shift case as the ordinary doubly-robust ATT estimator.
+\end{lemma}
 
-\textbf{(3)} If $\bbeta$ is estimated via weighted least squares from the observed $\theta_{gt}$:
-\[
-\widehat{\bbeta} = \arg\min_{\bbeta} \sum_{g,t} w_{gt} \left( \theta_{gt} - \int m(x;\bbeta) \, dF_{\bX | G_i=g}(x) \right)^2.
-\]
-By the implicit function theorem, the first-order conditions are
-\[
-\sum_{g,t} w_{gt} \left( \theta_{gt} - \int m(x;\bbeta) \, dF_{\bX | G_i=g}(x) \right) \left( -\int \frac{\partial m(x;\bbeta)}{\partial \bbeta} \, dF_{\bX | G_i=g}(x) \right) = 0.
-\]
-Differentiating with respect to $\theta_{gt}$ gives
-\[
-\frac{\partial \bbeta}{\partial \theta_{gt}} = \left[\sum_{g',t'} w_{g't'} \int \frac{\partial m(x;\bbeta)}{\partial \bbeta} \, dF_{\bX | G_i=g'}(x) \otimes \int \frac{\partial m(x;\bbeta)}{\partial \bbeta} \, dF_{\bX | G_i=g'}(x) \right]^{-1} w_{gt} \int \frac{\partial m(x;\bbeta)}{\partial \bbeta} \, dF_{\bX | G_i=g}(x).
-\]
-This is the analog of the Path 2 Jacobian, but with the temporal model $f(g,t;\bgamma)$ replaced by the covariate-integrated conditional model $\int m(x;\bbeta) \, dF_{\bX|G_i=g}(x)$.
-
-\textbf{(4)} Combining Steps 1--3 via the chain rule:
-\[
-\phi_{\psi_3,i} = \sum_{g,t} \left(\frac{\partial \Psi_3}{\partial \bbeta}\right)^\top \left(\frac{\partial \bbeta}{\partial \theta_{gt}}\right) \phi_{gt,i} + \left(\frac{\partial \Psi_3}{\partial \omega}\right)^\top \phi_{\omega,i}.
-\]
-Simplifying for the finite-population case:
-\[
-\phi_{\psi_3,i} = \frac{1}{n^*} \sum_{i^*=1}^{n^*} \left(\frac{\partial m(\bX_{i^*}^*; \bbeta)}{\partial \bbeta}\right)^\top \left(\sum_{g,t} \left(\frac{\partial \bbeta}{\partial \theta_{gt}}\right) \phi_{gt,i}\right) + \text{(weight terms if } \omega \text{ is estimated)}.
-\]
-
-\textbf{(5)} \textit{Efficiency:} Within the parametric model $m(x;\bbeta)$ and conditional on $F_{\bX}^{p+1}$, this EIF achieves the semiparametric variance bound. If $m$ is misspecified, the EIF is valid for the pseudo-true parameter (limit of the estimator under misspecification), but $\widehat{\theta}_{p+1}$ need not be consistent for the true FATT.
-
-\textbf{Result:} The Path 3 EIF is
-\[
-\phi_{\psi_3,i} = \left(\frac{\partial \Psi_3}{\partial \bbeta}\right)^\top \left(\sum_{g,t} \frac{\partial \bbeta}{\partial \theta_{gt}} \phi_{gt,i}\right) + \text{(additional terms if weights or } F_{\bX}^{p+1} \text{ are estimated)}.
-\]
-
-\begin{remark}[Monte Carlo integration case]
-For the Monte Carlo case where $F_{\bX}^{p+1}$ is accessed via a sampler (generating $M$ draws $\{\bX_j\}_{j=1}^M$), the integral $\int m(x;\bbeta) \, dF_{\bX}^{p+1}(x)$ is approximated by $M^{-1}\sum_{j=1}^M m(\bX_j;\bbeta)$. The derivation is similar, but the Monte Carlo error contributes an additional variance term that vanishes as $M \to \infty$. Typically, MC integration error is $O(M^{-1/2})$, which is faster than the $O(n^{-1/2})$ rate from estimating $\bbeta$, so the MC error is negligible for large $M$ and does not affect the first-order asymptotics. For finite $M$, the total variance includes both the EIF-based variance from estimating $\bbeta$ and the MC variance from approximating the integral.
-\end{remark}
+Lemma~\ref{lem:path3-collapse} is a useful correctness check: any implementation of the Path~3 variance should reproduce the standard doubly-robust ATT standard error when the target and source covariate distributions coincide.
 
 \subsection{Proof of Asymptotic Distribution Proposition}\label{app:prop-asymp}
 
@@ -918,6 +850,12 @@ Applying the delta method to $\Psi_2(\widehat{\theta}, \widehat{\omega})$,
 \sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) = n^{-1/2}\sum_i \phi_{\psi_2,i} + o_{\P}(1),
 \]
 where $\phi_{\psi_2,i}$ is from Appendix \ref{app:eif2}.
+
+\textbf{Step 2 (Path 3):} Here the first-stage object is the conditional effect $\tau(\cdot)$ (not the finite-dimensional $\theta_{gt}$), and $\widehat{\tau}$ need not be $\sqrt{n}$-consistent. Instead $\widehat{\theta}_{p+1}$ solves the estimating equation built from the orthogonal score $(\ast)$ of Appendix~\ref{app:eif3}. By Neyman orthogonality of $(\ast)$ with respect to the nuisances $(\mu_0,\mu_1,e,w)$ and the product-rate condition of Assumption~\ref{RC8} ($o_\P(n^{-1/4})$ per nuisance, via cross-fitting), the plug-in bias from nuisance estimation is $o_\P(n^{-1/2})$, so
+\[
+\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) = n^{-1/2}\sum_i \phi_{\psi_3,i} + o_{\P}(1),
+\]
+with $\phi_{\psi_3,i}$ from Appendix~\ref{app:eif3}. Unlike Paths~1--2 this is not a finite-dimensional delta method; $\sqrt{n}$ inference for the scalar $\theta_{p+1}$ is recovered at the functional level through orthogonality.
 
 \textbf{Step 3:} By the central limit theorem (using Assumption \ref{RC6} for finite variance),
 \[
