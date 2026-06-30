@@ -1,17 +1,30 @@
-# Lean Paper Outline: Estimating Policy Effects in the Presence of Heterogeneity
+# Lean Paper Outline: "Should We Keep the Policy?"
+
+> **⚠️ PARTIALLY SUPERSEDED (2026-06-30).** This outline predates the audit + Phase-0/1 decisions. Authoritative current decisions live in:
+> - `quality_reports/2026-06-30_lean-structure-review.md` (locked structural decisions)
+> - memory: `paper-framing-decisions`, `path3-direct-cate-estimation`, `paper-contribution-is-mapping-not-estimation`
+>
+> **Overrides to the text below:**
+> - Title: "Should We Keep the Policy? Forward-Looking Estimands and Identification for Panel Data" (not "Estimating Policy Effects...").
+> - Estimands: **FATT + FATU + FATE** family (not "2 estimands FATT+FATE"); FITE/FATS motivation only.
+> - **§2.4 first-stage EIF → moved to §5** (§2 is clean setup).
+> - **§4 framing = "what is assumed invariant"** (effects / temporal form / conditional effect), NOT a single `h(g,t;γ)` umbrella. Path 3 estimates τ(x) directly (does not pass through θ_gt).
+> - **§4 length target ≤6.5pp** (was 7.5–8).
+> - §6/§7 numbers PENDING Phases 2–3; placeholder tables until then.
+> - Path 3 = covariate **transport** (direct CATE + DR transport EIF), not invert-from-marginals.
 
 **Target:** 20-25 pages main paper + supplement (submission to JASA/Biometrika/JRSSB tier)
 
 **Dual Core Contribution:**
-1. **Estimand definition** - Formalizing forward-looking effects for policy evaluation
-2. **Identification theory** - Three paths for temporal extrapolation
+1. **Estimand definition** - Forward-looking future causal effects (FATT/FATU/FATE) for policy decisions
+2. **Identification theory** - Three paths differing in what they assume invariant; each plugs an existing estimator into a forward map + propagates its EIF
 
 **Key Design Principles:**
-- 2 estimands (FATT + FATE) not 4
+- 3 estimands (FATT/FATU/FATE) as one decision-mapped family
 - All proofs in supplement
-- All three paths with equal weight
+- All three paths parallel, ≤1.5pp each
 - One simulation table (not 5+)
-- Streamlined inference (high-level only)
+- Streamlined inference (high-level only; all EIFs in §5)
 - Honest failure reporting in application
 
 ---

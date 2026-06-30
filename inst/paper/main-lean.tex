@@ -25,8 +25,7 @@
 \doublespacing
 
 % Title and author
-\title{Estimating Policy Effects in the Presence of Heterogeneity:\\
-Forward-Looking Estimands and Temporal Extrapolation}
+\title{Should We Keep the Policy? Forward-Looking Estimands and Identification for Panel Data}
 \author{[Authors]}
 \date{\today}
 
@@ -35,9 +34,7 @@ Forward-Looking Estimands and Temporal Extrapolation}
 \maketitle
 
 \begin{abstract}
-[TODO: 150-200 word abstract]
-
-Policy evaluation -- and causal inference on panel data more generally -- is a fundamentally future-oriented endeavor. Policy decisions require predicting effects that will happen in the future, but standard panel data methods estimate backward-looking effects defined on outcomes that occurred in the past. This disconnect between what is estimated and what is needed is rarely commented upon. We formalize this gap by: (1) introducing policy-relevant forward-looking estimands (Future ATT and Future ATE), and (2) three identification strategies for extrapolating the data we can analyze (which is in the past) to the estimands we care about (which are in the future). Path 1 assumes time homogeneity; Path 2 specifies parametric temporal dynamics; Path 3 leverages structural covariate stability robust to regime change. We provide semiparametric inference via efficient influence function propagation and develop a model selection framework for causal extrapolation using time-series cross-validation. An application to Stand-Your-Ground laws illustrates both the promise and limits of extrapolation. Software: R package \texttt{extrapolateATT}.
+Most causal inference rests on an implicit assumption we call the Fundamental Promise of Causal Inference: that effects estimated on data from the past can inform decisions in the present and future. Yet the recent panel-data literature emphasizes \emph{dynamic} effects that change over time, and methods that allow such dynamics estimate backward-looking aggregates---averages over already-observed periods---that need not answer the forward-looking question a policymaker actually faces: what will the effect be if we keep, repeal, or adopt this policy going forward? We formalize this gap with a dual contribution: (1) we introduce policy-relevant \emph{future causal effects}---the Future ATT, Future ATU, and Future ATE, mapping respectively to repeal, adoption, and universal-adoption decisions; and (2) we give three identification strategies that extrapolate from the data we can analyze (the past) to the estimands we care about (the future), differing in what they assume is invariant. Path~1 assumes time homogeneity; Path~2 specifies parametric temporal dynamics; Path~3 holds the covariate-conditional effect fixed and transports it across a shifting covariate distribution, remaining valid under regime change. Each path plugs an existing estimator into a forward map and propagates its influence function for valid inference; we also adapt time-series cross-validation to model selection for Path~2. An application to Stand-Your-Ground laws illustrates both the promise and limits of extrapolation. Software: R package \texttt{extrapolateATT}.
 \end{abstract}
 
 \section{Introduction}
@@ -78,21 +75,15 @@ Our setting builds on recent advances in causal inference for panel data. Compre
 
 \paragraph{External Validity and Transportability}
 
-% [TODO: Egami, Pearl, Bareinboim, Cole, Tipton, Devaux, Khosrowi, Manski]
-
-The disconnect between typical estimands and forward-looking policy questions motivates our estimand definitions. \citet{egamiElementsExternalValidity2023} provide a framework for external validity; \citet{pearlExternalValidityCalculus2022} and \citet{bareinboimTransportabilityCausalEffects2012} give identification results for transporting effects. \citet{khosrowiExtrapolationCausalEffects2019,khosrowiExtrapolatingExperimentsConfidently2023} examine assumptions underlying extrapolation; \citet{manskiPublicPolicyUncertain2013} advocates bounded identification when extrapolation is weak.
+Our forward-looking estimands extrapolate across time, which is closely connected to the literature on extrapolating across populations. \citet{egamiElementsExternalValidity2023} provide a framework for external validity; \citet{pearlExternalValidityCalculus2022} and \citet{bareinboimTransportabilityCausalEffects2012} give identification results for transporting effects across settings, and \citet{coleGeneralizingEvidenceRandomized2010,tiptonImprovingGeneralizationsExperiments2013} for generalizing from trials to target populations. \citet{khosrowiExtrapolationCausalEffects2019,khosrowiExtrapolatingExperimentsConfidently2023} examine the assumptions underlying extrapolation, and \citet{manskiPublicPolicyUncertain2013} advocates bounded identification when those assumptions are weak. Our Path~3 makes this connection concrete: it transports a covariate-conditional effect across the shift in covariate distribution from the observed period to the future, treating time as the dimension along which populations differ.
 
 \paragraph{Lucas Critique and Structural Approaches}
 
-% [TODO: Lucas, Ericsson, Estrella, Heckman, Pearl, Brodersen]
+Path~3's logic is that of the Lucas Critique \citep{lucasjrEconometricPolicyEvaluation1976,ericssonExogeneityCointegrationEconomic1998,estrellaAreDeepParameters1999}: reduced-form relationships estimated under one regime need not survive a change of regime, but structural parameters that are invariant to the intervention can. Structural and equation-based approaches \citep{heckmanStructuralEquationsTreatment2005,pearlExternalValidityCalculus2022} show how holding such parameters fixed enables extrapolation across regimes; we operationalize this by holding the covariate-conditional effect fixed while the covariate distribution shifts.
 
-Path~3 connects to the Lucas Critique's emphasis on policy-invariant parameters \citep{lucasjrEconometricPolicyEvaluation1976,ericssonExogeneityCointegrationEconomic1998}. Structural approaches \citep{heckmanStructuralEquationsTreatment2005,pearlExternalValidityCalculus2022} show how functional assumptions enable extrapolation across regimes.
+\paragraph{Policy-Relevant Estimands and Forecasting}
 
-\paragraph{Policy-Relevant Estimands}
-
-% [TODO: Heckman 2001, Sasaki, Forastiere, Gische]
-
-\citet{heckmanPolicyRelevantTreatmentEffects2001} define policy-relevant treatment effects for counterfactual changes; \citet{sasakiEstimationInferencePolicy2023} provide estimation. \citet{forastiereForecastingCausalEffects2025} formalize forecasting effects of re-implementation; \citet{gischeForecastingCausalEffects2021} distinguish forecasting effects from predicting outcomes.
+\citet{heckmanPolicyRelevantTreatmentEffects2001} define policy-relevant treatment effects for counterfactual policy changes, and \citet{sasakiEstimationInferencePolicy2023} provide estimation and inference for such parameters. Closest to our aims, \citet{forastiereForecastingCausalEffects2025} formalize forecasting the causal effect of \emph{re-implementing} an intervention, and \citet{gischeForecastingCausalEffects2021} distinguish forecasting the effect of an intervention from predicting future outcomes; \citet{debCounterfactualForecastingPanel2026} forecast unit-level counterfactual outcomes under a factor model. We differ in targeting population-level future causal effects (FATT/FATU/FATE) at a generic horizon, under transparent invariance assumptions, with influence-function-based inference.
 
 
 \section{Setting and Notation}
@@ -179,7 +170,7 @@ We work at a level of abstraction that does not commit to a particular first-sta
 \end{equation}
 Here $O_i$ denotes all observed data for unit $i$. The function $\varphi_{gt}$ is the \emph{influence function} of $\widehat{\theta}_{gt}$; when $\widehat{\theta}_{gt}$ is a semiparametric efficient estimator, $\varphi_{gt}$ is the efficient influence function for $\theta_{gt}$ under the first-stage design. Asymptotically linear estimators exist for both DiD designs \citep{callawayDifferenceindifferencesMultipleTime2021} and unconfoundedness designs; the specific form of $\varphi_{gt}$ depends on which design is used, but the extrapolation theory in Sections~\ref{sec:identification}--\ref{sec:inference} requires only \eqref{eq:al}.
 
-Given~\eqref{eq:al}, the forward-looking FATT is a smooth functional of $(\theta_{gt}, \omega_g)$, and standard semiparametric theory yields an asymptotically linear estimator for each identification path. In Section~\ref{sec:inference} we derive the path-specific influence functions $\varphi_{\psi_j}$ (for $j = 1, 2, 3$) by propagating $\varphi_{gt}$ through the extrapolation function via the chain rule and functional delta method.
+Given an asymptotically linear first-stage estimator of the relevant object, standard semiparametric theory yields an asymptotically linear estimator of the forward-looking FATT for each identification path. For Paths~1 and~2 the relevant object is the group-time ATTs $\theta_{gt}$ and the FATT is a smooth, finite-dimensional functional of $(\theta_{gt}, \omega_g)$, so its influence function follows by the chain rule and functional delta method (Section~\ref{sec:inference}). For Path~3 the relevant object is the covariate-conditional effect $\tau(\cdot)$, which is estimated nonparametrically and need not be $\sqrt{n}$-consistent; there the FATT is recovered at the level of the scalar functional through a Neyman-orthogonal estimating equation, again yielding a valid influence function (Section~\ref{sec:inference}).
 
 \section{Forward-Looking Estimands}
 \label{sec:estimands}
@@ -201,6 +192,8 @@ Policy evaluation is fundamentally future-oriented. A policymaker considering wh
 Standard estimands do not directly answer these questions. The overall ATT, for example, averages treatment effects over past periods $t \leq p$. If a policy was implemented over years 2010--2020, the ATT tells us the average effect during those years. But a policymaker in 2021 deciding whether to continue the policy needs to know: What will the effect be in 2021? When effects are dynamic, past averages may poorly predict future effects.
 
 Consider three examples: A state evaluating whether to maintain expanded Medicaid coverage needs effects for the next budget cycle, not averages over the past decade. A city deciding whether to continue a policing reform needs effects under current conditions, not historical averages. A school district considering whether to expand a tutoring program needs effects for next year's cohort, not past cohorts. In each case, the policy-relevant estimand targets the future, not the past.
+
+We define a family of three future causal effects---the Future ATT, Future ATU, and Future ATE---that map directly onto the three decisions a policymaker faces: whether to \emph{repeal} a policy already in place, whether to \emph{adopt} one not yet in place, and the effect of \emph{universal} adoption. As we show in Sections~\ref{sec:identification}--\ref{sec:inference}, the three share identification machinery, differing only in the population over which the effect is averaged.
 
 \subsection{Future Average Treatment Effect on the Treated (FATT)}
 
@@ -246,17 +239,16 @@ The standard ATT averages effects over observed periods:
 \end{align}
 If effects are constant over time, $\tau_{\text{FATT}}(p+m) = \theta_{\text{ATT}}$. But if effects are dynamic, the standard ATT---a past average---may poorly predict the future effect.
 
-% [TODO: Example with Stand-Your-Ground laws]
+\subsection{Future Average Treatment Effect on the Untreated (FATU)}
+
+We define the \textbf{Future ATU (FATU)} at horizon $m$ as
+\begin{align}
+\tau_{\text{FATU}}(p+m) = \E_{P_{p+m}}\{Y_{i,p+m}(1) - Y_{i,p+m}(0) \mid A_{ip} = 0\},
+\label{eq:fatu}
+\end{align}
+the future effect among units \emph{not} treated by the end of the observed window. The FATU answers the adoption question: ``What would the effect be at time $p+m$ for units that have not yet adopted the policy, were they to adopt it?'' It is the relevant estimand for a jurisdiction deciding whether to implement a policy currently in place elsewhere, and is the future-looking analog of the average treatment effect on the untreated (ATU).
 
 \subsection{Future Average Treatment Effect (FATE)}
-
-% [TODO: 0.75 pages]
-% - Definition: tau_FATE(p+m)
-% - What it is: Population-level ATE at time p+m
-% - Why it matters: Answers "expand universally?" question
-% - Relationship to FATT: Weighted average of FATT and FATU
-% - When FATE = FATT: No selection on effect heterogeneity
-% - Connection to external validity literature
 
 We define the \textbf{Future ATE (FATE)} at horizon $m$ as:
 \begin{align}
@@ -266,33 +258,22 @@ We define the \textbf{Future ATE (FATE)} at horizon $m$ as:
 
 \paragraph{Policy Relevance}
 
-% [TODO: What question does FATE answer?]
-
 The FATE answers: ``What would be the average treatment effect at time $p+m$ if the policy were implemented universally?'' This estimand is relevant when considering expanding a policy to the full population.
 
-\paragraph{Relationship to FATT}
+\paragraph{Relationship to FATT and FATU}
 
-% [TODO: FATE as weighted average of FATT and FATU]
-
-The FATE can be decomposed as:
+The FATE is the population mixture of the other two:
 \begin{align}
 \tau_{\text{FATE}}(p+m) = \lambda \tau_{\text{FATT}}(p+m) + (1-\lambda) \tau_{\text{FATU}}(p+m),
+\label{eq:fate-decomposition}
 \end{align}
-where $\lambda = P(A_{ip} = 1)$ and $\tau_{\text{FATU}}(p+m)$ is the Future ATT on the Untreated. When there is no selection on treatment effect heterogeneity, $\tau_{\text{FATU}} = \tau_{\text{FATT}}$ and the FATE equals the FATT.
-
-% [TODO: Connection to generalization literature]
+where $\lambda = P(A_{ip} = 1)$. When there is no selection on treatment effect heterogeneity, $\tau_{\text{FATU}} = \tau_{\text{FATT}}$ and all three coincide. In general they differ, and the gap between the FATT and FATU is exactly what distinguishes the repeal question (effects among current adopters) from the adoption question (effects among current non-adopters).
 
 \subsection{The Identification Challenge}
 
-% [TODO: 0.5 pages]
-% - Use "data we can analyze (past)" vs "estimands we care about (future)" framing
-% - Problem: Future time periods unobserved
-% - Need assumptions to bridge from past to future
-% - Preview three strategies
+To identify the FATT, FATU, and FATE, we must bridge from the data we can analyze (the past) to the estimands we care about (the future). All three involve effects at time $p+m > p$, beyond our observed data: we cannot directly estimate $\theta_{g,p+m}$ or the future potential outcomes $Y_{i,p+m}(a)$ because they correspond to periods we have not yet observed.
 
-To identify the FATT and FATE, we must bridge from the data we can analyze (the past) to the estimands we care about (the future). Both estimands involve effects at time $p+m > p$, beyond our observed data. We cannot directly estimate $\theta_{g,p+m}$ or the future potential outcomes $Y_{i,p+m}(a)$ because these quantities correspond to time periods we have not yet observed.
-
-Identification requires assumptions that connect the future to the past. Section~\ref{sec:identification} presents three strategies that differ in what they assume is invariant across time: effects themselves (Path~1), temporal patterns (Path~2), or structural covariate relationships (Path~3).
+Identification requires assumptions that connect the future to the past. Section~\ref{sec:identification} presents three strategies that differ in what they assume is invariant across time: effects themselves (Path~1), temporal patterns (Path~2), or structural covariate relationships (Path~3). We develop each primarily for the FATT and indicate how the FATU and FATE follow by changing the population over which the effect is averaged.
 
 
 \section{Identification via Extrapolation Functions}
@@ -311,16 +292,13 @@ Identification requires assumptions that connect the future to the past. Section
 % - Identification equation: FATT = sum_g pi_g h(g,p+m;gamma)
 % - Three paths differ in assumptions about h(·)
 
-To identify the FATT, we introduce an \textbf{extrapolation function} $h(g,t;\gamma)$ that represents the group-time effect at arbitrary times $t$, including future times $t > p$. For observed times $t \leq p$, we have $h(g,t;\gamma) = \theta_{gt}$. For future times $t > p$, the extrapolation function extends the pattern from observed data.
+All three paths follow a common template: plug an existing, asymptotically linear estimator of some \emph{relevant object} into a map to the future estimand, and propagate that estimator's influence function for inference. What differs is the relevant object and the invariance assumption that licenses the extrapolation. We introduce no new first-stage estimator; the contribution is the forward map and the uncertainty propagation.
 
-% [TODO: Formal definition, role of gamma]
-% [TODO: Preview three paths]
-
-The three paths differ in their assumptions about the structure of $h(\cdot)$:
+For Paths~1 and~2 the relevant object is the group-time ATTs $\theta_{gt}$, and we posit an \textbf{extrapolation function} $h(g,t;\gamma)$ with $h(g,t;\gamma) = \theta_{gt}$ for observed times $t \leq p$ and extending the pattern to future times $t > p$; $\gamma$ is identified from $\{\theta_{gt}: t \leq p\}$ and the FATT is $\sum_g \pi_g\, h(g,p+m;\gamma)$. For Path~3 the relevant object is instead the covariate-conditional effect $\tau(x)$, estimated directly from the unit-level data and transported to the future covariate distribution; it does not pass through the marginal $\theta_{gt}$ at all. The three paths differ as follows:
 \begin{itemize}
-\item \textbf{Path 1:} $h(g,t;\gamma) = h(g;\gamma)$ (time-invariant)
-\item \textbf{Path 2:} $h(g,t;\gamma) = f(g,t;\gamma)$ for known functional form $f$
-\item \textbf{Path 3:} $h(g,t;\gamma) = \int \theta(x,g) dP_{X \mid G,A}(x \mid g,1)$ (covariate-driven)
+\item \textbf{Path 1:} $h(g,t;\gamma) = \theta_g$ (effects time-invariant within cohort).
+\item \textbf{Path 2:} $h(g,t;\gamma) = f(g,t;\gamma)$ for a known functional form $f$ (temporal pattern extrapolated).
+\item \textbf{Path 3:} $\tau_{\text{FATT}}(p+m) = \int \tau(x)\, dF^{p+m}_{X \mid A_{ip}=1}(x)$ (conditional effect held fixed, covariate distribution transported).
 \end{itemize}
 
 \subsection{Path 1: Time Homogeneity}
@@ -444,98 +422,69 @@ The challenge: we don't know the correct functional form $f(\cdot)$. In-sample f
 
 Path~2 is appropriate when effects exhibit recognizable temporal patterns (e.g., effects grow over time, fade out, stabilize). The key assumption is that the functional form $f(\cdot)$ captures the true dynamics and extends beyond the observed window. Misspecification leads to biased extrapolation.
 
-\subsection{Path 3: Covariate Integration}
+\subsection{Path 3: Covariate Transport}
 \label{sec:path3}
 
-% [TODO: 2 pages]
-% - Assumption 3: Structural covariate stability (theta(x,g,t) = theta(x,g))
-% - Key idea: Conditional effects stable, aggregate effects vary via covariate distribution
-% - Proposition 3 (statement only)
-% - Estimation (3 steps)
-% - Lucas Critique connection
-% - When it applies
-% - Advantage over Path 2
+Paths~1 and~2 both rest on \emph{reduced-form} stability: effects are either constant or follow a smooth temporal trend. Both fail under \emph{regime change}---structural shifts in the policy environment or economic conditions that break historical patterns. The Lucas Critique \citep{lucasjrEconometricPolicyEvaluation1976} warns precisely that reduced-form relationships estimated under one regime need not survive a change of regime. Path~3 instead holds fixed a \emph{conditional} object---the effect for units with covariate value $x$---and lets the marginal effect move only through the covariate distribution. Crucially, and unlike Paths~1--2, Path~3 estimates this conditional effect directly from the unit-level data; it never inverts the marginal group-time ATTs.
 
-\begin{assumption}[Structural Covariate Stability]
-\label{assump:covariate-stability}
-For all baseline covariates $x$, cohorts $g$, and times $t$,
-\begin{align}
-\theta(x,g,t) = \theta(x,g),
-\end{align}
-where $\theta(x,g,t) = \E\{Y_{it}(1) - Y_{it}(0) \mid X_i = x, G_i = g, A_{it} = 1\}$.
+Let $\tau_t(x) = \E_{\P_t}\{Y_{it}(1) - Y_{it}(0) \mid \bX_i = x, \text{treated}\}$ be the period-$t$ covariate-conditional ATT, and write $\tau(x)$ for its common value under the stability assumption below.
+
+\begin{assumption}[First-stage conditional identification]
+\label{assump:cond-ident}
+Under the researcher's design, $\tau_t(x)$ is identified from the observed data ($t \leq p$) and estimable, with cross-fitting, at standard nonparametric rates---via a doubly-robust CATE learner under conditional unconfoundedness, or a doubly-robust conditional DiD estimator \citep{santannaDoublyRobustDifferenceindifferences2020} under conditional parallel trends.
 \end{assumption}
 
-Under Assumption~\ref{assump:covariate-stability}, conditional effects are stable over time. Aggregate effects may still vary if the covariate distribution shifts: $\theta_{gt} = \int \theta(x,g) dP_{X \mid G,A}(x \mid g, 1, t)$.
+\begin{assumption}[Structural covariate stability]
+\label{assump:covariate-stability}
+The conditional ATT is time-invariant: $\tau_t(x) = \tau(x)$ for all $x$ and all $t \in \{1, \ldots, p, p+m\}$.
+\end{assumption}
+
+\begin{assumption}[Target access and overlap]
+\label{assump:target}
+The future treated covariate distribution $F^{p+m}_{\bX \mid A_{ip}=1}$ is accessible (observed under time-invariant covariates, or forecasted), and the density ratio $w(x) = dF^{p+m}_{\bX \mid A_{ip}=1}/dF^{\mathrm{src}}_{\bX}(x)$ is bounded.
+\end{assumption}
 
 \begin{proposition}
 \label{prop:path3}
-Under Assumption~\ref{assump:covariate-stability},
+Under Assumptions~\ref{assump:cond-ident}--\ref{assump:target},
 \begin{align}
-\tau_{\text{FATT}}(p+m) = \sum_g \pi_g \int \theta(x,g) \, dP_{X \mid G,A}(x \mid g, 1).
+\tau_{\text{FATT}}(p+m) = \int \tau(x) \, dF^{p+m}_{\bX \mid A_{ip}=1}(x) = \E_{\mathrm{src}}\{w(\bX)\,\tau(\bX)\}.
 \end{align}
 \end{proposition}
 
 \begin{proof}
-See Appendix~A.4.
+The first equality is iterated expectations; Assumption~\ref{assump:covariate-stability} identifies $\tau$ from observed periods; the second is change of measure, valid since $w$ exists. No injectivity condition is needed because $\tau$ is estimated directly, not recovered from the marginals. See Appendix~A.4.
 \end{proof}
 
-\paragraph{Estimation}
+\paragraph{Estimation.} Fit $\widehat{\tau}(\cdot)$ on the unit-level data with any asymptotically linear / cross-fit learner (a doubly-robust parametric model, or a nonparametric learner such as a causal forest), then average over a target covariate sample: $\widehat{\tau}_{\text{FATT}}(p+m) = n^{*-1}\sum_i \widehat{\tau}(\bX_i^*)$. Because $\widehat{\tau}$ need not be $\sqrt{n}$-consistent, inference is handled at the level of the scalar functional via a doubly-robust score (Section~\ref{sec:inference}).
 
-% [TODO: 3-step procedure]
+\paragraph{Lucas Critique connection.} Path~3 is the Lucas Critique's prescription made operational: hold fixed the structural object ($\tau(x)$, the ``deep parameter'') and let the reduced-form marginal effect change only through the covariate distribution. The effect of a policy may depend on local economic or demographic conditions (covariates) rather than calendar time per se; even when aggregate patterns shift, $\tau(x)$ may persist. This makes Path~3 more robust than Paths~1--2 to regime change---provided the shift is captured by observed covariates.
 
-Estimation under Path~3:
-\begin{enumerate}
-\item Estimate conditional effects $\hat{\theta}(x,g)$ from observed data (e.g., via flexible regression or matching)
-\item Estimate the covariate distribution $\hat{P}_{X \mid G,A}$
-\item Integrate: $\hat{\tau}_{\text{FATT}}(p+m) = \sum_g \hat{\pi}_g \int \hat{\theta}(x,g) \, d\hat{P}_X(x)$
-\end{enumerate}
+\paragraph{When Path 3 applies.} Path~3 requires (i) covariates that capture the drivers of effect heterogeneity, (ii) credibility of conditional stability, and (iii) overlap (bounded $w$): the future covariate support must be covered by the observed data. When heterogeneity is driven by unobserved factors, or the future moves into covariate regions never observed, Path~3 fails. Assumption~\ref{assump:covariate-stability} is testable across observed periods (compare $\widehat{\tau}_t(\cdot)$ for $t \leq p$) though untestable at $p+m$.
 
-\paragraph{Lucas Critique Connection}
-
-% [TODO: Deep parameters vs reduced-form patterns]
-
-Path~3 aligns with the Lucas Critique \citep{lucasjrEconometricPolicyEvaluation1976}: reduced-form temporal patterns may break under regime change, but structural relationships remain stable if covariates capture ``deep parameters.'' For example, the effect of a minimum wage policy may depend on local labor market characteristics (covariates) rather than calendar time per se. Even if aggregate patterns shift due to changing economic conditions, the conditional relationship $\theta(x)$ may persist.
-
-\paragraph{Advantage Over Path 2}
-
-% [TODO: Robustness to regime change]
-
-Path~3 is more robust than Path~2 to structural breaks or regime changes. If $P_{X \mid t}$ shifts post-period $p$ (e.g., due to recession, demographic change), Path~2 may fail because reduced-form temporal extrapolation breaks. But Path~3 identifies the FATT by integrating over the (possibly shifted) covariate distribution, leveraging structural stability at the conditional level.
-
-\paragraph{When Path 3 Applies}
-
-% [TODO: Rich covariates, stable conditional effects]
-
-Path~3 requires: (1) rich baseline covariates that capture sources of effect heterogeneity, and (2) correct specification of the conditional model $\theta(x,g)$. If key drivers of treatment effects are unobserved or if the conditional relationship is misspecified, Path~3 may also fail.
+\paragraph{FATU and FATE.} Replacing the target distribution $F^{p+m}_{\bX \mid A_{ip}=1}$ by the untreated units' or the full population's covariate distribution identifies the FATU and FATE, provided $\tau(x)$ also describes those units---a cross-group transportability (no-effect-modification-beyond-$\bX$) assumption that the FATT itself does not require.
 
 \subsection{Synthesis: Comparing the Three Paths}
 \label{sec:synthesis}
 
-% [TODO: 0.5 pages]
-% - Table comparing assumptions, when valid, advantages/disadvantages
-% - Guidance for choosing a path
-% - Not mutually exclusive (can combine, can report sensitivity)
-
-Table~\ref{tab:three-paths} compares the three identification paths.
+Table~\ref{tab:three-paths} compares the three identification paths. Each plugs an existing estimator into a forward map under a different invariance assumption; they are parallel strategies, not competitors.
 
 \begin{table}[h]
 \centering
-\caption{Three Identification Paths for FATT}
+\caption{Three Identification Paths for the FATT}
 \label{tab:three-paths}
-\begin{tabular}{llll}
+\begin{tabular}{lllll}
 \toprule
-Path & Assumption & Advantage & Disadvantage \\
+Path & First-stage object & Invariance & Advantage & Disadvantage \\
 \midrule
-1 (Homogeneity) & Effects constant over time & Minimal modeling & Very restrictive \\
-2 (Parametric) & Temporal pattern known & Explicit dynamics & Model misspecification \\
-3 (Covariates) & Structural stability & Robust to regime change & Requires rich covariates \\
+1 (Homogeneity) & $\theta_{gt}$ & Effects constant over time & Minimal modeling & Very restrictive \\
+2 (Parametric) & $\theta_{gt}$ & Temporal form known & Explicit dynamics & Misspecification \\
+3 (Transport) & $\tau(x)$ & Conditional effect stable & Robust to regime change & Needs covariates + overlap \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Guidance for Practice}
-
-% [TODO: How to choose]
 
 \begin{itemize}
 \item Use \textbf{Path 1} if time homogeneity is plausible (e.g., stable policy implementation, short horizons).
