@@ -95,9 +95,9 @@ Path~3's logic is that of the Lucas Critique \citep{lucasjrEconometricPolicyEval
 \subsection{Panel Data Framework}
 
 
-We observe $n$ units over $p$ time periods. For unit $i = 1, \ldots, n$ and time $t = 1, \ldots, p$, let $A_{it} \in \{0,1\}$ denote a policy indicator, $Y_{it}$ a scalar outcome of interest, and $\bX_{it}$ a vector of covariates, which may be time-invariant or time-varying. We write $\bX_i$ when covariates are time-invariant or when the relevant period is clear from context. Time-varying covariates are particularly relevant to Section~\ref{sec:path3}. Define $Y_{it}(a)$ as the potential outcome for unit $i$ at time $t$ if the policy were set to $A_{it} = a$, possibly contrary to fact.
+We observe $n$ units over $p$ time periods. For unit $i = 1, \ldots, n$ and time $t = 1, \ldots, p$, let $A_{it} \in \{0,1\}$ denote a policy indicator, $Y_{it}$ a scalar outcome of interest, and $\bX_{it}$ a vector of covariates, which may be time-invariant or time-varying. We write $\bX_i$ when covariates are time-invariant or when the relevant period is clear from context. Time-varying covariates are particularly relevant to Section~\ref{sec:path3}. Define $Y_{it}(a)$ as the potential outcome for unit $i$ at time $t$ if the policy were set to $A_{it} = a$, possibly contrary to fact. We assume no interference: each unit's potential outcomes depend only on that unit's own treatment, so $Y_{it}(a)$ is well-defined.
 
-Let $\cO = \{\bX_i, \bY_{i}(0), \bY_{i}(1), \bA_{i}\}_{i = 1, \ldots, n} \sim \P$, where $\bY_i(a) = (Y_{i1}(a), \ldots, Y_{ip}(a))^\top$ collects potential outcomes through period $p$ and $\bA_i = (A_{i1}, \ldots, A_{ip})^\top$ collects treatment indicators. Treatment indicators may change over time according to \textit{staggered adoption}: units with $A_{it} = 0$ may have $A_{is} = 1$ for some $s > t$, but we assume that $A_{it} = 1$ implies $A_{is} = 1$ for all $s > t$. Let $G_i = \min\{t : A_{it} = 1\}$ be the time of adoption, which is often called the \textit{group} or \textit{cohort}. We write $\P_t$ for the marginal distribution of $(\bX_i, Y_{it}(0), Y_{it}(1), A_{it})$ at time $t$. Crucially, we also define $\P_{p+k}$ for integer $k \geq 1$ as the distribution of $(\bX_i, Y_{i,p+k}(0), Y_{i,p+k}(1), A_{i,p+k})$ in the same superpopulation $k$ periods ahead---formally, the marginal at $t = p+k$ of the joint process governing the data through $p+k$. These future marginals are not directly observed but are the target of the estimands in Section~\ref{sec:estimands}.
+Let $\cO = \{\bX_{i}, \bY_{i}(0), \bY_{i}(1), \bA_{i}\}_{i = 1, \ldots, n} \sim \P$, where $\bX_i = (\bX_{i1}, \ldots, \bX_{ip})$ collects the covariate path (a single vector when covariates are time-invariant), $\bY_i(a) = (Y_{i1}(a), \ldots, Y_{ip}(a))^\top$ collects potential outcomes through period $p$, and $\bA_i = (A_{i1}, \ldots, A_{ip})^\top$ collects treatment indicators. Treatment indicators may change over time according to \textit{staggered adoption}: units with $A_{it} = 0$ may have $A_{is} = 1$ for some $s > t$, but we assume that $A_{it} = 1$ implies $A_{is} = 1$ for all $s > t$. Let $G_i = \min\{t : A_{it} = 1\}$ be the time of adoption, which is often called the \textit{group} or \textit{cohort}. We write $\P_t$ for the marginal distribution of $(\bX_{it}, Y_{it}(0), Y_{it}(1), A_{it})$ at time $t$. Crucially, we also define $\P_{p+k}$ for integer $k \geq 1$ as the distribution of $(\bX_{i,p+k}, Y_{i,p+k}(0), Y_{i,p+k}(1), A_{i,p+k})$ in the same superpopulation $k$ periods ahead---formally, the marginal at $t = p+k$ of the joint process governing the data through $p+k$. These future marginals are not directly observed but are the target of the estimands in Section~\ref{sec:estimands}.
 
 \subsection{Staggered Adoption and Group-Time ATTs}
 
@@ -117,21 +117,19 @@ All of these estimands---$\theta$ and $\theta_{gt}$---are defined over the obser
 
 \subsection{First-Stage Identification}
 
-We do not restrict the first-stage strategy for identifying $\theta_{gt}$; this paper does not propose new first-stage designs. We give two example designs and their attendant assumptions to show how these effects are typically identified in practice, but certainly many more options occur.  
-
-We first require an assumption common to any first-stage strategy that links observed outcomes to potential outcomes.
+Two assumptions hold throughout, common to every design and every path. The first links observed outcomes to potential outcomes.
 \begin{assumption}[Consistency]
 \label{assump:consistency}
 $Y_{it}(a) = Y_{it}$ whenever $A_{it} = a$.
 \end{assumption}
-Consistency precludes interference and multiple versions of treatment: the potential outcome under $a$ is uniquely defined and equals the observed outcome when unit $i$ actually receives treatment $a$ at time $t$.
-
-We also require that the covariates used for adjustment be unaffected by the treatment.
+Together with the no-interference condition of Section~\ref{sec:setting}, consistency ensures the potential outcome under $a$ is uniquely defined and equals the observed outcome when unit $i$ actually receives treatment $a$ at time $t$. The second restricts which covariates may be used for adjustment.
 \begin{assumption}[Covariate exogeneity]
 \label{assump:cov-exog}
 The covariates $\bX_{it}$ used in identification are not affected by the policy: they are pre-treatment, or otherwise externally determined, so that $\bX_{it}$ does not lie on a causal path from $A_{i\cdot}$ to $Y_{i\cdot}$.
 \end{assumption}
-With time-invariant baseline covariates this holds automatically. It is the standard condition that underlies covariate adjustment in any first-stage design (Paths~1--3), and it is invoked a second time by Path~3, which integrates over a \emph{future} covariate distribution: if treatment-affected covariates were used, both the conditional effect and the transport target would be contaminated. When covariates are time-varying \emph{and} affected by treatment, valid adjustment requires g-methods \citep{robinsNewApproachCausal1986}; we assume exogeneity and leave that case to future work.
+With time-invariant baseline covariates this holds automatically. It underlies covariate adjustment in every first-stage design below, and it is invoked a second time by Path~3 (Section~\ref{sec:path3}), which integrates over a \emph{future} covariate distribution: if treatment-affected covariates were used, both the conditional effect and the transport target would be contaminated. When covariates are time-varying \emph{and} affected by treatment, valid adjustment requires g-methods \citep{robinsNewApproachCausal1986}; we assume exogeneity and leave that case to future work.
+
+Beyond these primitives, we do not restrict the first-stage strategy for identifying $\theta_{gt}$ (or, for Path~3, the conditional effect $\tau(\cdot)$); this paper proposes no new first-stage designs. We give two example designs to show how these effects are typically identified in practice; many other options exist.
 
 \paragraph{Design 1: Difference-in-differences.}
 
@@ -152,7 +150,7 @@ For all $g, t$, there exists at least one $s < g$ such that
 
 \paragraph{Design 2: Unconfoundedness.}
 
-For this design, let $\cC_g \subset \{\bX_i, Y_{i1}, \ldots, Y_{i,g-1}\}$ denote a set of confounders for cohort $g$; this may include the time-invariant covariates, pre-treatment outcomes, or both.
+For this design, let $\cC_g \subset \{\bX_{i1}, \ldots, \bX_{i,g-1}, Y_{i1}, \ldots, Y_{i,g-1}\}$ denote a set of confounders for cohort $g$, drawn from covariates and outcomes measured before adoption; this may include baseline covariates, pre-treatment outcomes, or both.
 \begin{assumption}[Overlap (unconfoundedness)]
 \label{assump:overlap-unc}
 For each cohort $g$, $0 < \P(G_i = g \mid \cC_g, G_i \geq g) < 1$ almost surely.
@@ -162,7 +160,7 @@ For each cohort $g$, $0 < \P(G_i = g \mid \cC_g, G_i \geq g) < 1$ almost surely.
 \label{assump:no-confounding}
 For each cohort $g$, $\{Y_{it}(0)\}_{t=1}^{p} \perp\!\!\!\perp G_i \mid \cC_g,\; G_i \geq g$.
 \end{assumption}
-In synthetic control studies $\cC_g$ is typically taken to be the pre-treatment outcomes $Y_{i1}, \ldots, Y_{i,g-1}$; in observational studies it is more commonly taken to be $\bX_i$.
+In synthetic control studies $\cC_g$ is typically taken to be the pre-treatment outcomes $Y_{i1}, \ldots, Y_{i,g-1}$; in observational studies it is more commonly taken to be the baseline covariates.
 \noindent Under Assumptions~\ref{assump:consistency}, \ref{assump:overlap-unc}, and~\ref{assump:no-confounding}, $\theta_{gt}$ is identified via inverse probability weighting or outcome regression \citep{callawayDifferenceindifferencesMultipleTime2021}.
 
 \medskip
