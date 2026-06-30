@@ -95,12 +95,7 @@ Path~3's logic is that of the Lucas Critique \citep{lucasjrEconometricPolicyEval
 \subsection{Panel Data Framework}
 
 
-We observe $n$ units over $p$ time periods. For unit $i = 1, \ldots, n$ and time $t = 1, \ldots, p$, let $A_{it} \in \{0,1\}$ denote a policy indicator, $Y_{it}$ a scalar outcome of interest, and $\bX_{it}$ a vector of pre-treatment covariates, which may be time-invariant or time-varying. We write $\bX_i$ when covariates are time-invariant or when the relevant period is clear from context. Time-varying covariates matter for Path~3 (Section~\ref{sec:path3}): there the future covariate distribution is the engine of extrapolation. Define $Y_{it}(a)$ as the potential outcome for unit $i$ at time $t$ if the policy were set to $A_{it} = a$, possibly contrary to fact. The following assumption links observed outcomes to potential outcomes.
-\begin{assumption}[Consistency]
-\label{assump:consistency}
-$Y_{it}(a) = Y_{it}$ whenever $A_{it} = a$.
-\end{assumption}
-Consistency precludes interference and multiple versions of treatment: the potential outcome under $a$ is uniquely defined and equals the observed outcome when unit $i$ actually receives treatment $a$ at time $t$.
+We observe $n$ units over $p$ time periods. For unit $i = 1, \ldots, n$ and time $t = 1, \ldots, p$, let $A_{it} \in \{0,1\}$ denote a policy indicator, $Y_{it}$ a scalar outcome of interest, and $\bX_{it}$ a vector of covariates, which may be time-invariant or time-varying. We write $\bX_i$ when covariates are time-invariant or when the relevant period is clear from context. Time-varying covariates are particularly relevant to Section~\ref{sec:path3}. Define $Y_{it}(a)$ as the potential outcome for unit $i$ at time $t$ if the policy were set to $A_{it} = a$, possibly contrary to fact.
 
 Let $\cO = \{\bX_i, \bY_{i}(0), \bY_{i}(1), \bA_{i}\}_{i = 1, \ldots, n} \sim \P$, where $\bY_i(a) = (Y_{i1}(a), \ldots, Y_{ip}(a))^\top$ collects potential outcomes through period $p$ and $\bA_i = (A_{i1}, \ldots, A_{ip})^\top$ collects treatment indicators. Treatment indicators may change over time according to \textit{staggered adoption}: units with $A_{it} = 0$ may have $A_{is} = 1$ for some $s > t$, but we assume that $A_{it} = 1$ implies $A_{is} = 1$ for all $s > t$. Let $G_i = \min\{t : A_{it} = 1\}$ be the time of adoption, which is often called the \textit{group} or \textit{cohort}. We write $\P_t$ for the marginal distribution of $(\bX_i, Y_{it}(0), Y_{it}(1), A_{it})$ at time $t$. Crucially, we also define $\P_{p+k}$ for integer $k \geq 1$ as the distribution of $(\bX_i, Y_{i,p+k}(0), Y_{i,p+k}(1), A_{i,p+k})$ in the same superpopulation $k$ periods ahead---formally, the marginal at $t = p+k$ of the joint process governing the data through $p+k$. These future marginals are not directly observed but are the target of the estimands in Section~\ref{sec:estimands}.
 
@@ -122,7 +117,21 @@ All of these estimands---$\theta$ and $\theta_{gt}$---are defined over the obser
 
 \subsection{First-Stage Identification}
 
-We do not restrict the first-stage strategy for identifying $\theta_{gt}$; this paper does not propose new first-stage designs. We give two example designs and their attendant assumptions to show how these effects are typically identified in practice, but certainly many more options occur.
+We do not restrict the first-stage strategy for identifying $\theta_{gt}$; this paper does not propose new first-stage designs. We give two example designs and their attendant assumptions to show how these effects are typically identified in practice, but certainly many more options occur.  
+
+We first require an assumption common to any first-stage strategy that links observed outcomes to potential outcomes.
+\begin{assumption}[Consistency]
+\label{assump:consistency}
+$Y_{it}(a) = Y_{it}$ whenever $A_{it} = a$.
+\end{assumption}
+Consistency precludes interference and multiple versions of treatment: the potential outcome under $a$ is uniquely defined and equals the observed outcome when unit $i$ actually receives treatment $a$ at time $t$.
+
+We also require that the covariates used for adjustment be unaffected by the treatment.
+\begin{assumption}[Covariate exogeneity]
+\label{assump:cov-exog}
+The covariates $\bX_{it}$ used in identification are not affected by the policy: they are pre-treatment, or otherwise externally determined, so that $\bX_{it}$ does not lie on a causal path from $A_{i\cdot}$ to $Y_{i\cdot}$.
+\end{assumption}
+With time-invariant baseline covariates this holds automatically. It is the standard condition that underlies covariate adjustment in any first-stage design (Paths~1--3), and it is invoked a second time by Path~3, which integrates over a \emph{future} covariate distribution: if treatment-affected covariates were used, both the conditional effect and the transport target would be contaminated. When covariates are time-varying \emph{and} affected by treatment, valid adjustment requires g-methods \citep{robinsNewApproachCausal1986}; we assume exogeneity and leave that case to future work.
 
 \paragraph{Design 1: Difference-in-differences.}
 
@@ -441,6 +450,8 @@ The first equality is iterated expectations; Assumption~\ref{assump:covariate-st
 \paragraph{Lucas Critique connection.} Path~3 is the Lucas Critique's prescription made operational: hold fixed the structural object ($\tau(x)$, the ``deep parameter'') and let the reduced-form marginal effect change only through the covariate distribution. The effect of a policy may depend on local economic or demographic conditions (covariates) rather than calendar time per se; even when aggregate patterns shift, $\tau(x)$ may persist. This makes Path~3 more robust than Paths~1--2 to regime change---provided the shift is captured by observed covariates.
 
 \paragraph{What drives the FATT transport.} Because the treated set $\{A_{ip}=1\}$ is fixed at $p$ and $\tau$ is held fixed, the FATT at $p+m$ can differ from the observed treated ATT only if the treated units' covariate distribution \emph{moves}---that is, only if covariates are time-varying. With strictly time-invariant covariates the future treated covariate distribution equals the observed one, $w \equiv 1$, and Path~3's FATT coincides with Path~1's. Path~3 therefore earns its keep for the FATT precisely when covariates evolve over time (so $F^{p+m}_{\bX \mid A_{ip}=1}$ must be observed at $p+m$ or forecasted), which is exactly the regime-change setting it targets. By contrast, the FATU and FATE below involve a \emph{cross-sectional} shift (from treated to untreated or to the full population) that is present even under time-invariant covariates, so for those estimands Path~3 is non-trivial regardless.
+
+This makes covariate exogeneity (Assumption~\ref{assump:cov-exog}) bind with full force here: the transport target $F^{p+m}_{\bX \mid A_{ip}=1}$ is a future covariate distribution, so the covariates must be both time-varying \emph{and} unaffected by the policy---external drivers that evolve on their own (e.g.\ demographic composition or macroeconomic conditions), not quantities the policy itself moves. If the covariates were policy-affected, the future distribution would be a consequence of treatment and the transport would conflate the direct effect with the effect mediated through $\bX$.
 
 \paragraph{When Path 3 applies.} Path~3 requires (i) covariates that capture the drivers of effect heterogeneity, (ii) credibility of conditional stability, and (iii) overlap (bounded $w$): the future covariate support must be covered by the observed data. When heterogeneity is driven by unobserved factors, or the future moves into covariate regions never observed, Path~3 fails. Assumption~\ref{assump:covariate-stability} is testable across observed periods (compare $\widehat{\tau}_t(\cdot)$ for $t \leq p$) though untestable at $p+m$.
 
