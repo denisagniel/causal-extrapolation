@@ -61,5 +61,28 @@ Committed as `a46f52b` on branch `phase2-package-direct-cate` (40 files, +1581/-
 Paper build artifacts (`inst/paper/*.aux/.bbl/.blg/.log`) and unrelated untracked files
 intentionally excluded. Branch not yet merged to main.
 
+## Verification round (3-reviewer pass) + fixes — 2026-07-09
+Ran r-reviewer + domain-reviewer + verifier on the Phase 2 code before building Phase 3.
+Build was clean (624 pass, collapse cert green), but two reviewers independently caught a
+**real correctness bug my oracle tests were blind to**:
+- **One-step estimator (critical):** `integrate_cate()` reported the plug-in `mean(w*tau)`
+  but paired it with the DR transport EIF. With *estimated* nuisances `mean(w*corr) != 0`,
+  so the point estimate didn't match its own IF (biased CI center). Verified empirically
+  (misspecified nuisances: plug-in 1.04 vs one-step 1.31). Fixed: `psi = mean(w*tau) +
+  mean(w*corr) + mean(r)`; EIF now exactly mean-zero (2.5e-16); collapse cert strengthens
+  to the AIPW one-step. Added a misspecified-nuisance regression test.
+- **DiD gated (honesty):** `score_drdid` is NOT the Sant'Anna–Zhao score (not mean-zero);
+  the old test was tautological. `design="did"` now errors; score marked experimental.
+  Proper DR-DiD transport EIF is deferred Phase-1 theory work.
+- **Robustness:** finite-phi guard, zero/negative/non-integer/single-row target guards,
+  grf inform-once + W.hat/Y.hat guard, DoubleML multi-treatment guard, rlearner numeric-X,
+  did_extract_gt accepts MP, Form B estimated-w SE caveat, path1 via validators, named
+  magic constants.
+
+Committed `7c22a01`, merged to main (`8fc414f`). 624 tests pass.
+**Lesson [LEARN]:** oracle-nuisance tests hide DR estimator/EIF mismatches — always test
+with *misspecified* nuisances so mean(correction) != 0.
+
 ## Next
-Phase 3 (application re-run through package), Phase 4 (lean paper assembly).
+Phase 3 (application re-run through package — grf/unconfoundedness Path 3), Phase 4 (lean
+paper assembly). DiD transport EIF (theory) is a separate deferred item.
