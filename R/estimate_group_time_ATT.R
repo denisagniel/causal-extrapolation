@@ -70,6 +70,8 @@ estimate_group_time_ATT <- function(data, y, g, t, x = NULL, cluster = NULL, ...
   }
 
   # We attempt a flexible call; users can pass ... to att_gt
+  # NOTE (Phase 3 follow-up): idname is hardcoded NULL, so did cannot align inffunc rows
+  # to units across periods. For unit-aligned EIFs, idname should be plumbed through.
   att <- did::att_gt(yname = y_name,
                      tname = t_name,
                      idname = NULL,

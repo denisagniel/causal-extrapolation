@@ -10,8 +10,7 @@ Description: Estimate group-time average treatment effects (ATTs) with the 'did'
     h_g(·), propagate efficient influence functions (EIFs) by chain rule, optionally
     integrate conditional effects over a target covariate distribution, and compute
     standard errors and confidence intervals. The semiparametric theory and EIF
-    propagation (Section 5.1) are described in the accompanying paper in
-    latex/Estimating_policy_effects_in_the_presence_of_heterogeneity.
+    propagation are described in the accompanying paper in inst/paper.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -33,6 +32,10 @@ Suggests:
     rmarkdown,
     fixest,
     ggplot2,
-    sandwich
+    sandwich,
+    grf,
+    DoubleML,
+    rlearner,
+    drdid
 Config/testthat/edition: 3
 VignetteBuilder: knitr

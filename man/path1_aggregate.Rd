@@ -4,12 +4,14 @@
 \alias{path1_aggregate}
 \title{Path 1: aggregate group-time ATTs assuming constant effect within group}
 \usage{
-path1_aggregate(gt_object, omega)
+path1_aggregate(gt_object, omega = NULL)
 }
 \arguments{
 \item{gt_object}{An object of class gt_object (data, phi, groups, n).}
 
-\item{omega}{Numeric vector of group weights (length = number of groups).}
+\item{omega}{Numeric vector of group weights (length = number of groups). If NULL
+(default), equal weights \code{rep(1 / n_groups, n_groups)} are used. Weights are honored
+in both the point estimate and the propagated EIF.}
 }
 \value{
 A list with tau_future (scalar), phi_future (length-n vector), and

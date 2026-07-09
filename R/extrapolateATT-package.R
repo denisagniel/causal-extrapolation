@@ -56,6 +56,24 @@
 #'   \item \code{\link{path1_aggregate}}: Within-group averaging then across-group aggregation
 #' }
 #'
+#' @section Path 3 - direct CATE and covariate transport:
+#' When a conditional treatment effect \eqn{\tau(x)} is available (from any
+#' asymptotically-linear / cross-fit learner), the future ATT can be obtained by
+#' integrating \eqn{\tau(x)} over a target covariate distribution:
+#' \deqn{\theta = \int \tau(x)\, dF^{p+1}(x) = \mathbb{E}_{\mathrm{src}}[w(X)\tau(X)].}
+#' \itemize{
+#'   \item \code{\link{as_cate}}: build the CATE contract from a fitted learner
+#'     (\code{grf}, \code{DoubleML}, \code{rlearner}) - or supply the contract directly.
+#'   \item \code{\link{integrate_cate}}: integrate over a target distribution and assemble
+#'     the doubly-robust transport influence function (which collapses to the ordinary
+#'     AIPW/ATT EIF when target = source).
+#'   \item \code{\link{compute_variance}}: standard errors and confidence intervals.
+#' }
+#' A single fitted \eqn{\tau(x)} yields the FATT, FATU, or FATE family by integrating over
+#' the treated, untreated, or population covariate distribution respectively. Following
+#' the mapping-not-estimation design, the package never fits a CATE or estimates a density
+#' ratio; it assembles the influence function and performs inference.
+#'
 #' @section Key features:
 #' \itemize{
 #'   \item \strong{Semiparametric efficiency:} Uses efficient influence functions
@@ -70,14 +88,11 @@
 #' }
 #'
 #' @section Mathematical foundation:
-#' The semiparametric theory and EIF propagation formulas are described in:
-#'
-#' Agniel (2026). "Estimating policy effects in the presence of heterogeneity."
-#' \itemize{
-#'   \item Section 5.1: EIF propagation through temporal extrapolation models
-#'   \item Section 5.2: Time-series cross-validation for model selection
-#'   \item Section 7.7: Simulation study comparing temporal models
-#' }
+#' The semiparametric theory and EIF propagation formulas are described in the
+#' accompanying paper (\code{inst/paper}): "Should We Keep the Policy? Forward-Looking
+#' Estimands and Identification for Panel Data" (Agniel). The paper covers the
+#' extrapolation-function framework, EIF propagation for all three paths, and the
+#' doubly-robust transport influence function for Path 3.
 #'
 #' @section Basic example:
 #' \preformatted{
