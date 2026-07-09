@@ -1,126 +1,130 @@
-# Phase 2.3: Path 2 - Model Selection via Cross-Validation
-# Compare constant, linear, quadratic temporal models
+# Phase 2.3: Path 2 - Temporal Model Selection via Time-Series CV
+# Select a temporal extrapolation model by the package's time-series cross-validation
+# (paper Section 5.2), then extrapolate each cohort forward with EIF propagation.
 
 library(tidyverse)
+library(fs)
 
-# Load package
 devtools::load_all(".")
 
-cat("=== Phase 2.3: Path 2 - Model Selection ===\n\n")
+set.seed(20260709)
+dir_create("application/results")
 
-# Load group-time ATT estimates
+cat("=== Phase 2.3: Path 2 - Model Selection (time-series CV) ===\n\n")
+
 gt_obj <- readRDS("application/results/gt_object_training.rds")
+syg_cohorts <- readr::read_csv("application/results/syg_cohorts.csv",
+                               show_col_types = FALSE)
 
-cat("Loaded training group-time ATTs\n\n")
+# Post-treatment subset (event time k >= 0), EIF-aligned.
+post_idx <- which(gt_obj$data$g > 0 & gt_obj$data$k >= 0)
+gt_post <- gt_obj
+gt_post$data <- gt_obj$data[post_idx, ]
+gt_post$phi <- gt_obj$phi[post_idx]
+gt_post$groups <- sort(unique(gt_post$data$g))
+gt_post$event_times <- sort(unique(gt_post$data$k))
 
-# Define candidate temporal models
-# Model 1: Constant (same as Path 1)
-# Model 2: Linear in event time
-# Model 3: Quadratic in event time
+cat("Post-treatment cells:", nrow(gt_post$data), "| event times",
+    min(gt_post$data$k), "-", max(gt_post$data$k), "\n")
 
-cat("Defining candidate temporal models:\n")
-cat("  Model 1: Constant\n")
-cat("  Model 2: Linear in event time\n")
-cat("  Model 3: Quadratic in event time\n\n")
+# Cohort weights (match Path 1): proportional to number of treated states.
+omega_tbl <- tibble(cohort = gt_post$groups) %>%
+  left_join(count(filter(syg_cohorts, cohort %in% gt_post$groups),
+                  cohort, name = "n_states"), by = "cohort") %>%
+  mutate(n_states = replace_na(n_states, 1),
+         omega = n_states / sum(n_states))
+omega <- omega_tbl$omega
 
-# Extract group-time data
-gt_df <- data.frame(
-  group = gt_obj$group,
-  time = gt_obj$t,
-  att = gt_obj$att,
-  se = gt_obj$se
-) %>%
-  filter(group > 0, time >= group) %>%  # Post-treatment only
-  mutate(event_time = time - group)  # Event time (0, 1, 2, ...)
+# ---------------------------------------------------------------------------
+# Step 1: time-series cross-validation to select the temporal model.
+# Hold out the last 1-2 event-time periods, fit on earlier, score by MSPE.
+# NOTE: late event-times are supported by only the longest-history cohort (1995);
+# CV therefore leans on that cohort's trajectory. We report this rather than hide it.
+# ---------------------------------------------------------------------------
+specs <- build_model_specs(c("linear", "quadratic"))
+max_k <- max(gt_post$data$k)
 
-cat("Post-treatment ATTs: ", nrow(gt_df), "\n")
-cat("Event times: ", min(gt_df$event_time), "-", max(gt_df$event_time), "\n\n")
-
-# Fit each model to training data
-cat("Fitting models to training data (1981-2015):\n\n")
-
-# Model 1: Constant
-fit1 <- lm(att ~ 1, data = gt_df)
-cat("Model 1 (Constant): ATT =", round(coef(fit1)[1], 3), "\n")
-
-# Model 2: Linear
-fit2 <- lm(att ~ event_time, data = gt_df)
-cat("Model 2 (Linear):   ATT =", round(coef(fit2)[1], 3),
-    "+ ", round(coef(fit2)[2], 3), "* event_time\n")
-
-# Model 3: Quadratic
-fit3 <- lm(att ~ event_time + I(event_time^2), data = gt_df)
-cat("Model 3 (Quadratic): ATT =", round(coef(fit3)[1], 3),
-    "+ ", round(coef(fit3)[2], 3), "* event_time",
-    "+ ", round(coef(fit3)[3], 3), "* event_time^2\n\n")
-
-# In-sample fit comparison
-aic1 <- AIC(fit1)
-aic2 <- AIC(fit2)
-aic3 <- AIC(fit3)
-
-cat("In-sample AIC:\n")
-cat("  Model 1 (Constant): ", round(aic1, 2), "\n")
-cat("  Model 2 (Linear):   ", round(aic2, 2), "\n")
-cat("  Model 3 (Quadratic):", round(aic3, 2), "\n\n")
-
-# Select best model by AIC
-best_model_idx <- which.min(c(aic1, aic2, aic3))
-best_model_name <- c("Constant", "Linear", "Quadratic")[best_model_idx]
-cat("Best model by AIC: Model", best_model_idx, "(", best_model_name, ")\n\n")
-
-# Make predictions for 2016-2022
-# For early adopters, these are event times relative to adoption
-# We'll predict for an "average" early adopter
-# Simplification: use event times 16-22 (roughly 2016-2022 relative to 2000 adoption)
-
-cat("Making predictions for 2016-2022:\n")
-
-# Use best model for predictions
-best_fit <- switch(best_model_idx,
-                   `1` = fit1,
-                   `2` = fit2,
-                   `3` = fit3)
-
-# Future event times (approximate)
-# Early adopters: 1995-2014, so 2016-2022 = roughly 1-27 years post-treatment
-# Use median adoption year: ~2007 → 2016-2022 = 9-15 years post
-future_event_times <- 9:15  # Event times for 2016-2022
-
-pred_df <- data.frame(
-  event_time = future_event_times,
-  year = 2016:2022
+cv <- cv_extrapolate_ATT(
+  gt_post,
+  model_specs = specs,
+  horizons = 1:2,
+  future_value = max_k,
+  time_scale = "event"
 )
+best_name <- select_best_model(cv, criterion = "mspe")  # public selection API
 
-# Predict with best model
-preds <- predict(best_fit, newdata = pred_df, se.fit = TRUE, interval = "confidence")
+cat("\nCV results (time-series, event scale):\n")
+print(cv$results)
+cat("\nSelected model (min MSPE):", best_name, "\n\n")
 
-predictions_path2 <- data.frame(
-  year = pred_df$year,
-  event_time = pred_df$event_time,
-  att_pred = preds$fit[, "fit"],
-  se_pred = preds$se.fit,
-  ci_lower = preds$fit[, "lwr"],
-  ci_upper = preds$fit[, "upr"],
-  model = best_model_name
-)
+best_spec <- specs[[best_name]]
 
-cat("Predictions:\n")
-print(predictions_path2)
+# ---------------------------------------------------------------------------
+# Step 2: forecast each cohort to the event-time it reaches in each future year,
+# then aggregate across cohorts with omega. In year `yr`, cohort `g` is at event
+# time k = yr - g. extrapolate_ATT() takes a single event time (future_value = k*)
+# and forecasts every cohort there, propagating the EIF via the model Jacobian; we
+# read off each cohort's own k*, then aggregate cohorts with omega per year.
+#
+# We cache the per-group forecast + EIF at each needed k* to avoid recomputation.
+# ---------------------------------------------------------------------------
+future_years <- 2016:2022
+needed_ks <- sort(unique(as.vector(outer(future_years, gt_post$groups, `-`))))
+needed_ks <- needed_ks[needed_ks >= 0]
 
-# Save results
+# One extrapolate_ATT call per distinct target event time; keep per-group tau + EIF.
+forecasts_by_k <- purrr::map(needed_ks, function(kstar) {
+  ex <- extrapolate_ATT(
+    gt_post,
+    h_fun = best_spec$h_fun,
+    dh_fun = best_spec$dh_fun,
+    future_value = kstar,
+    time_scale = "event",
+    per_group = TRUE
+  )
+  list(tau = setNames(ex$tau_g_future$tau_future, ex$tau_g_future$g),
+       phi = setNames(ex$phi_g_future, names(ex$phi_g_future)))
+})
+names(forecasts_by_k) <- as.character(needed_ks)
+
+# Aggregate cohorts within each year: att(yr) = sum_g omega_g * tau_g(k = yr - g),
+# with the matching EIF aggregation for a valid SE.
+omega_by_cohort <- setNames(omega, as.character(gt_post$groups))
+
+year_preds <- purrr::map_dfr(future_years, function(yr) {
+  ks <- yr - gt_post$groups
+  keep <- ks >= 0                                   # cohort must be post-treatment by yr
+  gs <- gt_post$groups[keep]
+  w <- omega_by_cohort[as.character(gs)]
+  w <- w / sum(w)                                   # renormalize over contributing cohorts
+
+  tau_yr <- 0
+  phi_yr <- numeric(gt_post$n)
+  for (j in seq_along(gs)) {
+    kstar <- as.character(yr - gs[j])
+    gkey <- as.character(gs[j])
+    # Guard against a future change in how did/extrapolate_ATT orders/names groups.
+    stopifnot(gkey %in% names(forecasts_by_k[[kstar]]$tau))
+    tau_yr <- tau_yr + w[j] * forecasts_by_k[[kstar]]$tau[[gkey]]
+    phi_yr <- phi_yr + w[j] * forecasts_by_k[[kstar]]$phi[[gkey]]
+  }
+  # center = FALSE: uncentered mean(phi^2)/n, consistent with cv_extrapolate_ATT().
+  inf <- compute_variance(phi_yr, estimate = tau_yr, level = 0.95, center = FALSE)
+  tibble(year = yr, att_pred = tau_yr, se_pred = inf$se,
+         ci_lower = inf$ci[1], ci_upper = inf$ci[2])
+})
+
+cat("Predictions for 2016-2022 (model:", best_name, ", EIF-based):\n")
+print(year_preds)
+
 saveRDS(list(
-  predictions = predictions_path2,
-  best_model = best_model_name,
-  best_model_idx = best_model_idx,
-  fit1 = fit1,
-  fit2 = fit2,
-  fit3 = fit3,
-  aic = c(aic1, aic2, aic3),
-  method = "Model selection (AIC)"
+  predictions = year_preds,
+  best_model = best_name,
+  cv_results = cv$results,
+  omega = omega_tbl,
+  method = paste0("Model selection via time-series CV (", best_name, ", EIF-based)")
 ), "application/results/path2_model_selection.rds")
 
 cat("\nSaved: application/results/path2_model_selection.rds\n")
-
 cat("\n=== Phase 2.3 Complete ===\n")
-cat("Next: Run 05_path3_covariate_integration.R\n")
+cat("Next: Run 06_validation.R\n")
