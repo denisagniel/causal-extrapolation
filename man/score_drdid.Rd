@@ -2,24 +2,35 @@
 % Please edit documentation in R/score_builders.R
 \name{score_drdid}
 \alias{score_drdid}
-\title{DR-DiD correction (difference-in-differences design) -- EXPERIMENTAL, NOT VALIDATED}
+\title{DR-DiD correction (difference-in-differences design)}
 \usage{
 score_drdid(cate)
 }
 \arguments{
-\item{cate}{A validated CATE contract list with elements \code{A}, \code{dY}, \code{m0_dY}, \code{e}.}
+\item{cate}{A validated CATE contract list with elements \code{A}, \code{dY}, \code{m0_dY}, \code{tau}, \code{e}.
+The treated-arm change regression is derived as \eqn{m_1 = m_0 + \tau} (\code{m0_dY} is
+the single source of truth; the contract carries no separate \code{m1_dY}).}
 }
 \value{
-Numeric vector of length n.
+Numeric vector of length n (the DR-DiD correction per observation).
 }
 \description{
-Intended to compute a doubly-robust difference-in-differences correction in its
-conditional (per-\eqn{X}) form. \strong{This implementation is not yet validated against the
-Sant'Anna and Zhao (2020) DR-DiD influence function and is not mean-zero as written}
-(it lacks the propensity normalization by \eqn{\mathbb{E}[A]} and does not residualize
-the treated arm). The \code{design = "did"} path in \code{\link[=integrate_cate]{integrate_cate()}} is therefore gated
-off until this score is derived in the theory note and cross-checked numerically
-against \code{DRDID::drdid()}. Kept as an internal placeholder only; do not rely on it.
+Computes the doubly-robust difference-in-differences correction in its conditional
+(per-\eqn{X}) form. Under conditional parallel trends, DR-DiD is structurally identical
+to AIPW applied to the outcome change \eqn{\Delta Y}: substitute \eqn{Y \to \Delta Y} and
+\eqn{\mu_a(x) \to m_a(x) = \mathbb{E}[\Delta Y \mid X = x, A = a]}, with the DR-DiD
+structural constraint \eqn{m_1 = m_0 + \tau}. The correction is
+\deqn{\frac{A_i (\Delta Y_i - m_1(X_i))}{e(X_i)} -
+  \frac{(1 - A_i)(\Delta Y_i - m_0(X_i))}{1 - e(X_i)},}
+which is Neyman-orthogonal to the nuisances \eqn{(m_0, m_1, e)}. See theory note eq. (2),
+DiD variant. This is the piece that makes the transport score orthogonal; the transport
+EIF assembled in \code{\link[=integrate_cate]{integrate_cate()}} reweights it by \eqn{w(X_i)}.
+}
+\details{
+\strong{Collapse certificate.} When the target equals the source (\eqn{w \equiv 1}) the
+transport EIF reduces exactly to the ordinary DR-DiD / AIPW-on-changes efficient
+influence function \eqn{(\tau_i - \psi) + \mathrm{correction}_i}. This is the DiD analog
+of the unconfoundedness collapse certificate and is unit-tested.
 }
 \references{
 Sant'Anna, P. H. C., & Zhao, J. (2020). Doubly robust

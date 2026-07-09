@@ -10,9 +10,12 @@
 suppressPackageStartupMessages({
   library(dplyr)
   library(tibble)
+  library(fs)
 })
 
-devtools::load_all("package")
+# Package now lives at the repo root (was package/ pre-Phase-2). load_all(".") from the
+# repo root; fall back to "package" for older checkouts.
+if (file.exists("DESCRIPTION")) devtools::load_all(".") else devtools::load_all("package")
 source("sims/scripts/dgp_helpers.R")
 
 # Setup
@@ -36,6 +39,18 @@ sigma_X <- 1.0
 # Regime change: target distribution at p+1 has shifted mean
 # (e.g., policy now targets higher-X units, or demographic composition changed)
 mu_target <- 0.5  # Historical average was ~0, new target is +0.5
+
+# Path 3 unit-level DGP (for integrate_cate). Paths 1-2 operate on the group-time object
+# above; Path 3 estimates the conditional effect tau(x) directly from unit-level data and
+# transports it, so it needs a unit-level cross-section. We use an unconfoundedness contract
+# with the SAME structural conditional effect tau(x) = alpha + beta*x, a source covariate
+# distribution centered at 0 (matching the historical mean), and Form B density-ratio
+# weights that transport to the shifted target N(mu_target, sigma_X). This makes Path 3's
+# estimand identical to Paths 1-2 (true FATT = alpha + beta*mu_target), so all three are
+# compared on the same target.
+n_unit <- 500      # unit-level sample size per replication
+mu_source <- 0.0   # historical/source covariate mean
+sigma_Y <- 0.5     # outcome noise SD
 
 # Generate DGP
 theta_gt <- make_theta_gt_conditional(
@@ -64,16 +79,10 @@ path1_covered <- logical(n_replicates)
 path2_est <- numeric(n_replicates)
 path2_covered <- logical(n_replicates)
 
-# Path 3: Placeholder for when integrate_covariates() is implemented (Phase 4)
-# For now, we compute the oracle Path 3 estimate: average tau(X_i*) over target sample
-# This demonstrates what Path 3 *should* achieve.
+# Path 3: direct CATE + covariate transport via the package (integrate_cate).
+# Estimates tau(x) on unit-level data and transports it to the shifted target distribution.
 path3_est <- numeric(n_replicates)
 path3_covered <- logical(n_replicates)
-
-# Generate FIXED target sample (used across all replications)
-# This is the finite-population case: we observe the target sample once and treat it as fixed
-X_target_fixed <- generate_target_covariates(n_target = 200, mu_target = mu_target,
-                                             sigma_X = sigma_X, seed = 9999L)
 
 for (r in seq_len(n_replicates)) {
   gt <- add_noise_and_eif(theta_gt, n = n, sigma_tau = sigma_tau, seed = 7000L + r)
@@ -95,28 +104,35 @@ for (r in seq_len(n_replicates)) {
   path2_est[r] <- ex$tau_future
   path2_covered[r] <- (true_fatt >= inf2$ci[1] && true_fatt <= inf2$ci[2])
 
-  # --- Path 3: Covariate integration (package implementation) ---
-  # Define conditional model: tau(X) = alpha + beta * X (linear-in-covariates)
-  conditional_model <- function(X_df, beta) {
-    # beta = c(alpha, beta_X)
-    beta[1] + beta[2] * X_df$X
-  }
+  # --- Path 3: direct CATE + covariate transport (package integrate_cate) ---
+  # Unit-level cross-section with the structural conditional effect tau(x) = alpha + beta*x.
+  # Oracle nuisances (correctly specified) so the arm isolates the transport logic; the
+  # regime-change robustness comes from tau(x) being invariant, not from the nuisance fit.
+  # Use a DISTINCT seed offset (90000L) from the gt draw's seed (7000L + r) so the Path 3
+  # unit-level RNG stream does not coincide with the gt-noise stream (which would make the
+  # two arms deterministically correlated rather than independent draws).
+  set.seed(90000L + r)
+  X_u <- stats::rnorm(n_unit, mean = mu_source, sd = sigma_X)
+  e_u <- plogis(0.4 * X_u)
+  A_u <- stats::rbinom(n_unit, 1, e_u)
+  tau_u <- alpha + beta * X_u
+  mu0_u <- 0.5 * X_u
+  mu1_u <- mu0_u + tau_u
+  Y_u <- mu0_u + A_u * tau_u + stats::rnorm(n_unit, sd = sigma_Y)
 
-  # Group-level covariate means (for beta estimation)
-  x_group <- data.frame(g = 1:q, X_mean = mu_g)
+  # Form B transport weights: density ratio from source N(mu_source, sigma_X) to the
+  # shifted target N(mu_target, sigma_X). Self-normalize so E_src[w] = 1 exactly (removes
+  # finite-sample misnormalization that otherwise depresses coverage).
+  w_u <- stats::dnorm(X_u, mu_target, sigma_X) / stats::dnorm(X_u, mu_source, sigma_X)
+  w_u <- w_u / mean(w_u)
 
-  # Integrate via package function (using FIXED target sample)
-  path3_result <- integrate_covariates(
-    gt, conditional_model,
-    x_group = x_group,
-    x_target = X_target_fixed,
-    validate = FALSE  # Skip validation for speed in simulation
-  )
+  cate <- list(tau = tau_u, mu1 = mu1_u, mu0 = mu0_u, e = e_u,
+               A = A_u, Y = Y_u, X = data.frame(x1 = X_u))
+  path3_result <- integrate_cate(cate, design = "unconfoundedness",
+                                 weights = w_u, level = level)
 
-  inf3 <- compute_variance(path3_result$phi_future,
-                          estimate = path3_result$tau_future, level = level)
-  path3_est[r] <- path3_result$tau_future
-  path3_covered[r] <- (true_fatt >= inf3$ci[1] && true_fatt <= inf3$ci[2])
+  path3_est[r] <- path3_result$estimate
+  path3_covered[r] <- (true_fatt >= path3_result$ci[1] && true_fatt <= path3_result$ci[2])
 }
 
 # Results summary
@@ -144,13 +160,13 @@ results_s7 <- list(
     bias = mean(path3_est - true_fatt),
     rmse = sqrt(mean((path3_est - true_fatt)^2)),
     coverage = mean(path3_covered),
-    note = "Unbiased: tau(X) is regime-invariant (package implementation)"
+    note = "Unbiased: tau(X) is regime-invariant (integrate_cate transport)"
   ),
   n_replicates = n_replicates
 )
 
 # Save results
-dir.create("sims/results", showWarnings = FALSE, recursive = TRUE)
+fs::dir_create("sims/results")
 saveRDS(results_s7, "sims/results/section7_path3_covariates.rds")
 
 # Print summary
@@ -177,6 +193,6 @@ cat(sprintf("  Bias: %.4f, RMSE: %.4f, Coverage: %.2f%%\n",
             results_s7$Path3_CovariateIntegration$rmse,
             results_s7$Path3_CovariateIntegration$coverage * 100))
 
-cat("\n** Path 3 uses integrate_covariates() from extrapolateATT package **\n")
+cat("\n** Path 3 uses integrate_cate() (direct CATE + covariate transport) **\n")
 
 message("\nSection 7 done: section7_path3_covariates.rds saved")

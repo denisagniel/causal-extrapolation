@@ -1,5 +1,5 @@
 # Create validation plot: predictions (with EIF-based 95% CIs) vs realized ATTs.
-# Paths 1 & 2 only; Path 3 deferred pending the DiD transport influence function.
+# Paths 1, 2 & 3.
 
 library(tidyverse)
 library(fs)
@@ -17,15 +17,19 @@ plot_data <- bind_rows(
   val_full %>% transmute(year, method = "Path 1: Homogeneity", att = path1,
                          lo = lo_path1, hi = hi_path1),
   val_full %>% transmute(year, method = "Path 2: Model selection", att = path2,
-                         lo = lo_path2, hi = hi_path2)
+                         lo = lo_path2, hi = hi_path2),
+  val_full %>% transmute(year, method = "Path 3: Covariate transport", att = path3,
+                         lo = lo_path3, hi = hi_path3)
 ) %>%
   mutate(method = factor(method, levels = c("Realized",
                                             "Path 1: Homogeneity",
-                                            "Path 2: Model selection")))
+                                            "Path 2: Model selection",
+                                            "Path 3: Covariate transport")))
 
 pal <- c("Realized" = "black",
          "Path 1: Homogeneity" = "#E69F00",
-         "Path 2: Model selection" = "#56B4E9")
+         "Path 2: Model selection" = "#56B4E9",
+         "Path 3: Covariate transport" = "#009E73")
 
 p <- ggplot(plot_data, aes(x = year, y = att, color = method, fill = method)) +
   geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.15, color = NA) +
@@ -35,7 +39,8 @@ p <- ggplot(plot_data, aes(x = year, y = att, color = method, fill = method)) +
   scale_fill_manual(values = pal, na.value = NA) +
   scale_linetype_manual(values = c("Realized" = "solid",
                                    "Path 1: Homogeneity" = "dashed",
-                                   "Path 2: Model selection" = "dotted")) +
+                                   "Path 2: Model selection" = "dotted",
+                                   "Path 3: Covariate transport" = "dotdash")) +
   labs(x = "Year", y = "ATT (deaths per 100,000)",
        color = NULL, fill = NULL, linetype = NULL,
        title = "Predictions vs. realized ATTs (2016-2022)",

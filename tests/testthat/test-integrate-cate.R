@@ -100,12 +100,90 @@ test_that("d > 1 covariates: assembly matches a manual vectorized computation", 
 })
 
 
-test_that("DiD design is gated off until the DR-DiD score is validated", {
-  cate <- make_cate_input(n = 400, d = 1, design = "did", seed = 55)
-  expect_error(
-    integrate_cate(cate, design = "did", weights = rep(1, 400)),
-    "not yet available"
+test_that("DiD collapse certificate: target = source reduces to DR-DiD/AIPW-on-changes EIF", {
+  cate <- make_cate_input(n = 400, d = 1, design = "did", seed = 20260708)
+
+  # Target = full source sample => w == 1, r == 0.
+  res <- integrate_cate(cate, design = "did", target = seq_len(400))
+
+  # DR-DiD correction = AIPW on the change dY with m1 = m0_dY + tau.
+  m1 <- cate$m0_dY + cate$tau
+  correction <- cate$A * (cate$dY - m1) / cate$e -
+    (1 - cate$A) * (cate$dY - cate$m0_dY) / (1 - cate$e)
+  onestep <- mean(cate$tau) + mean(correction)
+  expect_equal(res$estimate, onestep, tolerance = 1e-12)
+
+  # phi must equal the hand-computed ordinary DR-DiD EIF, centered on the same estimate.
+  ref <- (cate$tau - res$estimate) + correction
+  expect_equal(res$phi, ref, tolerance = 1e-10)
+  expect_equal(mean(res$phi), 0, tolerance = 1e-10)
+
+  expect_equal(res$w, rep(1, 400), tolerance = 1e-12)
+  expect_equal(res$form, "target_index")
+  expect_equal(res$design, "did")
+})
+
+
+test_that("DiD one-step matches its own EIF with misspecified nuisances", {
+  # Same regression guard as the unconfoundedness case: with misspecified nuisances the
+  # mean orthogonal correction is non-zero, so plug-in and one-step differ. The reported
+  # estimate must be the one-step (the estimand the EIF is the IF of); then mean(phi) == 0.
+  cate <- make_cate_input(n = 2000, d = 1, design = "did", seed = 20260710)
+  # Corrupt the nuisances so mean(w*correction) != 0.
+  cate$m0_dY <- 0.5 * cate$X$x1
+  cate$tau   <- 0.8 + 0.3 * cate$X$x1
+  cate$e     <- plogis(0.4 * cate$X$x1)
+
+  idx <- which(cate$A == 1)
+  res <- integrate_cate(cate, design = "did", target = idx)
+
+  n <- 2000; w <- numeric(n); w[idx] <- n / length(idx)
+  m1 <- cate$m0_dY + cate$tau
+  correction <- cate$A * (cate$dY - m1) / cate$e -
+    (1 - cate$A) * (cate$dY - cate$m0_dY) / (1 - cate$e)
+  onestep <- mean(w * cate$tau) + mean(w * correction)
+  plugin  <- mean(cate$tau[idx])
+
+  expect_equal(res$estimate, onestep, tolerance = 1e-10)
+  expect_true(abs(res$estimate - plugin) > 1e-3)   # genuinely differs from plug-in
+  expect_equal(mean(res$phi), 0, tolerance = 1e-10) # EIF centered on its own estimand
+})
+
+
+test_that("DiD point estimate cross-checks against DRDID::drdid()", {
+  skip_if_not_installed("DRDID")
+  set.seed(20260709)
+  n <- 4000
+  x <- rnorm(n)
+  e <- plogis(0.6 * x)
+  A <- rbinom(n, 1, e)
+  tau_x <- 1 + 0.5 * x        # true conditional DiD effect
+  m0 <- 0.3 * x              # E[dY | X, A = 0]
+  dY <- m0 + A * tau_x + rnorm(n, sd = 0.5)
+
+  cate <- list(tau = tau_x, dY = dY, m0_dY = m0, e = e, A = A,
+               X = data.frame(x1 = x))
+  res <- integrate_cate(cate, design = "did", target = which(A == 1))
+
+  # Reconstruct a 2-period long panel for DRDID: any y_pre works since it differences it
+  # out (y_post - y_pre = dY).
+  y_pre <- rnorm(n)
+  dat <- data.frame(
+    id = rep(seq_len(n), 2), time = rep(c(0, 1), each = n),
+    y = c(y_pre, y_pre + dY), d = rep(A, 2), x1 = rep(x, 2)
   )
+  fit <- DRDID::drdid(yname = "y", tname = "time", idname = "id", dname = "d",
+                      xformla = ~x1, data = dat, panel = TRUE,
+                      estMethod = "imp", inffunc = TRUE)
+
+  # Point estimates target the same treated-ATT estimand; agree within Monte Carlo error.
+  expect_equal(res$estimate, fit$ATT, tolerance = 0.05)
+  expect_equal(mean(res$phi), 0, tolerance = 1e-10)
+  # SE is finite/positive. We deliberately do NOT assert res$se == fit$se: integrate_cate
+  # Form A uses a hard target weight 1{A=1}, whereas Sant'Anna-Zhao's ATT influence function
+  # uses the smooth propensity weight e/E[A]. The two variances differ by construction even
+  # at the same point estimand, so an SE-equality assertion would be a false certificate.
+  expect_true(is.finite(res$se) && res$se > 0)
 })
 
 

@@ -663,12 +663,12 @@ We use the \citet{callawayDifferenceindifferencesMultipleTime2021} difference-in
 
 \paragraph{Paths applied}
 
-Because identification here rests on parallel trends, we apply the two paths whose forward maps operate directly on the difference-in-differences group-time ATTs:
+We apply all three paths. Paths~1 and~2 operate directly on the difference-in-differences group-time ATTs; Path~3 instead estimates a covariate-conditional effect under the same parallel-trends identification and transports it:
 \begin{enumerate}
 \item \textbf{Path 1:} assume time homogeneity; aggregate the post-treatment group-time ATTs across cohorts (weights proportional to the number of treated states in each cohort) and carry the constant effect forward.
 \item \textbf{Path 2:} select a temporal model by time-series cross-validation (\S\ref{sec:model-selection}) and extrapolate each cohort along event time, aggregating to a yearly forecast.
+\item \textbf{Path 3:} estimate a covariate-conditional effect $\tau(x)$ under conditional parallel trends (a conditional doubly-robust DiD construction, with the transport influence function of \S\ref{sec:inference}), then transport it to the early adopters' covariate distribution in each future year. We use baseline state covariates (poverty rate, percent Black, unemployment, percent Hispanic) and report a parametric working model as the primary specification, with a causal forest as a robustness check.
 \end{enumerate}
-Path~3 (covariate transport) requires a covariate-conditional effect $\tau(x)$ estimated under the same difference-in-differences identification---a conditional doubly-robust DiD construction whose transport influence function we develop but do not yet validate; we therefore defer the Path~3 column of this application to future work rather than report an unvalidated number.
 
 \subsection{Validation Results}
 
@@ -685,12 +685,13 @@ Table~\ref{tab:app_validation} reports predictive accuracy over the held-out win
 
 \paragraph{Findings}
 
-Both paths substantially underpredict the validation-period effects, and the shortfall widens over time. The realized ATT rises from roughly $1.0$ in 2016 to about $2.0$--$2.3$ by 2020--2022 (peaking at $2.25$ in 2021), an acceleration neither path anticipates from pre-2015 data.
+All three paths substantially underpredict the validation-period effects, and the shortfall widens over time. The realized ATT rises from roughly $1.0$ in 2016 to about $2.0$--$2.3$ by 2020--2022 (peaking at $2.25$ in 2021), an acceleration none of the paths anticipates from pre-2015 data.
 \begin{itemize}
 \item \textbf{Path 1} assumes a constant effect and predicts about $0.06$ for every year; its interval never reaches the realized values (coverage $0\%$), and it has the larger error (MSPE $2.51$).
 \item \textbf{Path 2} captures an upward linear trend and predicts more of the growth (from $0.16$ in 2016 to $0.66$ in 2022), roughly halving the error relative to Path~1 (MSPE $1.47$); its influence-function intervals widen with the extrapolation horizon but still fall short of the realized acceleration (coverage $0\%$).
+\item \textbf{Path 3} transports the covariate-conditional effect to each future year, but the baseline covariates shift too little (and in directions that do not track the effect) to project the acceleration: it predicts effects near zero or slightly negative and has the largest error (MSPE $3.14$, coverage $14\%$). Under heavy transport reweighting the effective sample falls as low as $8$ of the $43$ source states, so its intervals are wide and its point predictions unstable---the overlap limit the method's assumptions make explicit.
 \end{itemize}
-Path~2 dominates Path~1---modeling temporal dynamics helps---but neither is close: the effect grew faster after 2015 than any model fit to 1981--2015 could have projected.
+Path~2 dominates---modeling temporal dynamics helps most here---but none is close: the effect grew faster after 2015 than any model fit to 1981--2015 could have projected, whether through time homogeneity, a temporal trend, or covariate transport.
 
 \subsection{Promise and Limits}
 
@@ -708,13 +709,13 @@ Two things worked as intended. First, modeling temporal dynamics helped: Path~2'
 
 \paragraph{Limits}
 
-What the framework cannot manufacture is information about the future that the past does not contain. Both paths underpredicted, with gaps widening over time, because the SYG effect accelerated after 2015 faster than any model fit to 1981--2015 would project. Plausible drivers include a genuine post-2015 regime change (cultural shifts, firearm-purchasing surges, the 2020 disruption) not reflected in the training period. This is not a failure of inference but the intrinsic limit of extrapolation: valid intervals quantify \emph{estimation} uncertainty, not the risk that the invariance assumption itself breaks.
+What the framework cannot manufacture is information about the future that the past does not contain. All three paths underpredicted, with gaps widening over time, because the SYG effect accelerated after 2015 faster than any model fit to 1981--2015 would project. Path~3 is instructive here: covariate transport can only project change that the covariates themselves foreshadow, and the observed baseline covariates neither shifted much nor tracked the effect's acceleration---so holding the conditional effect fixed and moving the covariate distribution reproduced roughly the historical effect, not the post-2015 surge. Plausible drivers include a genuine post-2015 regime change (cultural shifts, firearm-purchasing surges, the 2020 disruption) not reflected in the training period or in the measured covariates. This is not a failure of inference but the intrinsic limit of extrapolation: valid intervals quantify \emph{estimation} uncertainty, not the risk that the invariance assumption itself breaks.
 
 \paragraph{Lesson}
 
-Reporting this shortfall plainly is the point. Because we held out 2016--2022, we can see when the assumptions break; in real policy settings such validation is rarely available, which is precisely why the forward-looking estimand and its assumptions must be stated explicitly rather than buried in a backward-looking average. The honest finding---temporal modeling helps but does not rescue extrapolation across a regime change---is a stronger and more useful result than an artificially good one.
+Reporting this shortfall plainly is the point. Because we held out 2016--2022, we can see when the assumptions break; in real policy settings such validation is rarely available, which is precisely why the forward-looking estimand and its assumptions must be stated explicitly rather than buried in a backward-looking average. The honest finding---temporal modeling helps most but neither it nor covariate transport rescues extrapolation across a regime change---is a stronger and more useful result than an artificially good one.
 
-Additional application details (data sources, covariates, and the deferred Path~3 construction) are in Appendix~E.
+Additional application details (data sources, covariates, and the conditional DR-DiD construction underlying Path~3) are in Appendix~E.
 
 
 \section{Discussion}

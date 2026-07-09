@@ -56,11 +56,13 @@
 #' is unit-tested).
 #'
 #' @param cate A CATE contract list (see Details) or the output of [as_cate()].
-#' @param design Identification design. `"unconfoundedness"` is the validated path
-#'   (collapse-certified against the AIPW/ATT EIF). `"did"` is **not yet available** — its
-#'   DR-DiD transport score is not validated against Sant'Anna-Zhao (2020) and currently
-#'   errors. Ignored if `cate` carries a `design` attribute from [as_cate()] (the attribute
-#'   wins, with a warning on conflict).
+#' @param design Identification design. `"unconfoundedness"` uses the AIPW transport score;
+#'   `"did"` uses the DR-DiD transport score (conditional parallel trends, Sant'Anna-Zhao
+#'   (2020)), which is AIPW applied to the outcome change \eqn{\Delta Y}. Both are
+#'   collapse-certified against the ordinary AIPW/ATT efficient influence function at the
+#'   no-shift case, and the DiD point estimate is cross-checked against `DRDID::drdid()`
+#'   (see tests). Ignored if `cate` carries a `design` attribute from [as_cate()] (the
+#'   attribute wins, with a warning on conflict).
 #' @param target Form A: integer/logical index into the source rows selecting the target
 #'   subpopulation. Mutually exclusive with `weights`.
 #' @param weights Form B: length-n density-ratio weights \eqn{w(X_i)}. Mutually exclusive
@@ -121,17 +123,6 @@ integrate_cate <- function(cate,
       ), call. = FALSE)
     }
     design <- cate_design
-  }
-
-  # The DiD design's DR-DiD score is not yet validated against the Sant'Anna-Zhao
-  # influence function (it is not mean-zero as currently written), so gate it rather than
-  # return invalid inference. Unconfoundedness is the validated path (collapse-certified).
-  if (identical(design, "did")) {
-    stop(paste0(
-      "design = 'did' is not yet available: the DR-DiD transport score has not been ",
-      "validated against Sant'Anna-Zhao (2020). Use design = 'unconfoundedness', or ",
-      "supply a design = 'unconfoundedness' contract built from a DR-DiD-derived tau(x)."
-    ), call. = FALSE)
   }
 
   validate_confidence_level(level, name = "level")

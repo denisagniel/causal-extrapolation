@@ -36,6 +36,7 @@ Suggests:
     grf,
     DoubleML,
     rlearner,
-    drdid
+    drdid,
+    DRDID
 Config/testthat/edition: 3
 VignetteBuilder: knitr

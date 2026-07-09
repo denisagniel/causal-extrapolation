@@ -1,6 +1,5 @@
 # Phase 2.5: Validation
-# Compare Path 1 / Path 2 predictions (EIF-based) against realized 2016-2022 ATTs.
-# Path 3 is deferred (see 05 banner) pending the DiD transport influence function.
+# Compare Path 1 / Path 2 / Path 3 predictions (EIF-based) against realized 2016-2022 ATTs.
 
 library(tidyverse)
 library(fs)
@@ -9,9 +8,10 @@ cat("=== Phase 2.5: Validation ===\n\n")
 
 dir_create("application/results")
 
-# Path 1 / Path 2 predictions (both now EIF-based).
+# Path 1 / Path 2 / Path 3 predictions (all EIF-based).
 path1 <- readRDS("application/results/path1_homogeneity.rds")
 path2 <- readRDS("application/results/path2_model_selection.rds")
+path3 <- readRDS("application/results/path3_covariate_integration.rds")
 
 # Realized ATTs (from full-period estimation), aggregated by year with the SAME cohort
 # weights the predictions use. The predictions target sum_g omega_g * tau_g (omega =
@@ -47,6 +47,10 @@ all_preds <- realized_yearly %>%
   left_join(path2$predictions %>% select(year, path2 = att_pred,
                                          se_path2 = se_pred,
                                          lo_path2 = ci_lower, hi_path2 = ci_upper),
+            by = "year") %>%
+  left_join(path3$predictions %>% select(year, path3 = att_pred,
+                                         se_path3 = se_pred,
+                                         lo_path3 = ci_lower, hi_path3 = ci_upper),
             by = "year")
 
 cat("Predictions vs realized:\n")
@@ -67,10 +71,12 @@ validation_summary <- bind_rows(
   metric_row(all_preds$path1, all_preds$lo_path1, all_preds$hi_path1,
              all_preds$realized, "Path 1", path1$method),
   metric_row(all_preds$path2, all_preds$lo_path2, all_preds$hi_path2,
-             all_preds$realized, "Path 2", path2$method)
+             all_preds$realized, "Path 2", path2$method),
+  metric_row(all_preds$path3, all_preds$lo_path3, all_preds$hi_path3,
+             all_preds$realized, "Path 3", path3$method)
 )
 
-cat("Validation summary (Path 1 & 2; Path 3 deferred):\n")
+cat("Validation summary (Paths 1, 2 & 3):\n")
 print(validation_summary)
 cat("\nBest by MSPE:", validation_summary$path[which.min(validation_summary$mspe)], "\n")
 
