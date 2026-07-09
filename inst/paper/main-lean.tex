@@ -646,7 +646,7 @@ Extended simulation results, including small-sample properties, longer horizons,
 % - Data: State-level, 1981-2022
 % - Training: 1981-2015; Validation: 2016-2022
 
-Stand-Your-Ground (SYG) laws remove the duty to retreat before using deadly force in self-defense. Between 2005 and 2015, over 25 US states adopted such laws. The effects on homicide rates are controversial \citep{[CITATIONS]}. We use state-level data from 1981--2022 to illustrate forward-looking causal inference. We treat 1981--2015 as the training period and 2016--2022 as a validation period (holding out future data to assess extrapolation performance).
+Stand-Your-Ground (SYG) laws remove the duty to retreat before using deadly force in self-defense. In our state-level panel, 30 states adopt such a law between 1995 and 2022, most of them between 2005 and 2015. The effects on firearm-homicide rates are controversial \citep{[CITATIONS]}. We use state-level data from 1981--2022 to illustrate forward-looking causal inference: we treat 1981--2015 as the training period and 2016--2022 as a validation period, holding out the future data to assess extrapolation performance.
 
 \subsection{Design and Estimands}
 
@@ -655,20 +655,20 @@ Stand-Your-Ground (SYG) laws remove the duty to retreat before using deadly forc
 % - First-stage: Callaway & Sant'Anna DiD estimator
 % - Three paths applied: homogeneity, linear trend, covariates
 
-We estimate the FATT at three future time points: 2016, 2020, and 2022. The question: What is the effect of SYG laws on homicide rates in these years for states that adopted the laws?
+We estimate the FATT for each year of the held-out window, 2016--2022. The question: what is the effect of SYG laws on firearm-homicide rates in these years for states that adopted the laws? The realized validation targets are restricted to the 23 cohorts adopting by 2015, whose effects are observed throughout the 2016--2022 window.
 
 \paragraph{First-Stage Estimation}
 
-We use the \citet{callawayDifferenceindifferencesMultipleTime2021} difference-in-differences estimator to obtain group-time ATTs for the training period (1981--2015), assuming parallel trends.
+We use the \citet{callawayDifferenceindifferencesMultipleTime2021} difference-in-differences estimator to obtain group-time ATTs for the training period (1981--2015), assuming parallel trends. The estimator returns an influence function for each group-time ATT, which our forward maps propagate; all standard errors and intervals below are influence-function based (package \texttt{extrapolateATT}).
 
-\paragraph{Three Paths}
+\paragraph{Paths applied}
 
-We apply all three paths:
+Because identification here rests on parallel trends, we apply the two paths whose forward maps operate directly on the difference-in-differences group-time ATTs:
 \begin{enumerate}
-\item \textbf{Path 1:} Assume time homogeneity; aggregate group-specific effects.
-\item \textbf{Path 2:} Fit a linear event-time trend to $\{\hat{\theta}_{gt}\}$ and extrapolate to 2016--2022.
-\item \textbf{Path 3:} Model conditional effects as a function of baseline state covariates (poverty rate, urbanization) and integrate over 2016 covariate distributions.
+\item \textbf{Path 1:} assume time homogeneity; aggregate the post-treatment group-time ATTs across cohorts (weights proportional to the number of treated states in each cohort) and carry the constant effect forward.
+\item \textbf{Path 2:} select a temporal model by time-series cross-validation (\S\ref{sec:model-selection}) and extrapolate each cohort along event time, aggregating to a yearly forecast.
 \end{enumerate}
+Path~3 (covariate transport) requires a covariate-conditional effect $\tau(x)$ estimated under the same difference-in-differences identification---a conditional doubly-robust DiD construction whose transport influence function we develop but do not yet validate; we therefore defer the Path~3 column of this application to future work rather than report an unvalidated number.
 
 \subsection{Validation Results}
 
@@ -677,36 +677,20 @@ We apply all three paths:
 % - All methods underpredict
 % - Discussion: Honest reporting, when extrapolation fails
 
-Table~\ref{tab:application-results} compares predicted FATT (from each path, using only 1981--2015 data) to the ``observed'' effect (estimated using 2016--2022 data).
+Table~\ref{tab:app_validation} reports predictive accuracy over the held-out window, and Table~\ref{tab:app_yearly} gives the year-by-year comparison of predicted and realized ATTs. Both are generated directly from the analysis pipeline (\texttt{application/}); the realized targets are the 2016--2022 group-time ATTs, aggregated with the same cohort weights as the predictions.
 
-\begin{table}[h]
-\centering
-\caption{Validation Results: Stand-Your-Ground Laws}
-\label{tab:application-results}
-\begin{tabular}{lcccc}
-\toprule
-Year & Observed Effect & Path 1 & Path 2 & Path 3 \\
-\midrule
-2016 & 0.45 (0.12) & 0.22 (0.10) & 0.28 (0.13) & 0.31 (0.14) \\
-2017 & 0.52 (0.13) & 0.22 (0.10) & 0.35 (0.14) & 0.38 (0.15) \\
-2018 & 0.58 (0.14) & 0.22 (0.10) & 0.42 (0.15) & 0.44 (0.16) \\
-2019 & 0.63 (0.14) & 0.22 (0.10) & 0.49 (0.16) & 0.51 (0.17) \\
-2020 & 0.71 (0.15) & 0.22 (0.10) & 0.56 (0.17) & 0.58 (0.18) \\
-\bottomrule
-\end{tabular}
+\input{sim_tables/section9_validation}
 
-\medskip
-\small \textit{Note:} Standard errors in parentheses. Observed effects estimated on held-out data (2016--2022). All three paths use only training data (1981--2015) for prediction.
-\end{table}
+\input{sim_tables/section9_yearly}
 
 \paragraph{Findings}
 
-All three methods underpredict the validation-period effects:
+Both paths substantially underpredict the validation-period effects, and the shortfall widens over time. The realized ATT rises from roughly $1.0$ in 2016 to about $2.0$--$2.3$ by 2020--2022 (peaking at $2.25$ in 2021), an acceleration neither path anticipates from pre-2015 data.
 \begin{itemize}
-\item \textbf{Path 1} assumes constant effects and predicts 0.22 for all years. Actual effects grow from 0.45 (2016) to 0.71 (2020).
-\item \textbf{Path 2} incorporates a linear trend and performs better, but still underpredicts by 0.15--0.20 in later years.
-\item \textbf{Path 3} with covariates performs best but still misses by 0.10--0.15.
+\item \textbf{Path 1} assumes a constant effect and predicts about $0.06$ for every year; its interval never reaches the realized values (coverage $0\%$), and it has the larger error (MSPE $2.51$).
+\item \textbf{Path 2} captures an upward linear trend and predicts more of the growth (from $0.16$ in 2016 to $0.66$ in 2022), roughly halving the error relative to Path~1 (MSPE $1.47$); its influence-function intervals widen with the extrapolation horizon but still fall short of the realized acceleration (coverage $0\%$).
 \end{itemize}
+Path~2 dominates Path~1---modeling temporal dynamics helps---but neither is close: the effect grew faster after 2015 than any model fit to 1981--2015 could have projected.
 
 \subsection{Promise and Limits}
 
@@ -720,17 +704,17 @@ This application illustrates both the promise and limits of temporal extrapolati
 
 \paragraph{Promise}
 
-The methods succeeded in several ways. First, Path~3 (covariate integration) substantially outperformed reduced-form approaches, demonstrating that structural modeling can improve extrapolation when covariates capture drivers of heterogeneity. Second, all three paths provided reasonable uncertainty quantification---confidence intervals reflected estimation uncertainty, even if they failed to capture model misspecification. Third, Paths~2 and~3 partially captured temporal trends, getting closer to validation-period effects than naive time-homogeneity assumptions (Path~1).
+Two things worked as intended. First, modeling temporal dynamics helped: Path~2's cross-validated linear trend captured much of the post-2015 growth that Path~1's constant-effect assumption could not, halving the prediction error. Second, the machinery delivered valid, interpretable uncertainty---each path plugs an existing difference-in-differences estimator into a forward map and propagates its influence function, and Path~2's intervals correctly widen as the extrapolation horizon lengthens. The framework does what it promises mechanically: it turns a backward-looking estimator into a forward-looking one with honest standard errors.
 
 \paragraph{Limits}
 
-Where extrapolation failed: All methods underpredicted validation-period effects, with gaps widening over time. Even Path~3, which performed best, missed by 0.10--0.15 in later years. Possible explanations include: (1) effects accelerated post-2015 faster than parametric models captured; (2) regime change not fully reflected in baseline covariates (e.g., cultural shifts, spillover effects, 2020 pandemic disruptions); (3) general equilibrium or feedback effects not modeled. The failure was not merely imprecision---it was systematic underprediction, suggesting extrapolation assumptions were violated.
+What the framework cannot manufacture is information about the future that the past does not contain. Both paths underpredicted, with gaps widening over time, because the SYG effect accelerated after 2015 faster than any model fit to 1981--2015 would project. Plausible drivers include a genuine post-2015 regime change (cultural shifts, firearm-purchasing surges, the 2020 disruption) not reflected in the training period. This is not a failure of inference but the intrinsic limit of extrapolation: valid intervals quantify \emph{estimation} uncertainty, not the risk that the invariance assumption itself breaks.
 
 \paragraph{Lesson}
 
-Honest reporting of both successes and failures strengthens the contribution. This application shows that even sophisticated extrapolation methods rest on untestable assumptions about the future. When validation data are available---as here, where we held out 2016--2022---they reveal when assumptions break. In real policy settings, such validation is rarely possible, underscoring the inherent uncertainty in forward-looking causal inference. Transparent reporting about limitations is not a weakness but a feature of credible science.
+Reporting this shortfall plainly is the point. Because we held out 2016--2022, we can see when the assumptions break; in real policy settings such validation is rarely available, which is precisely why the forward-looking estimand and its assumptions must be stated explicitly rather than buried in a backward-looking average. The honest finding---temporal modeling helps but does not rescue extrapolation across a regime change---is a stronger and more useful result than an artificially good one.
 
-Additional application details (data sources, robustness checks) are in Appendix~E.
+Additional application details (data sources, covariates, and the deferred Path~3 construction) are in Appendix~E.
 
 
 \section{Discussion}
@@ -754,7 +738,7 @@ We formalized the gap between backward-looking estimands (standard ATT, group-ti
 
 We presented three identification paths that differ in what they assume is invariant across time. Path~1 assumes effects are constant, Path~2 models temporal dynamics parametrically, and Path~3 leverages structural stability of covariate-conditional effects. We developed semiparametric inference via efficient influence function propagation and a model selection framework using time-series cross-validation.
 
-Simulations show that no path universally dominates: the best choice depends on which invariance assumption holds. Our application to Stand-Your-Ground laws illustrates the challenges of extrapolation in real settings, with all methods underpredicting validation-period effects.
+Simulations show that no path universally dominates: the best choice depends on which invariance assumption holds. Our application to Stand-Your-Ground laws illustrates the challenges of extrapolation in real settings: modeling temporal dynamics (Path~2) improves on a constant-effect assumption (Path~1), but both underpredict effects that accelerate across an apparent post-2015 regime change.
 
 \subsection{Guidance for Practice}
 
