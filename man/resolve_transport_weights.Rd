@@ -2,7 +2,7 @@
 % Please edit documentation in R/integrate_cate.R
 \name{resolve_transport_weights}
 \alias{resolve_transport_weights}
-\title{Resolve transport weights, point estimate, and target-sampling correction}
+\title{Resolve transport weights and the target-sampling correction}
 \usage{
 resolve_transport_weights(cate, target, weights, n)
 }
@@ -16,11 +16,12 @@ resolve_transport_weights(cate, target, weights, n)
 \item{n}{Source sample size.}
 }
 \value{
-List with \code{w}, \code{psi_hat}, \code{r}, \code{form}.
+List with \code{w}, \code{r}, \code{form}.
 }
 \description{
 Maps the Form A (\code{target} index) / Form B (\code{weights}) inputs to a common length-n
-weight vector \code{w}, the point estimate \code{psi_hat}, and the target-sampling correction
-\code{r} (identically zero in the supported fixed-target modes; see \code{\link[=integrate_cate]{integrate_cate()}}).
+weight vector \code{w} and the target-sampling correction \code{r} (identically zero in the
+supported fixed-target modes; see \code{\link[=integrate_cate]{integrate_cate()}}). The point estimate is assembled
+by \code{\link[=integrate_cate]{integrate_cate()}} as a doubly-robust one-step, so it is not computed here.
 }
 \keyword{internal}

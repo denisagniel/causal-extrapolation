@@ -44,7 +44,10 @@
 #' If you have an **external** target covariate sample that is not a subset of the source,
 #' estimate the density ratio yourself and pass it as `weights`: to preserve the
 #' mapping-not-estimation contract, this function will not estimate a density ratio for
-#' you.
+#' you. Note that the reported standard error treats `weights` as **known/fixed** (the
+#' target-sampling correction \eqn{r_i} is zero). If `weights` were themselves estimated,
+#' the SE is valid only when that estimation error is asymptotically negligible relative to
+#' \eqn{n^{-1/2}}; otherwise it is anticonservative.
 #'
 #' @section Collapse property:
 #' When the target equals the source (`target = seq_len(n)`, or `weights = rep(1, n)`),
@@ -53,8 +56,11 @@
 #' is unit-tested).
 #'
 #' @param cate A CATE contract list (see Details) or the output of [as_cate()].
-#' @param design One of `"unconfoundedness"` or `"did"`. Ignored if `cate` carries a
-#'   `design` attribute from [as_cate()] (the attribute wins, with a warning on conflict).
+#' @param design Identification design. `"unconfoundedness"` is the validated path
+#'   (collapse-certified against the AIPW/ATT EIF). `"did"` is **not yet available** — its
+#'   DR-DiD transport score is not validated against Sant'Anna-Zhao (2020) and currently
+#'   errors. Ignored if `cate` carries a `design` attribute from [as_cate()] (the attribute
+#'   wins, with a warning on conflict).
 #' @param target Form A: integer/logical index into the source rows selecting the target
 #'   subpopulation. Mutually exclusive with `weights`.
 #' @param weights Form B: length-n density-ratio weights \eqn{w(X_i)}. Mutually exclusive
@@ -117,6 +123,17 @@ integrate_cate <- function(cate,
     design <- cate_design
   }
 
+  # The DiD design's DR-DiD score is not yet validated against the Sant'Anna-Zhao
+  # influence function (it is not mean-zero as currently written), so gate it rather than
+  # return invalid inference. Unconfoundedness is the validated path (collapse-certified).
+  if (identical(design, "did")) {
+    stop(paste0(
+      "design = 'did' is not yet available: the DR-DiD transport score has not been ",
+      "validated against Sant'Anna-Zhao (2020). Use design = 'unconfoundedness', or ",
+      "supply a design = 'unconfoundedness' contract built from a DR-DiD-derived tau(x)."
+    ), call. = FALSE)
+  }
+
   validate_confidence_level(level, name = "level")
   if (validate) {
     validate_cate_input(cate, design = design)
@@ -133,10 +150,9 @@ integrate_cate <- function(cate,
 
   n <- length(cate$tau)
 
-  # Resolve transport weights, the point estimate, and the target-sampling correction.
+  # Resolve transport weights and the target-sampling correction.
   wr <- resolve_transport_weights(cate, target = target, weights = weights, n = n)
   w <- wr$w
-  psi_hat <- wr$psi_hat
   r <- wr$r
 
   # Neyman-orthogonal correction (per design), reweighted by w.
@@ -146,12 +162,31 @@ integrate_cate <- function(cate,
     did              = score_drdid(cate)
   )
 
+  # Doubly-robust one-step estimate: plug-in mean(w*tau) PLUS the mean orthogonal
+  # correction. This is the estimand the transport EIF is the influence function OF, so
+  # the point estimate and its EIF correspond to the same functional (and the sample mean
+  # of phi below is then exactly zero when E_hat[w] = 1, e.g. Form A). Using the bare
+  # plug-in mean(w*tau) would pair a plug-in estimate with a DR variance -- inconsistent,
+  # and biased whenever the nuisances are estimated (mean(w*correction) != 0).
+  psi_hat <- mean(w * cate$tau) + mean(w * correction) + mean(r)
+
   # Transport EIF (theory note eq. 2). r == 0 in the supported (fixed-target) modes.
   phi <- w * (cate$tau - psi_hat) + w * correction + r
 
+  # Guard non-finite EIF (reachable via validate = FALSE, or e near 0/1 slipping through):
+  # compute_variance() warns on NA but not NaN/Inf, which would silently corrupt the SE.
+  if (any(!is.finite(phi))) {
+    stop(stringr::str_glue(
+      "Transport EIF contains {sum(!is.finite(phi))} non-finite value(s). ",
+      "Check propensity overlap (e near 0/1) and that tau/mu/Y are finite."
+    ), call. = FALSE)
+  }
+
   # Overlap diagnostic: effective sample size collapses under heavy covariate shift.
+  # Warn when the effective sample is below this fraction of n (poor overlap / large w).
+  overlap_frac <- 0.1
   n_eff <- if (sum(w^2) > 0) (sum(w))^2 / sum(w^2) else 0
-  if (n_eff < 0.1 * n) {
+  if (n_eff < overlap_frac * n) {
     warning(stringr::str_glue(
       "Heavy covariate shift: effective sample size {round(n_eff, 1)} is < 10% of n = {n}. ",
       "Transport inference may be unstable (poor overlap / large density ratio)."
@@ -173,19 +208,24 @@ integrate_cate <- function(cate,
 }
 
 
-#' Resolve transport weights, point estimate, and target-sampling correction
+#' Resolve transport weights and the target-sampling correction
 #'
 #' Maps the Form A (`target` index) / Form B (`weights`) inputs to a common length-n
-#' weight vector `w`, the point estimate `psi_hat`, and the target-sampling correction
-#' `r` (identically zero in the supported fixed-target modes; see [integrate_cate()]).
+#' weight vector `w` and the target-sampling correction `r` (identically zero in the
+#' supported fixed-target modes; see [integrate_cate()]). The point estimate is assembled
+#' by [integrate_cate()] as a doubly-robust one-step, so it is not computed here.
 #'
 #' @param cate Validated CATE contract list.
 #' @param target Form A index (integer/logical into source rows) or NULL.
 #' @param weights Form B length-n density-ratio vector or NULL.
 #' @param n Source sample size.
-#' @return List with `w`, `psi_hat`, `r`, `form`.
+#' @return List with `w`, `r`, `form`.
 #' @keywords internal
 resolve_transport_weights <- function(cate, target, weights, n) {
+  # E_src[w] should be 1 up to sampling noise; a 5% gap is a loose misnormalization screen
+  # (sampling noise, unlike validate_group_weights' exact 1e-6 sum check).
+  weight_mean_tol <- 0.05
+
   if (!is.null(weights)) {
     # Form B: user-supplied density ratio.
     validate_numeric_vector(weights, name = "weights")
@@ -197,18 +237,16 @@ resolve_transport_weights <- function(cate, target, weights, n) {
     if (any(weights < 0)) {
       stop("`weights` (density ratio) must be non-negative.", call. = FALSE)
     }
-    if (abs(mean(weights) - 1) > 0.05) {
+    if (all(weights == 0)) {
+      stop("`weights` are all zero; the target subpopulation is empty.", call. = FALSE)
+    }
+    if (abs(mean(weights) - 1) > weight_mean_tol) {
       warning(stringr::str_glue(
         "mean(weights) = {round(mean(weights), 4)} is far from 1; the density ratio may ",
         "be misnormalized (E_src[w] should be 1)."
       ), call. = FALSE)
     }
-    return(list(
-      w = weights,
-      psi_hat = mean(weights * cate$tau),
-      r = numeric(n),
-      form = "density_ratio"
-    ))
+    return(list(w = weights, r = numeric(n), form = "density_ratio"))
   }
 
   # Form A: target is an index/logical into the source rows.
@@ -217,11 +255,14 @@ resolve_transport_weights <- function(cate, target, weights, n) {
   if (n_star == 0) {
     stop("`target` selects zero source rows.", call. = FALSE)
   }
+  if (n_star == 1) {
+    warning("`target` selects a single source row; the FATT reduces to one unit's CATE ",
+            "and inference is unreliable.", call. = FALSE)
+  }
   w <- numeric(n)
   w[idx] <- n / n_star  # empirical density ratio; == 1 when target is the full source
   list(
     w = w,
-    psi_hat = mean(cate$tau[idx]),
     r = numeric(n),  # target treated as a fixed subsample of the source: r == 0
     form = "target_index"
   )
@@ -255,8 +296,12 @@ resolve_target_index <- function(target, n) {
     return(which(target))
   }
   if (is.numeric(target)) {
+    if (any(is.na(target)) || any(target != floor(target))) {
+      stop("`target` must contain whole-number row indices (no NA or fractional values).",
+           call. = FALSE)
+    }
     idx <- as.integer(target)
-    if (any(idx < 1) || any(idx > n) || any(is.na(idx))) {
+    if (any(idx < 1) || any(idx > n)) {
       stop(stringr::str_glue(
         "integer `target` must contain valid row indices in 1:{n}."
       ), call. = FALSE)

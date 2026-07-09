@@ -38,13 +38,23 @@ as_cate.causal_forest <- function(fit, mu0 = NULL, mu1 = NULL, ...) {
   Y <- as.numeric(fit$Y.orig)
   A <- as.numeric(fit$W.orig)
   X <- as.data.frame(fit$X.orig)
+
+  if (is.null(fit$W.hat) || is.null(fit$Y.hat)) {
+    stop("grf fit lacks W.hat/Y.hat, needed to recover mu0/mu1 via local centering. ",
+         "Pass mu0/mu1 explicitly, or refit the forest with grf's default centering.",
+         call. = FALSE)
+  }
   e <- as.numeric(fit$W.hat)          # grf's out-of-bag propensity estimate
   Y_hat <- as.numeric(fit$Y.hat)      # grf's out-of-bag outcome estimate
 
   if (is.null(mu1) || is.null(mu0)) {
     # Local-centering identity: mu1 = Y.hat + (1 - W.hat) tau, mu0 = Y.hat - W.hat tau.
-    message("as_cate.causal_forest: recovering mu0/mu1 from grf local-centering identity ",
-            "(pass mu0/mu1 explicitly to override).")
+    # Assumes grf's default local centering; pass mu0/mu1 to override. inform() once so
+    # this does not spam per-replication loops.
+    rlang::inform(
+      "as_cate.causal_forest(): recovering mu0/mu1 from grf local-centering identity.",
+      .frequency = "once", .frequency_id = "as_cate_grf_centering"
+    )
     mu1 <- Y_hat + (1 - e) * tau
     mu0 <- Y_hat - e * tau
   } else {
@@ -88,6 +98,13 @@ as_cate.DoubleML <- function(fit, ...) {
   tau <- mu1 - mu0
 
   data_model <- fit$data
+  if (length(data_model$d_cols) > 1) {
+    stop(stringr::str_glue(
+      "DoubleML fit has {length(data_model$d_cols)} treatment variables; as_cate() ",
+      "supports a single binary treatment. Subset to one treatment, or build the ",
+      "contract manually."
+    ), call. = FALSE)
+  }
   Y <- as.numeric(data_model$data[[data_model$y_col]])
   A <- as.numeric(data_model$data[[data_model$d_cols[1]]])
   X <- as.data.frame(data_model$data[, data_model$x_cols, drop = FALSE])
@@ -110,6 +127,10 @@ as_cate.rlearner <- function(fit, X, A, Y, ...) {
   }
   if (missing(X) || missing(A) || missing(Y)) {
     stop("as_cate.rlearner() needs `X`, `A`, and `Y` (the data the nuisances were fit on).",
+         call. = FALSE)
+  }
+  if (!all(purrr::map_lgl(as.data.frame(X), is.numeric))) {
+    stop("as_cate.rlearner() requires an all-numeric X (no factor columns) for prediction.",
          call. = FALSE)
   }
 

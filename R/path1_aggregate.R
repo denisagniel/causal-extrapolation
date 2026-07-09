@@ -42,12 +42,13 @@
 #'
 #' @export
 path1_aggregate <- function(gt_object, omega = NULL) {
-  stopifnot(inherits(gt_object, "gt_object"))
+  validate_gt_object(gt_object, name = "gt_object")
   df <- gt_object$data
   phi_rows <- gt_object$phi
   groups <- gt_object$groups
   n <- gt_object$n
-  if (length(phi_rows) != nrow(df)) stop("Length of phi must match rows of data.")
+  validate_lengths_match(phi_rows, seq_len(nrow(df)),
+                         name_x = "phi", name_y = "data rows")
 
   # Default to equal group weights; validate before use so callers cannot silently
   # drop or misspecify omega (audit M1/M9).

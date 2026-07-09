@@ -38,7 +38,7 @@ test_that("path1_aggregate checks phi and data alignment", {
 
   expect_error(
     path1_aggregate(gt_obj, omega = c(0.5, 0.5)),
-    "Length of phi must match rows of data"
+    "phi"
   )
 })
 

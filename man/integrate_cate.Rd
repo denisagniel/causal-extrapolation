@@ -16,8 +16,11 @@ integrate_cate(
 \arguments{
 \item{cate}{A CATE contract list (see Details) or the output of \code{\link[=as_cate]{as_cate()}}.}
 
-\item{design}{One of \code{"unconfoundedness"} or \code{"did"}. Ignored if \code{cate} carries a
-\code{design} attribute from \code{\link[=as_cate]{as_cate()}} (the attribute wins, with a warning on conflict).}
+\item{design}{Identification design. \code{"unconfoundedness"} is the validated path
+(collapse-certified against the AIPW/ATT EIF). \code{"did"} is \strong{not yet available} — its
+DR-DiD transport score is not validated against Sant'Anna-Zhao (2020) and currently
+errors. Ignored if \code{cate} carries a \code{design} attribute from \code{\link[=as_cate]{as_cate()}} (the attribute
+wins, with a warning on conflict).}
 
 \item{target}{Form A: integer/logical index into the source rows selecting the target
 subpopulation. Mutually exclusive with \code{weights}.}
@@ -94,7 +97,10 @@ the target is the full source sample — the no-shift case).
 If you have an \strong{external} target covariate sample that is not a subset of the source,
 estimate the density ratio yourself and pass it as \code{weights}: to preserve the
 mapping-not-estimation contract, this function will not estimate a density ratio for
-you.
+you. Note that the reported standard error treats \code{weights} as \strong{known/fixed} (the
+target-sampling correction \eqn{r_i} is zero). If \code{weights} were themselves estimated,
+the SE is valid only when that estimation error is asymptotically negligible relative to
+\eqn{n^{-1/2}}; otherwise it is anticonservative.
 }
 
 \section{Collapse property}{
