@@ -272,6 +272,84 @@ validate_model_specs <- function(model_specs, name = "model_specs") {
   invisible(TRUE)
 }
 
+#' Validate CATE contract input for integrate_cate()
+#'
+#' Checks that a generic CATE contract list supplies the slots required by the chosen
+#' design, that all n-vectors share a common length, and that the propensity `e` lies
+#' strictly in (0, 1). See [integrate_cate()] for the contract definition.
+#'
+#' @param cate Named list (the CATE contract).
+#' @param design One of "unconfoundedness" or "did".
+#' @param name Variable name for error messages.
+#' @keywords internal
+validate_cate_input <- function(cate, design = c("unconfoundedness", "did"),
+                                name = "cate") {
+  design <- match.arg(design)
+
+  if (!is.list(cate) || is.null(names(cate))) {
+    stop(stringr::str_glue("{name} must be a named list (the CATE contract)"),
+         call. = FALSE)
+  }
+
+  # Required slots per design. `X` is the source covariate frame; the rest are n-vectors.
+  vec_slots <- switch(
+    design,
+    unconfoundedness = c("tau", "mu1", "mu0", "e", "A", "Y"),
+    did              = c("tau", "dY", "m0_dY", "e", "A")
+  )
+  required <- c(vec_slots, "X")
+
+  missing <- setdiff(required, names(cate))
+  if (length(missing) > 0) {
+    missing_str <- stringr::str_c(missing, collapse = ", ")
+    stop(stringr::str_glue(
+      "{name} is missing required slots for design '{design}': {missing_str}"
+    ), call. = FALSE)
+  }
+
+  # All n-vectors numeric and equal length.
+  for (slot in vec_slots) {
+    validate_numeric_vector(cate[[slot]], name = stringr::str_glue("{name}${slot}"))
+  }
+  n <- length(cate$tau)
+  lengths <- purrr::map_int(cate[vec_slots], length)
+  if (!all(lengths == n)) {
+    bad <- vec_slots[lengths != n]
+    bad_str <- stringr::str_c(bad, collapse = ", ")
+    stop(stringr::str_glue(
+      "{name}: all CATE vectors must share length n = {n} (length of tau). ",
+      "Mismatched: {bad_str}"
+    ), call. = FALSE)
+  }
+
+  # X must be a data frame / matrix with n rows.
+  if (!is.data.frame(cate$X) && !is.matrix(cate$X)) {
+    stop(stringr::str_glue("{name}$X must be a data frame or matrix of covariates"),
+         call. = FALSE)
+  }
+  if (nrow(cate$X) != n) {
+    stop(stringr::str_glue(
+      "{name}$X has {nrow(cate$X)} rows but n = {n} (length of tau). These must match."
+    ), call. = FALSE)
+  }
+
+  # Propensity strictly interior; otherwise the AIPW/DR-DiD score divides by zero.
+  if (any(cate$e <= 0) || any(cate$e >= 1)) {
+    rng <- stringr::str_glue("[{round(min(cate$e), 4)}, {round(max(cate$e), 4)}]")
+    stop(stringr::str_glue(
+      "{name}$e (propensity) must lie strictly in (0, 1); observed range {rng}. ",
+      "Trim or clip extreme propensities before calling integrate_cate()."
+    ), call. = FALSE)
+  }
+
+  # Treatment indicator must be 0/1.
+  if (!all(cate$A %in% c(0, 1))) {
+    stop(stringr::str_glue("{name}$A must be a 0/1 treatment indicator"), call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
 #' Validate CV horizons
 #'
 #' @param horizons Integer vector of forecast horizons

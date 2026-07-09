@@ -28,7 +28,7 @@ test_that("path1_aggregate checks omega length", {
 
   expect_error(
     path1_aggregate(gt_obj, omega_wrong),
-    "omega must have length equal to number of groups"
+    "omega must have length 2"
   )
 })
 

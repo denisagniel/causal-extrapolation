@@ -35,22 +35,29 @@
 #' - `x` must be from `did::att_gt()`, not `did::aggte()` (which aggregates
 #'   across group-time cells and loses the granular structure needed for
 #'   extrapolation).
-#' - If `extract_eif = TRUE`, `x$inffunc` must be present. This requires
-#'   `did` version >= 2.1.0 and the `bstrap = FALSE` option in `att_gt()`.
+#' - Modern `did` (>= 2.1.0) returns `x$inffunc` for group-time ATTs regardless of the
+#'   `bstrap` setting, so `extract_eif = TRUE` works with the default `att_gt()` call. A
+#'   NULL `inffunc` now indicates an old `did` version or an unusual call, not
+#'   `bstrap = TRUE`.
+#'
+#' @section Class dispatch:
+#' `did::att_gt()` returns an object of class `MP` in current `did`; older versions used
+#' `AGGTEobj`. Both are handled: [as_gt_object()] dispatches on `MP` and `AGGTEobj` to the
+#' same extractor. (`did::aggte()` output is rejected — it lacks the group-time
+#' structure.)
 #'
 #' @examples
 #' \dontrun{
 #' library(did)
 #' data(mpdta)
 #'
-#' # Estimate group-time ATTs
+#' # Estimate group-time ATTs (inffunc is returned by default in modern did)
 #' did_result <- att_gt(
 #'   yname = "lemp",
 #'   gname = "first.treat",
 #'   idname = "countyreal",
 #'   tname = "year",
-#'   data = mpdta,
-#'   bstrap = FALSE  # Needed for inffunc
+#'   data = mpdta
 #' )
 #'
 #' # Convert to gt_object
@@ -63,15 +70,26 @@
 #' }
 #'
 #' @export
-as_gt_object.AGGTEobj <- function(x, extract_eif = TRUE, ...) {
-  # Validate input
-  if (!inherits(x, "AGGTEobj")) {
-    class_str <- stringr::str_c(class(x), collapse = ", ")
-    stop(stringr::str_glue(
-      "Expected class 'AGGTEobj' from did::att_gt(), got class: {class_str}"
-    ), call. = FALSE)
-  }
+as_gt_object.MP <- function(x, extract_eif = TRUE, ...) {
+  gt_object_from_att_gt(x, extract_eif = extract_eif)
+}
 
+#' @rdname as_gt_object.MP
+#' @export
+as_gt_object.AGGTEobj <- function(x, extract_eif = TRUE, ...) {
+  gt_object_from_att_gt(x, extract_eif = extract_eif)
+}
+
+#' Convert did att_gt output (class MP or AGGTEobj) to a gt_object
+#'
+#' Shared worker for [as_gt_object.MP()] and [as_gt_object.AGGTEobj()].
+#'
+#' @param x A `did::att_gt()` result (class `MP` in current `did`, `AGGTEobj` in older
+#'   versions).
+#' @param extract_eif Whether to extract influence functions (default TRUE).
+#' @return A `gt_object`.
+#' @keywords internal
+gt_object_from_att_gt <- function(x, extract_eif = TRUE) {
   # Check if it's actually from att_gt (not aggte)
   # att_gt objects have 'group' field; aggte objects do not
   if (!"group" %in% names(x)) {
@@ -101,16 +119,14 @@ as_gt_object.AGGTEobj <- function(x, extract_eif = TRUE, ...) {
   phi <- NULL
   n <- NULL
 
+  eif_available <- FALSE
   if (extract_eif) {
     if (is.null(x$inffunc)) {
       warning(
         "x$inffunc is NULL. Cannot extract EIFs.\n",
-        "This may be because:\n",
-        "  1. did::att_gt() was called with bstrap = TRUE (default), or\n",
-        "  2. An older version of did is being used.\n",
-        "To enable EIF extraction:\n",
-        "  - Use bstrap = FALSE in att_gt()\n",
-        "  - Ensure did version >= 2.1.0\n",
+        "Modern did (>= 2.1.0) returns inffunc for group-time ATTs regardless of bstrap,\n",
+        "so a NULL inffunc usually means an old did version or an unusual att_gt() call.\n",
+        "To enable EIF extraction, upgrade did to >= 2.1.0.\n",
         "Proceeding without EIF. Variance propagation will not be available.",
         call. = FALSE
       )
@@ -133,10 +149,12 @@ as_gt_object.AGGTEobj <- function(x, extract_eif = TRUE, ...) {
       # Convert to list of EIF vectors (one per group-time pair)
       # Column j corresponds to row j of data
       phi <- purrr::map(seq_len(ncol(IF)), function(j) as.numeric(IF[, j]))
+      eif_available <- TRUE
     }
   }
 
-  # Create gt_object
+  # Create gt_object. eif_available makes downstream variance-propagation failures
+  # traceable (e.g. compute_variance() called on a gt_object built without EIFs).
   new_gt_object(
     data = data,
     phi = phi,
@@ -144,6 +162,7 @@ as_gt_object.AGGTEobj <- function(x, extract_eif = TRUE, ...) {
     meta = list(
       source = "did::att_gt",
       did_version = as.character(utils::packageVersion("did")),
+      eif_available = eif_available,
       did_object = x  # Store original for reference
     )
   )

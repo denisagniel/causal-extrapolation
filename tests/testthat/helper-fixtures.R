@@ -69,6 +69,59 @@ make_mock_extrap_object <- function(n_groups = 2, n = 50, per_group = TRUE, seed
   out
 }
 
+#' Build a CATE contract for testing integrate_cate()
+#'
+#' Simulates a simple AIPW-style DGP (or 2-period DiD) and returns the generic CATE
+#' contract list expected by `integrate_cate()`, with the true FATT attached as an
+#' attribute for recovery checks.
+#'
+#' @param n Sample size.
+#' @param d Number of covariates.
+#' @param design "unconfoundedness" or "did".
+#' @param seed Random seed.
+#' @return A CATE contract list (list(tau, mu1, mu0, e, A, Y, X) for unconfoundedness;
+#'   list(tau, dY, m0_dY, e, A, X) for did), with attr "true_fatt".
+make_cate_input <- function(n = 500, d = 1, design = "unconfoundedness", seed = 20260708) {
+  set.seed(seed)
+
+  X <- as.data.frame(matrix(rnorm(n * d), nrow = n, ncol = d))
+  names(X) <- paste0("x", seq_len(d))
+  # Linear index used for propensity and effect heterogeneity.
+  lin <- rowSums(X) / sqrt(d)
+  e <- plogis(0.6 * lin)
+  A <- rbinom(n, 1, e)
+  tau_x <- 1 + 0.5 * lin  # true CATE
+
+  if (design == "unconfoundedness") {
+    mu0 <- 0.8 * lin
+    mu1 <- mu0 + tau_x
+    Y <- mu0 + A * tau_x + rnorm(n, sd = 0.5)
+    cate <- list(tau = tau_x, mu1 = mu1, mu0 = mu0, e = e, A = A, Y = Y, X = X)
+    # FATT = mean of tau over the treated units.
+    attr(cate, "true_fatt") <- mean(tau_x[A == 1])
+  } else {
+    # 2-period DiD: outcome change dY; conditional change among untreated = m0.
+    m0_dY <- 0.3 * lin
+    dY <- m0_dY + A * tau_x + rnorm(n, sd = 0.5)
+    cate <- list(tau = tau_x, dY = dY, m0_dY = m0_dY, e = e, A = A, X = X)
+    attr(cate, "true_fatt") <- mean(tau_x[A == 1])
+  }
+  cate
+}
+
+#' Reference ordinary AIPW/ATT efficient influence function
+#'
+#' The no-transport (w == 1) EIF, used as the collapse-certificate oracle.
+#'
+#' @param cate An unconfoundedness CATE contract list.
+#' @param psi Scalar estimate to center on.
+#' @return Length-n numeric EIF vector.
+reference_aipw_eif <- function(cate, psi) {
+  (cate$tau - psi) +
+    cate$A * (cate$Y - cate$mu1) / cate$e -
+    (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
+}
+
 #' Create simple numeric vectors for testing validators
 #'
 #' @param type Type of problematic vector: "normal", "na", "inf", "character"

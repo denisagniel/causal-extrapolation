@@ -105,18 +105,45 @@ test_that("as_gt_object.AGGTEobj rejects aggte output", {
   )
 })
 
-test_that("as_gt_object.AGGTEobj validates class", {
-  # Not an AGGTEobj
-  mock_obj <- list(
-    group = c(1, 1),
-    t = c(2, 3),
-    att = c(0.5, 0.6)
+test_that("as_gt_object dispatches on MP (modern did att_gt class)", {
+  n <- 60
+  J <- 3
+  mock_mp <- structure(
+    list(
+      group = c(1, 1, 2),
+      t = c(2, 3, 3),
+      att = c(0.5, 0.6, 0.4),
+      se = c(0.1, 0.12, 0.09),
+      inffunc = matrix(rnorm(n * J), nrow = n, ncol = J)
+    ),
+    class = "MP"
   )
 
-  expect_error(
-    as_gt_object.AGGTEobj(mock_obj),
-    "Expected class 'AGGTEobj'"
+  gt <- as_gt_object(mock_mp, extract_eif = TRUE)
+  expect_s3_class(gt, "gt_object")
+  expect_length(gt$phi, J)
+  expect_equal(gt$n, n)
+  expect_true(gt$meta$eif_available)
+})
+
+test_that("real did::att_gt() output converts with EIFs (regression for MP dispatch)", {
+  skip_if_not_installed("did")
+
+  did <- asNamespace("did")
+  data("mpdta", package = "did", envir = environment())
+
+  att <- did::att_gt(
+    yname = "lemp", gname = "first.treat", idname = "countyreal",
+    tname = "year", data = mpdta
   )
+  # Regression guard: real att_gt() returns class "MP", not "AGGTEobj".
+  expect_true(inherits(att, "MP"))
+
+  gt <- as_gt_object(att, extract_eif = TRUE)
+  expect_s3_class(gt, "gt_object")
+  expect_false(is.null(gt$phi))
+  expect_equal(length(gt$phi), nrow(gt$data))
+  expect_true(gt$meta$eif_available)
 })
 
 test_that("as_gt_object.AGGTEobj stores original object in meta", {

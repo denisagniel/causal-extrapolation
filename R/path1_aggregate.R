@@ -5,7 +5,9 @@
 #' within-group averaging then aggregation.
 #'
 #' @param gt_object An object of class gt_object (data, phi, groups, n).
-#' @param omega Numeric vector of group weights (length = number of groups).
+#' @param omega Numeric vector of group weights (length = number of groups). If NULL
+#'   (default), equal weights `rep(1 / n_groups, n_groups)` are used. Weights are honored
+#'   in both the point estimate and the propagated EIF.
 #' @return A list with tau_future (scalar), phi_future (length-n vector), and
 #'   tau_g (per-group means) and phi_g (list of EIF vectors per group) for optional use.
 #'
@@ -39,14 +41,20 @@
 #' print(result$tau_future)  # Overall weighted average
 #'
 #' @export
-path1_aggregate <- function(gt_object, omega) {
+path1_aggregate <- function(gt_object, omega = NULL) {
   stopifnot(inherits(gt_object, "gt_object"))
   df <- gt_object$data
   phi_rows <- gt_object$phi
   groups <- gt_object$groups
   n <- gt_object$n
   if (length(phi_rows) != nrow(df)) stop("Length of phi must match rows of data.")
-  if (length(omega) != length(groups)) stop("omega must have length equal to number of groups.")
+
+  # Default to equal group weights; validate before use so callers cannot silently
+  # drop or misspecify omega (audit M1/M9).
+  if (is.null(omega)) {
+    omega <- rep(1 / length(groups), length(groups))
+  }
+  validate_group_weights(omega, n_groups = length(groups), name = "omega", warn_sum = TRUE)
 
   results <- purrr::map(seq_along(groups), \(i) {
     g <- groups[i]
