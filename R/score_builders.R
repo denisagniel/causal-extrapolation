@@ -26,23 +26,37 @@ score_aipw <- function(cate) {
     (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
 }
 
-#' DR-DiD correction (difference-in-differences design) -- EXPERIMENTAL, NOT VALIDATED
+#' DR-DiD correction (difference-in-differences design)
 #'
-#' Intended to compute a doubly-robust difference-in-differences correction in its
-#' conditional (per-\eqn{X}) form. **This implementation is not yet validated against the
-#' Sant'Anna and Zhao (2020) DR-DiD influence function and is not mean-zero as written**
-#' (it lacks the propensity normalization by \eqn{\mathbb{E}[A]} and does not residualize
-#' the treated arm). The `design = "did"` path in [integrate_cate()] is therefore gated
-#' off until this score is derived in the theory note and cross-checked numerically
-#' against `DRDID::drdid()`. Kept as an internal placeholder only; do not rely on it.
+#' Computes the doubly-robust difference-in-differences correction in its conditional
+#' (per-\eqn{X}) form. Under conditional parallel trends, DR-DiD is structurally identical
+#' to AIPW applied to the outcome change \eqn{\Delta Y}: substitute \eqn{Y \to \Delta Y} and
+#' \eqn{\mu_a(x) \to m_a(x) = \mathbb{E}[\Delta Y \mid X = x, A = a]}, with the DR-DiD
+#' structural constraint \eqn{m_1 = m_0 + \tau}. The correction is
+#' \deqn{\frac{A_i (\Delta Y_i - m_1(X_i))}{e(X_i)} -
+#'   \frac{(1 - A_i)(\Delta Y_i - m_0(X_i))}{1 - e(X_i)},}
+#' which is Neyman-orthogonal to the nuisances \eqn{(m_0, m_1, e)}. See theory note eq. (2),
+#' DiD variant. This is the piece that makes the transport score orthogonal; the transport
+#' EIF assembled in [integrate_cate()] reweights it by \eqn{w(X_i)}.
 #'
-#' @param cate A validated CATE contract list with elements `A`, `dY`, `m0_dY`, `e`.
-#' @return Numeric vector of length n.
+#' \strong{Collapse certificate.} When the target equals the source (\eqn{w \equiv 1}) the
+#' transport EIF reduces exactly to the ordinary DR-DiD / AIPW-on-changes efficient
+#' influence function \eqn{(\tau_i - \psi) + \mathrm{correction}_i}. This is the DiD analog
+#' of the unconfoundedness collapse certificate and is unit-tested.
+#'
+#' @param cate A validated CATE contract list with elements `A`, `dY`, `m0_dY`, `tau`, `e`.
+#'   The treated-arm change regression is derived as \eqn{m_1 = m_0 + \tau} (\code{m0_dY} is
+#'   the single source of truth; the contract carries no separate \code{m1_dY}).
+#' @return Numeric vector of length n (the DR-DiD correction per observation).
 #' @references Sant'Anna, P. H. C., & Zhao, J. (2020). Doubly robust
 #'   difference-in-differences estimators. \emph{Journal of Econometrics}, 219(1), 101-122.
 #' @keywords internal
 score_drdid <- function(cate) {
-  # PLACEHOLDER residualized-change score -- NOT the validated Sant'Anna-Zhao score.
-  # See the function docs; design = "did" is gated off in integrate_cate() until fixed.
-  (cate$A - cate$e) / (cate$e * (1 - cate$e)) * (cate$dY - cate$m0_dY)
+  # AIPW-on-changes: Y -> dY, mu_a -> m_a, with the DR-DiD constraint m1 = m0 + tau.
+  # Residualizes BOTH arms (the placeholder's bug was residualizing only m0). Orthogonal to
+  # (m0, m1, e). Certified by the collapse test in test-integrate-cate.R.
+  m0 <- cate$m0_dY
+  m1 <- cate$m0_dY + cate$tau
+  cate$A * (cate$dY - m1) / cate$e -
+    (1 - cate$A) * (cate$dY - m0) / (1 - cate$e)
 }

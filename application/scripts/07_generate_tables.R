@@ -1,6 +1,6 @@
-# Phase 2.6: Generate LaTeX Tables for Paper (Paths 1 & 2)
-# Path 3 is deferred pending the DiD transport influence function; its row is marked
-# "pending" rather than populated with a superseded (ecological-regression) number.
+# Phase 2.6: Generate LaTeX Tables for Paper (Paths 1, 2 & 3)
+# Path 3 (direct CATE + conditional DR-DiD covariate transport) is now populated from the
+# package (integrate_cate(design = "did")).
 
 library(tidyverse)
 library(fs)
@@ -16,7 +16,7 @@ val_summary <- readRDS("application/results/validation_summary.rds")
 val_full <- readRDS("application/results/validation_full.rds")
 
 # ---------------------------------------------------------------------------
-# Table 9.1: Validation summary (main results) — Paths 1 & 2 + Path 3 pending row.
+# Table 9.1: Validation summary (main results) — Paths 1, 2 & 3.
 # ---------------------------------------------------------------------------
 cat("Generating Table 9.1: Validation summary...\n")
 
@@ -38,7 +38,6 @@ for (i in seq_len(nrow(val_summary))) {
   ))
 }
 table9_1 <- c(table9_1,
-  "Path 3 & Direct CATE + covariate transport (DiD design; pending) & -- & -- & -- \\\\",
   "\\bottomrule",
   "\\end{tabular}",
   "\\begin{minipage}{\\textwidth}",
@@ -47,9 +46,10 @@ table9_1 <- c(table9_1,
   "group-time ATTs for 2016--2022 (firearm homicide deaths per 100{,}000). Training period:",
   "1981--2015. Standard errors and intervals are propagated through efficient influence",
   "functions (package \\texttt{extrapolateATT}). Path 1 assumes constant post-treatment",
-  "effects; Path 2 selects a temporal model by time-series cross-validation. Path 3",
-  "(covariate transport under a difference-in-differences design) is pending the",
-  "corresponding transport influence function.",
+  "effects; Path 2 selects a temporal model by time-series cross-validation; Path 3",
+  "estimates a covariate-conditional effect under a conditional difference-in-differences",
+  "design and transports it to the future treated covariate distribution. All three paths",
+  "underpredict the post-2015 acceleration in the realized effect.",
   "\\end{minipage}",
   "\\end{table}"
 )
@@ -66,30 +66,34 @@ table9_2 <- c(
   "\\centering",
   "\\caption{Predictions versus realized ATTs by year (2016--2022)}",
   "\\label{tab:app_yearly}",
-  "\\begin{tabular}{lcccc}",
+  "\\begin{tabular}{lccccc}",
   "\\toprule",
-  "Year & Realized & Path 1 & Path 2 & Closer path \\\\",
+  "Year & Realized & Path 1 & Path 2 & Path 3 & Closest path \\\\",
   "\\midrule"
 )
+paths_lbl <- c("Path 1", "Path 2", "Path 3")
 for (i in seq_len(nrow(val_full))) {
-  e1 <- abs(val_full$path1[i] - val_full$realized[i])
-  e2 <- abs(val_full$path2[i] - val_full$realized[i])
-  closer <- if (e2 <= e1) "Path 2" else "Path 1"
+  errs <- c(abs(val_full$path1[i] - val_full$realized[i]),
+            abs(val_full$path2[i] - val_full$realized[i]),
+            abs(val_full$path3[i] - val_full$realized[i]))
+  closer <- paths_lbl[which.min(errs)]
   table9_2 <- c(table9_2, paste0(
     val_full$year[i], " & ", f(val_full$realized[i]), " & ",
-    f(val_full$path1[i]), " & ", f(val_full$path2[i]), " & ", closer, " \\\\"
+    f(val_full$path1[i]), " & ", f(val_full$path2[i]), " & ",
+    f(val_full$path3[i]), " & ", closer, " \\\\"
   ))
 }
 table9_2 <- c(table9_2,
   "\\midrule",
   paste0("Mean & ", f(mean(val_full$realized)), " & ",
-         f(mean(val_full$path1)), " & ", f(mean(val_full$path2)), " & -- \\\\"),
+         f(mean(val_full$path1)), " & ", f(mean(val_full$path2)), " & ",
+         f(mean(val_full$path3)), " & -- \\\\"),
   "\\bottomrule",
   "\\end{tabular}",
   "\\begin{minipage}{\\textwidth}",
   "\\vspace{0.1in}\\footnotesize",
   "\\textit{Notes:} Year-by-year predicted versus realized ATTs (deaths per 100{,}000).",
-  "``Closer path'' indicates the smaller absolute error that year.",
+  "``Closest path'' indicates the smallest absolute error that year.",
   "\\end{minipage}",
   "\\end{table}"
 )

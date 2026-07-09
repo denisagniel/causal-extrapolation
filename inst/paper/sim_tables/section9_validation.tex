@@ -8,7 +8,7 @@ Method & Description & MSPE & MAE & Coverage (\%) \\
 \midrule
 Path 1 & Time homogeneity (constant effects, EIF-based) & 2.51 & 1.50 & 0 \\
 Path 2 & Model selection via time-series CV (linear, EIF-based) & 1.47 & 1.15 & 0 \\
-Path 3 & Direct CATE + covariate transport (DiD design; pending) & -- & -- & -- \\
+Path 3 & Direct CATE + covariate transport (conditional DR-DiD, parametric) & 3.14 & 1.66 & 14 \\
 \bottomrule
 \end{tabular}
 \begin{minipage}{\textwidth}
@@ -17,8 +17,9 @@ Path 3 & Direct CATE + covariate transport (DiD design; pending) & -- & -- & -- 
 group-time ATTs for 2016--2022 (firearm homicide deaths per 100{,}000). Training period:
 1981--2015. Standard errors and intervals are propagated through efficient influence
 functions (package \texttt{extrapolateATT}). Path 1 assumes constant post-treatment
-effects; Path 2 selects a temporal model by time-series cross-validation. Path 3
-(covariate transport under a difference-in-differences design) is pending the
-corresponding transport influence function.
+effects; Path 2 selects a temporal model by time-series cross-validation; Path 3
+estimates a covariate-conditional effect under a conditional difference-in-differences
+design and transports it to the future treated covariate distribution. All three paths
+underpredict the post-2015 acceleration in the realized effect.
 \end{minipage}
 \end{table}

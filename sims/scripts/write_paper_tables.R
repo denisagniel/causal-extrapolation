@@ -2,12 +2,14 @@
 # Run from project root: source("sims/scripts/write_paper_tables.R")
 
 results_dir <- "sims/results"
-latex_dir <- "latex/Estimating_policy_effects_in_the_presence_of_heterogeneity"
+# Canonical paper location (inst/paper); the old latex/... path is legacy/untracked and the
+# tracked main.tex \input's sim_tables from here, so tables must be written here.
+latex_dir <- "inst/paper"
 figures_dir <- file.path(latex_dir, "figures")
 sim_tables_dir <- file.path(latex_dir, "sim_tables")
 
-dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
-dir.create(sim_tables_dir, showWarnings = FALSE, recursive = TRUE)
+fs::dir_create(figures_dir)
+fs::dir_create(sim_tables_dir)
 
 # Copy Section 1 plot
 if (file.exists(file.path(results_dir, "section1_plot.png"))) {

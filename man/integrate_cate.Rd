@@ -16,11 +16,13 @@ integrate_cate(
 \arguments{
 \item{cate}{A CATE contract list (see Details) or the output of \code{\link[=as_cate]{as_cate()}}.}
 
-\item{design}{Identification design. \code{"unconfoundedness"} is the validated path
-(collapse-certified against the AIPW/ATT EIF). \code{"did"} is \strong{not yet available} — its
-DR-DiD transport score is not validated against Sant'Anna-Zhao (2020) and currently
-errors. Ignored if \code{cate} carries a \code{design} attribute from \code{\link[=as_cate]{as_cate()}} (the attribute
-wins, with a warning on conflict).}
+\item{design}{Identification design. \code{"unconfoundedness"} uses the AIPW transport score;
+\code{"did"} uses the DR-DiD transport score (conditional parallel trends, Sant'Anna-Zhao
+(2020)), which is AIPW applied to the outcome change \eqn{\Delta Y}. Both are
+collapse-certified against the ordinary AIPW/ATT efficient influence function at the
+no-shift case, and the DiD point estimate is cross-checked against \code{DRDID::drdid()}
+(see tests). Ignored if \code{cate} carries a \code{design} attribute from \code{\link[=as_cate]{as_cate()}} (the
+attribute wins, with a warning on conflict).}
 
 \item{target}{Form A: integer/logical index into the source rows selecting the target
 subpopulation. Mutually exclusive with \code{weights}.}
