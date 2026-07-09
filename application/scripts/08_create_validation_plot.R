@@ -3,12 +3,13 @@
 
 library(tidyverse)
 library(fs)
+library(randplot)
 
-cat("Creating validation plot...\n")
+message("Creating validation plot...")
 
 dir_create("application/figures")
 
-val_full <- readRDS("application/results/validation_full.rds")
+val_full <- readr::read_rds("application/results/validation_full.rds")
 
 # Long form with per-path CI bounds for ribbons.
 plot_data <- bind_rows(
@@ -45,7 +46,7 @@ p <- ggplot(plot_data, aes(x = year, y = att, color = method, fill = method)) +
        color = NULL, fill = NULL, linetype = NULL,
        title = "Predictions vs. realized ATTs (2016-2022)",
        subtitle = "Stand-your-ground laws and firearm homicide; 95% EIF-based intervals") +
-  theme_minimal(base_size = 12) +
+  theme_rand() +
   theme(legend.position = "bottom", legend.direction = "vertical",
         panel.grid.minor = element_blank()) +
   scale_x_continuous(breaks = 2016:2022)
@@ -54,5 +55,5 @@ ggsave("application/figures/validation_plot.pdf", p, width = 8, height = 6, unit
 ggsave("application/figures/validation_plot.png", p, width = 8, height = 6,
        units = "in", dpi = 300)
 
-cat("Saved: application/figures/validation_plot.{pdf,png}\n")
-cat("\nValidation plot created successfully.\n")
+message("Saved: application/figures/validation_plot.{pdf,png}")
+message("\nValidation plot created successfully.")

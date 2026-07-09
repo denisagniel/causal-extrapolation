@@ -1,0 +1,47 @@
+\begin{table}[htbp]
+\centering
+\caption{Path~3 under unobserved heterogeneity. Treatment-effect heterogeneity is driven by
+an unobserved modifier \(U\) correlated with the observed covariate \(X\) (correlation
+\(\rho\)); the target regime shifts \(X\) but not the source \(X\)--\(U\) relationship.
+The \(X\)-only model absorbs \(U\)'s effect into an inflated \(X\)-slope, so its transported
+FATT is biased by \(\beta_U\,\rho\,\mu_X^{\text{target}}\) (true FATT \(=2.750\)); coverage
+collapses. The oracle model (conditioning on \(X\) and \(U\)) transports the true deep
+parameters and remains unbiased with near-nominal coverage.}
+\label{tab:section8_2}
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{Path~3 (\(X\) only)} & \multicolumn{2}{c}{Path~3 (oracle, \(X, U\))} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\(\rho = \mathrm{cor}(X, U)\) & Bias & Coverage & Bias & Coverage \\
+\midrule
+0.0 &
+0.001
+ &
+95.2
+\% &
+-0.002
+ &
+94.7
+\% \\
+0.5 &
+0.748
+ &
+0.7
+\% &
+0.002
+ &
+95.0
+\% \\
+0.8 &
+1.205
+ &
+0.0
+\% &
+-0.000
+ &
+95.0
+\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+

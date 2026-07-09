@@ -12,9 +12,9 @@ dir_create("application/results")
 raw_data <- read_csv("application/data/underlying-data_firearm-homicide.csv",
                      show_col_types = FALSE)
 
-cat("Raw data dimensions:", nrow(raw_data), "x", ncol(raw_data), "\n")
-cat("Years:", min(raw_data$year), "-", max(raw_data$year), "\n")
-cat("States:", length(unique(raw_data$state_residence_abb)), "\n")
+message("Raw data dimensions: ", nrow(raw_data), " x ", ncol(raw_data))
+message("Years: ", min(raw_data$year), " - ", max(raw_data$year))
+message("States: ", length(unique(raw_data$state_residence_abb)))
 
 # Aggregate deaths by state-year (sum across race categories)
 # Key variables: deaths, population, covariates, treatments
@@ -73,15 +73,15 @@ panel_check <- analysis_data %>%
     .groups = "drop"
   )
 
-cat("\nPanel structure:\n")
+message("\nPanel structure:")
 print(table(panel_check$n_years))
-cat("Expected:", length(unique(analysis_data$year)), "years per state\n")
+message("Expected: ", length(unique(analysis_data$year)), " years per state")
 
 # Summary of SYG adoption
-cat("\nSYG adoption summary:\n")
-cat("Never treated:", sum(analysis_data$cohort == 0 & analysis_data$year == 2022), "states\n")
-cat("Treated states:", length(unique(syg_cohorts$state)), "\n")
-cat("Adoption years:", paste(sort(unique(syg_cohorts$cohort)), collapse = ", "), "\n")
+message("\nSYG adoption summary:")
+message("Never treated: ", sum(analysis_data$cohort == 0 & analysis_data$year == 2022), " states")
+message("Treated states: ", length(unique(syg_cohorts$state)))
+message("Adoption years: ", paste(sort(unique(syg_cohorts$cohort)), collapse = ", "))
 
 # Check pre-treatment trends (simple event study visual check)
 # Focus on training period 1981-2015
@@ -109,7 +109,7 @@ pretrends_check <- training_data %>%
   ) %>%
   arrange(event_time_binned)
 
-cat("\nPre-treatment mean deaths per 100k by event time:\n")
+message("\nPre-treatment mean deaths per 100k by event time:")
 print(pretrends_check)
 
 # Check for missing data in key variables
@@ -124,7 +124,7 @@ missing_summary <- analysis_data %>%
     pct_black_missing = sum(is.na(pct_black))
   )
 
-cat("\nMissing data summary:\n")
+message("\nMissing data summary:")
 print(missing_summary)
 
 # Summary statistics for training period (1981-2015)
@@ -138,18 +138,18 @@ training_summary <- analysis_data %>%
     mean_pct_black = mean(pct_black, na.rm = TRUE)
   )
 
-cat("\nTraining period summary statistics (1981-2015):\n")
+message("\nTraining period summary statistics (1981-2015):")
 print(training_summary)
 
 # Save analysis-ready dataset
-saveRDS(analysis_data, "application/results/analysis_data.rds")
-cat("\nSaved: application/results/analysis_data.rds\n")
+readr::write_rds(analysis_data, "application/results/analysis_data.rds")
+message("\nSaved: application/results/analysis_data.rds")
 
 # Save key summaries for reference
 write_csv(syg_cohorts, "application/results/syg_cohorts.csv")
 write_csv(pretrends_check, "application/results/pretrends_check.csv")
-cat("Saved: application/results/syg_cohorts.csv\n")
-cat("Saved: application/results/pretrends_check.csv\n")
+message("Saved: application/results/syg_cohorts.csv")
+message("Saved: application/results/pretrends_check.csv")
 
-cat("\n=== Phase 1 Complete ===\n")
-cat("Next: Run 02_estimate_gt_atts.R\n")
+message("\n=== Phase 1 Complete ===")
+message("Next: Run 02_estimate_gt_atts.R")

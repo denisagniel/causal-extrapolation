@@ -1,408 +1,201 @@
-# Section 8.2: Conditional Model Misspecification (Path 3 Break Point)
+# Section 8.2: Conditional Model Misspecification (Path 3 break point)
 #
-# Purpose: Show Path 3 fails when unobserved heterogeneity dominates
+# Purpose (constitution §9 stress regime): show Path 3 fails when treatment-effect
+# heterogeneity is driven by an UNOBSERVED effect modifier U that the observed covariate
+# X does not capture, and the target regime shifts in a way X cannot track.
 #
-# DGP: True effect driven by X (observed) AND U (unobserved)
-#      tau(X, U) = alpha + beta_X * X + beta_U * U
-#      where U ~ N(0, 1), correlated with X: cor(X, U) = rho
+# DGP (unit-level cross-section, for integrate_cate):
+#   tau(X, U) = alpha + beta_X * X + beta_U * U
+#   (X, U) ~ bivariate normal, source means 0, corr cor_XU, unit variances.
+#   e(X) = plogis(0.4 * X)  -- propensity depends on X ONLY, so A _||_ U | X and
+#     unconfoundedness holds given X (the AIPW correction is mean-zero given X). The
+#     failure below is therefore a pure TRANSPORT / structural-stability failure, not
+#     confounding.
+#   Y = mu0_base(X) + A * tau(X, U) + noise, with mu0_base(X) = 0.5 * X.
 #
-# Methods:
-#   - Path 3 with linear-in-X model (misspecified - omits U)
-#   - Oracle: Path 3 with true model including U (for comparison)
+# Target regime: X shifts to mu_X_target; U's marginal mean stays at 0 (the unobserved
+#   structural component does NOT follow the source X-U relationship into the future --
+#   a structural break in the reduced-form X-U link). True FATT = alpha + beta_X * mu_X_target.
 #
-# Expected result:
-#   - Path 3 biased when U omitted
-#   - Bias magnitude depends on cor(X, U) and beta_U
-#   - Coverage fails
+# Two arms (oracle nuisances in both, to isolate the transport logic):
+#   - Misspecified (X only): CATE and nuisances are the true conditionals given X,
+#     tau_mis(X) = E[tau|X] = alpha + beta_X*X + beta_U*cor_XU*X. The X-only model absorbs
+#     U's effect into an inflated X-slope via the source correlation. Transport weights are
+#     the X-marginal density ratio. Because the target X-U link differs from the source,
+#     the absorbed slope mispredicts: bias = beta_U * cor_XU * mu_X_target (grows with cor_XU).
+#   - Oracle (X and U): CATE is the true tau(X,U); transport weights are the JOINT (X,U)
+#     density ratio. Unbiased -- it transports the genuine deep parameters (Lucas critique).
 #
-# Why this matters:
-#   - Covariate-based extrapolation (Path 3) relies on observing all relevant
-#     predictors of treatment effects
-#   - In practice, unobserved heterogeneity (U) is common
-#   - This simulation shows the consequences of omitted variable bias for
-#     extrapolation, not just for point estimation
+# Expected result: misspecified bias grows with cor_XU (0 at cor_XU = 0); coverage collapses.
+#   Oracle is ~unbiased with ~nominal coverage. This is the honest analog of Sections 8.1/8.3.
+
+set.seed(20260709)
 
 suppressPackageStartupMessages({
   library(dplyr)
   library(tibble)
+  library(fs)
+  library(readr)
 })
 
-devtools::load_all("package")
-source("sims/scripts/dgp_helpers.R")
-source("sims/scripts/dgp_helpers_section8.R")
+# Package lives at the repo root (was package/ pre-Phase-2). Fall back for older checkouts.
+if (file.exists("DESCRIPTION")) devtools::load_all(".") else devtools::load_all("package")
+source("sims/scripts/dgp_helpers_section8.R")  # true_fatt_unobserved()
 
-# Simulation parameters
-q <- 3                   # Number of groups
-p <- 5                   # Last observed period
-n <- 500                 # Sample size
-n_replicates <- 1000     # Number of simulation replications
-future_time <- p + 1     # Extrapolation target
-level <- 0.95            # Confidence level
+# ---- Simulation parameters ----
+n_unit <- 1000          # unit-level sample size per replication
+n_replicates <- 1000    # number of Monte Carlo replications
+level <- 0.95           # confidence level
 
-# DGP parameters
-alpha <- 2.0             # Intercept
-beta_X <- 1.5            # Effect of observed X
-beta_U <- 3.0            # Effect of unobserved U (strong)
-sigma_X <- 1.0           # SD of X
-n_target <- 200          # Target sample size
+# ---- DGP parameters ----
+alpha <- 2.0            # intercept of tau(X, U)
+beta_X <- 1.5           # effect of observed X
+beta_U <- 3.0           # effect of UNOBSERVED U (strong heterogeneity)
+sigma_Y <- 0.5          # outcome noise SD
+mu_X_target <- 0.5      # target regime shift in X (U's target mean stays 0)
 
-# Historical covariate distribution (by group)
-mu_g <- c(-1, 0, 1)      # Group means of X (spread across support)
+# Stress dial: correlation between observed X and unobserved U in the source.
+cor_grid <- c(0.0, 0.5, 0.8)
 
-# Target covariate distribution (regime change: shift in X)
-mu_X_target <- 0.5       # Moderate shift from historical mean(mu_g) = 0
-mu_U_target <- 0.0       # U mean stays at 0 (structural stability)
-
-# Weights (equal for simplicity)
-omega <- rep(1 / q, q)
-
-# ============================================================================
-# Scenario 1: Moderate confounding (cor(X, U) = 0.5)
-# ============================================================================
-
-message("Running Section 8.2 Scenario 1: Moderate confounding (cor = 0.5)...")
-
-cor_XU <- 0.5
-
-# Generate true group-time effects
-theta_gt_confounded <- make_theta_gt_unobserved(
-  q = q, p = p,
+# True FATT is the same in every scenario (target U mean is 0): alpha + beta_X * mu_X_target.
+true_fatt <- true_fatt_unobserved(
   alpha = alpha, beta_X = beta_X, beta_U = beta_U,
-  cor_XU = cor_XU, mu_g = mu_g, sigma_X = sigma_X,
-  seed = 8201
+  mu_X_target = mu_X_target, mu_U_target = 0.0
 )
 
-# True FATT at p+1
-# Target distribution: X ~ N(mu_X_target, sigma_X^2), U ~ N(mu_U_target, sigma_U^2)
-# with cor(X, U) = cor_XU
-# For target, we need E[U | mean(X) = mu_X_target]
-# Under bivariate normal: E[U | X] = mu_U + cor_XU * (X - mu_X) / sigma_X * sigma_U
-# Since mu_X = 0, mu_U = 0, sigma_U = 1:
-# E[U | X = mu_X_target] = cor_XU * mu_X_target / sigma_X
-mu_U_given_X_target <- cor_XU * mu_X_target / sigma_X
+#' Density-ratio transport weight for a mean shift of a (bivariate) normal
+#'
+#' Source and target share the covariance matrix and differ only in mean, so the density
+#' ratio is a log-linear function of the covariates (Gaussian mean-shift). Unit variances
+#' are assumed (sigma_X = sigma_U = 1). Returns UN-normalized weights; the caller
+#' self-normalizes so that the source-mean of w is exactly 1.
+#'
+#' For the X-only (misspecified) arm, pass `u = NULL` and `rho = 0` (marginal-X shift).
+#' For the (X, U) oracle arm, pass both and the source correlation `rho`.
+bivar_shift_weight <- function(x, u = NULL, mu_x, rho = 0) {
+  if (is.null(u)) {
+    # Marginal N(0,1) -> N(mu_x, 1): log w = mu_x * x - 0.5 * mu_x^2.
+    log_w <- mu_x * x - 0.5 * mu_x^2
+  } else {
+    # Joint N(0, Sigma) -> N((mu_x, 0), Sigma), Sigma = [[1, rho], [rho, 1]].
+    # log w = mu_x/(1 - rho^2) * (x - rho * u) - 0.5 * mu_x^2 / (1 - rho^2).
+    denom <- 1 - rho^2
+    log_w <- mu_x / denom * (x - rho * u) - 0.5 * mu_x^2 / denom
+  }
+  exp(log_w)
+}
 
-true_fatt_confounded <- true_fatt_unobserved(
-  alpha = alpha,
-  beta_X = beta_X,
-  beta_U = beta_U,
-  mu_X_target = mu_X_target,
-  mu_U_target = mu_U_given_X_target
-)
+#' Run all replications for one correlation scenario
+run_scenario <- function(cor_XU) {
+  bias_mis <- numeric(n_replicates)
+  cov_mis <- logical(n_replicates)
+  bias_orc <- numeric(n_replicates)
+  cov_orc <- logical(n_replicates)
 
-# Generate target sample (FIXED across replications for consistency)
-set.seed(8202)
-target_sample <- generate_target_covariates_unobserved(
-  n_target = n_target,
-  mu_X_target = mu_X_target,
-  mu_U_target = mu_U_given_X_target,
-  sigma_X = sigma_X,
-  sigma_U = 1.0,
-  cor_XU = cor_XU
-)
+  for (r in seq_len(n_replicates)) {
+    # --- Source cross-section: (X, U) bivariate normal (unit variances, corr cor_XU) ---
+    Z1 <- stats::rnorm(n_unit)
+    Z2 <- stats::rnorm(n_unit)
+    X_u <- Z1
+    U_u <- cor_XU * Z1 + sqrt(1 - cor_XU^2) * Z2
 
-# Storage
-bias_path3_misspec_mod <- numeric(n_replicates)
-covered_path3_misspec_mod <- logical(n_replicates)
-bias_path3_oracle_mod <- numeric(n_replicates)
-covered_path3_oracle_mod <- logical(n_replicates)
+    e_u <- stats::plogis(0.4 * X_u)          # propensity depends on X only -> A _||_ U | X
+    A_u <- stats::rbinom(n_unit, 1, e_u)
+    tau_true <- alpha + beta_X * X_u + beta_U * U_u
+    mu0_base <- 0.5 * X_u
+    Y_u <- mu0_base + A_u * tau_true + stats::rnorm(n_unit, sd = sigma_Y)
 
-for (r in seq_len(n_replicates)) {
-  # Generate gt_object with first-stage estimates
-  gt <- add_noise_and_eif(
-    theta_gt_confounded, n = n,
-    sigma_tau = 0.1, seed = 8200L + r
-  )
+    # --- Misspecified arm (X only): true conditionals GIVEN X ---
+    # E[U | X] = cor_XU * X (unit variances), so tau_mis(X) = E[tau | X].
+    tau_mis <- alpha + beta_X * X_u + beta_U * cor_XU * X_u
+    mu0_mis <- mu0_base
+    mu1_mis <- mu0_mis + tau_mis
+    w_mis <- bivar_shift_weight(X_u, u = NULL, mu_x = mu_X_target)
+    w_mis <- w_mis / mean(w_mis)                       # self-normalize: E_src[w] = 1
+    cate_mis <- list(tau = tau_mis, mu1 = mu1_mis, mu0 = mu0_mis, e = e_u,
+                     A = A_u, Y = Y_u, X = data.frame(x1 = X_u))
+    res_mis <- integrate_cate(cate_mis, design = "unconfoundedness",
+                              weights = w_mis, level = level)
 
-  # Path 3 (misspecified): fit linear-in-X model (omits U)
-  # This uses only observed X
-  ex_misspec <- integrate_covariates(
-    gt,
-    x_vars = target_sample$X,  # Only X, not U
-    x_target = target_sample %>% select(X),
-    omega = omega
-  )
+    # --- Oracle arm (X and U): true structural tau(X, U), joint transport ---
+    tau_orc <- tau_true
+    mu0_orc <- mu0_base
+    mu1_orc <- mu0_orc + tau_orc
+    w_orc <- bivar_shift_weight(X_u, u = U_u, mu_x = mu_X_target, rho = cor_XU)
+    w_orc <- w_orc / mean(w_orc)
+    cate_orc <- list(tau = tau_orc, mu1 = mu1_orc, mu0 = mu0_orc, e = e_u,
+                     A = A_u, Y = Y_u, X = data.frame(x1 = X_u, x2 = U_u))
+    res_orc <- integrate_cate(cate_orc, design = "unconfoundedness",
+                              weights = w_orc, level = level)
 
-  inf_misspec <- compute_variance(
-    ex_misspec$phi_future,
-    estimate = ex_misspec$tau_future,
-    level = level
-  )
+    bias_mis[r] <- res_mis$estimate - true_fatt
+    cov_mis[r] <- (true_fatt >= res_mis$ci[1] && true_fatt <= res_mis$ci[2])
+    bias_orc[r] <- res_orc$estimate - true_fatt
+    cov_orc[r] <- (true_fatt >= res_orc$ci[1] && true_fatt <= res_orc$ci[2])
+  }
 
-  bias_path3_misspec_mod[r] <- ex_misspec$tau_future - true_fatt_confounded
-  covered_path3_misspec_mod[r] <- (
-    true_fatt_confounded >= inf_misspec$ci[1] &&
-    true_fatt_confounded <= inf_misspec$ci[2]
-  )
-
-  # Oracle: fit true model including both X and U
-  # In practice U is unobserved, but we include it here to show what happens
-  # if we had the correct model
-  ex_oracle <- integrate_covariates(
-    gt,
-    x_vars = target_sample %>% select(X, U),
-    x_target = target_sample %>% select(X, U),
-    omega = omega
-  )
-
-  inf_oracle <- compute_variance(
-    ex_oracle$phi_future,
-    estimate = ex_oracle$tau_future,
-    level = level
-  )
-
-  bias_path3_oracle_mod[r] <- ex_oracle$tau_future - true_fatt_confounded
-  covered_path3_oracle_mod[r] <- (
-    true_fatt_confounded >= inf_oracle$ci[1] &&
-    true_fatt_confounded <= inf_oracle$ci[2]
+  list(
+    cor_XU = cor_XU,
+    true_fatt = true_fatt,
+    expected_bias_misspec = beta_U * cor_XU * mu_X_target,  # analytic check
+    path3_misspec = list(
+      bias = mean(bias_mis),
+      rmse = sqrt(mean(bias_mis^2)),
+      coverage = mean(cov_mis),
+      n_replicates = n_replicates
+    ),
+    path3_oracle = list(
+      bias = mean(bias_orc),
+      rmse = sqrt(mean(bias_orc^2)),
+      coverage = mean(cov_orc),
+      n_replicates = n_replicates
+    )
   )
 }
 
-# ============================================================================
-# Scenario 2: Strong confounding (cor(X, U) = 0.8)
-# ============================================================================
+# ---- Run all scenarios ----
+message("Running Section 8.2 (Path 3 unobserved-heterogeneity stress test)...")
+message(sprintf("True FATT (target mu_X = %.1f): %.3f", mu_X_target, true_fatt))
 
-message("Running Section 8.2 Scenario 2: Strong confounding (cor = 0.8)...")
-
-cor_XU_strong <- 0.8
-
-theta_gt_strong <- make_theta_gt_unobserved(
-  q = q, p = p,
-  alpha = alpha, beta_X = beta_X, beta_U = beta_U,
-  cor_XU = cor_XU_strong, mu_g = mu_g, sigma_X = sigma_X,
-  seed = 8203
-)
-
-mu_U_given_X_target_strong <- cor_XU_strong * mu_X_target / sigma_X
-
-true_fatt_strong <- true_fatt_unobserved(
-  alpha = alpha,
-  beta_X = beta_X,
-  beta_U = beta_U,
-  mu_X_target = mu_X_target,
-  mu_U_target = mu_U_given_X_target_strong
-)
-
-# Generate target sample
-set.seed(8204)
-target_sample_strong <- generate_target_covariates_unobserved(
-  n_target = n_target,
-  mu_X_target = mu_X_target,
-  mu_U_target = mu_U_given_X_target_strong,
-  sigma_X = sigma_X,
-  sigma_U = 1.0,
-  cor_XU = cor_XU_strong
-)
-
-bias_path3_misspec_strong <- numeric(n_replicates)
-covered_path3_misspec_strong <- logical(n_replicates)
-bias_path3_oracle_strong <- numeric(n_replicates)
-covered_path3_oracle_strong <- logical(n_replicates)
-
-for (r in seq_len(n_replicates)) {
-  gt <- add_noise_and_eif(
-    theta_gt_strong, n = n,
-    sigma_tau = 0.1, seed = 8300L + r
-  )
-
-  # Misspecified (X only)
-  ex_misspec <- integrate_covariates(
-    gt,
-    x_vars = target_sample_strong$X,
-    x_target = target_sample_strong %>% select(X),
-    omega = omega
-  )
-
-  inf_misspec <- compute_variance(
-    ex_misspec$phi_future,
-    estimate = ex_misspec$tau_future,
-    level = level
-  )
-
-  bias_path3_misspec_strong[r] <- ex_misspec$tau_future - true_fatt_strong
-  covered_path3_misspec_strong[r] <- (
-    true_fatt_strong >= inf_misspec$ci[1] &&
-    true_fatt_strong <= inf_misspec$ci[2]
-  )
-
-  # Oracle (X and U)
-  ex_oracle <- integrate_covariates(
-    gt,
-    x_vars = target_sample_strong %>% select(X, U),
-    x_target = target_sample_strong %>% select(X, U),
-    omega = omega
-  )
-
-  inf_oracle <- compute_variance(
-    ex_oracle$phi_future,
-    estimate = ex_oracle$tau_future,
-    level = level
-  )
-
-  bias_path3_oracle_strong[r] <- ex_oracle$tau_future - true_fatt_strong
-  covered_path3_oracle_strong[r] <- (
-    true_fatt_strong >= inf_oracle$ci[1] &&
-    true_fatt_strong <= inf_oracle$ci[2]
-  )
-}
-
-# ============================================================================
-# Scenario 3: No confounding (cor(X, U) = 0, baseline)
-# ============================================================================
-
-message("Running Section 8.2 Scenario 3: No confounding (cor = 0)...")
-
-cor_XU_none <- 0.0
-
-theta_gt_none <- make_theta_gt_unobserved(
-  q = q, p = p,
-  alpha = alpha, beta_X = beta_X, beta_U = beta_U,
-  cor_XU = cor_XU_none, mu_g = mu_g, sigma_X = sigma_X,
-  seed = 8205
-)
-
-mu_U_given_X_target_none <- 0.0  # No correlation
-
-true_fatt_none <- true_fatt_unobserved(
-  alpha = alpha,
-  beta_X = beta_X,
-  beta_U = beta_U,
-  mu_X_target = mu_X_target,
-  mu_U_target = mu_U_given_X_target_none
-)
-
-# Generate target sample
-set.seed(8206)
-target_sample_none <- generate_target_covariates_unobserved(
-  n_target = n_target,
-  mu_X_target = mu_X_target,
-  mu_U_target = mu_U_given_X_target_none,
-  sigma_X = sigma_X,
-  sigma_U = 1.0,
-  cor_XU = cor_XU_none
-)
-
-bias_path3_misspec_none <- numeric(n_replicates)
-covered_path3_misspec_none <- logical(n_replicates)
-
-for (r in seq_len(n_replicates)) {
-  gt <- add_noise_and_eif(
-    theta_gt_none, n = n,
-    sigma_tau = 0.1, seed = 8400L + r
-  )
-
-  # Misspecified (X only) - but no confounding, so should be unbiased
-  ex_misspec <- integrate_covariates(
-    gt,
-    x_vars = target_sample_none$X,
-    x_target = target_sample_none %>% select(X),
-    omega = omega
-  )
-
-  inf_misspec <- compute_variance(
-    ex_misspec$phi_future,
-    estimate = ex_misspec$tau_future,
-    level = level
-  )
-
-  bias_path3_misspec_none[r] <- ex_misspec$tau_future - true_fatt_none
-  covered_path3_misspec_none[r] <- (
-    true_fatt_none >= inf_misspec$ci[1] &&
-    true_fatt_none <= inf_misspec$ci[2]
-  )
-}
-
-# ============================================================================
-# Compile Results
-# ============================================================================
+scenarios <- lapply(cor_grid, function(rho) {
+  message(sprintf("  Scenario cor(X, U) = %.1f ...", rho))
+  run_scenario(rho)
+})
+names(scenarios) <- sprintf("cor_%02d", round(cor_grid * 10))
 
 results_s8_2 <- list(
-  scenario_1_moderate_confounding = list(
-    cor_XU = cor_XU,
-    true_fatt = true_fatt_confounded,
-    path3_misspec = list(
-      bias = mean(bias_path3_misspec_mod),
-      rmse = sqrt(mean(bias_path3_misspec_mod^2)),
-      coverage = mean(covered_path3_misspec_mod),
-      n_replicates = n_replicates
-    ),
-    path3_oracle = list(
-      bias = mean(bias_path3_oracle_mod),
-      rmse = sqrt(mean(bias_path3_oracle_mod^2)),
-      coverage = mean(covered_path3_oracle_mod),
-      n_replicates = n_replicates
-    )
-  ),
-  scenario_2_strong_confounding = list(
-    cor_XU = cor_XU_strong,
-    true_fatt = true_fatt_strong,
-    path3_misspec = list(
-      bias = mean(bias_path3_misspec_strong),
-      rmse = sqrt(mean(bias_path3_misspec_strong^2)),
-      coverage = mean(covered_path3_misspec_strong),
-      n_replicates = n_replicates
-    ),
-    path3_oracle = list(
-      bias = mean(bias_path3_oracle_strong),
-      rmse = sqrt(mean(bias_path3_oracle_strong^2)),
-      coverage = mean(covered_path3_oracle_strong),
-      n_replicates = n_replicates
-    )
-  ),
-  scenario_3_no_confounding = list(
-    cor_XU = cor_XU_none,
-    true_fatt = true_fatt_none,
-    path3_misspec = list(
-      bias = mean(bias_path3_misspec_none),
-      rmse = sqrt(mean(bias_path3_misspec_none^2)),
-      coverage = mean(covered_path3_misspec_none),
-      n_replicates = n_replicates
-    )
-  ),
+  scenarios = scenarios,
+  cor_grid = cor_grid,
+  true_fatt = true_fatt,
   dgp_params = list(
-    alpha = alpha,
-    beta_X = beta_X,
-    beta_U = beta_U,
-    mu_X_target = mu_X_target,
-    sigma_X = sigma_X,
-    n = n,
-    q = q,
-    p = p,
-    future_time = future_time
+    alpha = alpha, beta_X = beta_X, beta_U = beta_U,
+    sigma_Y = sigma_Y, mu_X_target = mu_X_target,
+    n_unit = n_unit, n_replicates = n_replicates
   )
 )
 
-# Save results
-dir.create("sims/results", showWarnings = FALSE, recursive = TRUE)
-saveRDS(results_s8_2, "sims/results/section8_2_misspec.rds")
-message("Section 8.2 done: section8_2_misspec.rds saved")
+# ---- Save ----
+fs::dir_create("sims/results")
+readr::write_rds(results_s8_2, "sims/results/section8_2_misspec.rds")
+message("Section 8.2 done: sims/results/section8_2_misspec.rds saved")
 
-# Print summary
+# ---- Summary ----
 message("\n=== Section 8.2 Results Summary ===")
-message("\nScenario 1: Moderate confounding (cor = 0.5)")
-message(sprintf("  True FATT: %.3f", results_s8_2$scenario_1_moderate_confounding$true_fatt))
-message(sprintf("  Path 3 (X only) - Bias: %.3f, Coverage: %.1f%%",
-                results_s8_2$scenario_1_moderate_confounding$path3_misspec$bias,
-                results_s8_2$scenario_1_moderate_confounding$path3_misspec$coverage * 100))
-message(sprintf("  Path 3 (Oracle) - Bias: %.3f, Coverage: %.1f%%",
-                results_s8_2$scenario_1_moderate_confounding$path3_oracle$bias,
-                results_s8_2$scenario_1_moderate_confounding$path3_oracle$coverage * 100))
+for (nm in names(scenarios)) {
+  s <- scenarios[[nm]]
+  message(sprintf("\ncor(X, U) = %.1f  (expected misspec bias %.3f):", s$cor_XU,
+                  s$expected_bias_misspec))
+  message(sprintf("  Path 3 (X only) - Bias: %+.3f, RMSE: %.3f, Coverage: %.1f%%",
+                  s$path3_misspec$bias, s$path3_misspec$rmse,
+                  s$path3_misspec$coverage * 100))
+  message(sprintf("  Path 3 (oracle) - Bias: %+.3f, RMSE: %.3f, Coverage: %.1f%%",
+                  s$path3_oracle$bias, s$path3_oracle$rmse,
+                  s$path3_oracle$coverage * 100))
+}
 
-message("\nScenario 2: Strong confounding (cor = 0.8)")
-message(sprintf("  True FATT: %.3f", results_s8_2$scenario_2_strong_confounding$true_fatt))
-message(sprintf("  Path 3 (X only) - Bias: %.3f, Coverage: %.1f%%",
-                results_s8_2$scenario_2_strong_confounding$path3_misspec$bias,
-                results_s8_2$scenario_2_strong_confounding$path3_misspec$coverage * 100))
-message(sprintf("  Path 3 (Oracle) - Bias: %.3f, Coverage: %.1f%%",
-                results_s8_2$scenario_2_strong_confounding$path3_oracle$bias,
-                results_s8_2$scenario_2_strong_confounding$path3_oracle$coverage * 100))
-
-message("\nScenario 3: No confounding (cor = 0, baseline)")
-message(sprintf("  True FATT: %.3f", results_s8_2$scenario_3_no_confounding$true_fatt))
-message(sprintf("  Path 3 (X only) - Bias: %.3f, Coverage: %.1f%%",
-                results_s8_2$scenario_3_no_confounding$path3_misspec$bias,
-                results_s8_2$scenario_3_no_confounding$path3_misspec$coverage * 100))
-
-message("\n=== Key Insight ===")
-message("When unobserved heterogeneity (U) is correlated with observed X,")
-message("Path 3 suffers omitted variable bias. The bias grows with cor(X,U).")
-message("Oracle (true model with U) shows Path 3 works when correctly specified.")
+message("\n=== Key insight ===")
+message("An X-only Path 3 absorbs the unobserved U's effect into an inflated X-slope via")
+message("the source X-U correlation. When the target regime shifts X but U does not follow")
+message("that source relationship, the absorbed slope mispredicts: bias grows with cor(X,U)")
+message("and coverage collapses. The oracle (X and U) transports the true deep parameters")
+message("and stays unbiased -- the Lucas-critique failure mode of Path 3.")

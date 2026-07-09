@@ -5,9 +5,10 @@
 
 library(dplyr)
 
-# Output directory
-out_dir <- "latex/Estimating_policy_effects_in_the_presence_of_heterogeneity/sim_tables"
-dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+# Output directory: canonical paper location (inst/paper/sim_tables). This previously
+# pointed at the legacy latex/... tree, which is no longer the canonical paper dir.
+out_dir <- "inst/paper/sim_tables"
+fs::dir_create(out_dir)
 
 # ============================================================================
 # Section 8.1: Non-Smooth Dynamics
@@ -15,7 +16,7 @@ dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 message("Generating Section 8.1 table (non-smooth dynamics)...")
 
-results_8_1 <- readRDS("sims/results/section8_1_nonsmooth.rds")
+results_8_1 <- readr::read_rds("sims/results/section8_1_nonsmooth.rds")
 
 # Extract results
 true_fatt <- results_8_1$true_fatt
@@ -84,12 +85,62 @@ writeLines(tex_8_1, file.path(out_dir, "section8_1.tex"))
 message("  Saved: ", file.path(out_dir, "section8_1.tex"))
 
 # ============================================================================
+# Section 8.2: Conditional Misspecification (Path 3 break point)
+# ============================================================================
+
+message("\nGenerating Section 8.2 table (conditional misspecification)...")
+
+results_8_2 <- readr::read_rds("sims/results/section8_2_misspec.rds")
+
+# One row per cor(X,U) scenario, showing misspecified (X-only) vs oracle (X,U) Path 3.
+tex_8_2_rows <- purrr::map_chr(names(results_8_2$scenarios), function(nm) {
+  s <- results_8_2$scenarios[[nm]]
+  sprintf(
+    "%.1f &\n%.3f\n &\n%.1f\n\\%% &\n%.3f\n &\n%.1f\n\\%% \\\\",
+    s$cor_XU,
+    s$path3_misspec$bias,
+    s$path3_misspec$coverage * 100,
+    s$path3_oracle$bias,
+    s$path3_oracle$coverage * 100
+  )
+})
+
+tex_8_2 <- sprintf(
+  "\\begin{table}[htbp]
+\\centering
+\\caption{Path~3 under unobserved heterogeneity. Treatment-effect heterogeneity is driven by
+an unobserved modifier \\(U\\) correlated with the observed covariate \\(X\\) (correlation
+\\(\\rho\\)); the target regime shifts \\(X\\) but not the source \\(X\\)--\\(U\\) relationship.
+The \\(X\\)-only model absorbs \\(U\\)'s effect into an inflated \\(X\\)-slope, so its transported
+FATT is biased by \\(\\beta_U\\,\\rho\\,\\mu_X^{\\text{target}}\\) (true FATT \\(=%s\\)); coverage
+collapses. The oracle model (conditioning on \\(X\\) and \\(U\\)) transports the true deep
+parameters and remains unbiased with near-nominal coverage.}
+\\label{tab:section8_2}
+\\begin{tabular}{lcccc}
+\\toprule
+& \\multicolumn{2}{c}{Path~3 (\\(X\\) only)} & \\multicolumn{2}{c}{Path~3 (oracle, \\(X, U\\))} \\\\
+\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}
+\\(\\rho = \\mathrm{cor}(X, U)\\) & Bias & Coverage & Bias & Coverage \\\\
+\\midrule
+%s
+\\bottomrule
+\\end{tabular}
+\\end{table}
+",
+  format(results_8_2$true_fatt, digits = 3, nsmall = 3),
+  paste(tex_8_2_rows, collapse = "\n")
+)
+
+writeLines(tex_8_2, file.path(out_dir, "section8_2.tex"))
+message("  Saved: ", file.path(out_dir, "section8_2.tex"))
+
+# ============================================================================
 # Section 8.3: Small-Sample Extrapolation
 # ============================================================================
 
 message("\nGenerating Section 8.3 tables (small-sample extrapolation)...")
 
-results_8_3 <- readRDS("sims/results/section8_3_smallsample.rds")
+results_8_3 <- readr::read_rds("sims/results/section8_3_smallsample.rds")
 
 # Extract p values
 p_vals <- results_8_3$p_grid
@@ -254,11 +305,13 @@ message("  Saved: ", file.path(out_dir, "section8_3_combined.tex"))
 # ============================================================================
 
 message("\n=== Section 8 LaTeX Tables Generated ===")
-message("Created 4 tables:")
+message("Created 5 tables:")
 message("  1. section8_1.tex - Non-smooth dynamics (Path 2 failure)")
-message("  2. section8_3a.tex - Small-sample Path 1 (catastrophic failure)")
-message("  3. section8_3b.tex - Small-sample Path 2 (coverage vs p)")
-message("  4. section8_3_combined.tex - Both paths side-by-side")
+message("  2. section8_2.tex - Conditional misspecification (Path 3 failure)")
+message("  3. section8_3a.tex - Small-sample Path 1 (catastrophic failure)")
+message("  4. section8_3b.tex - Small-sample Path 2 (coverage vs p)")
+message("  5. section8_3_combined.tex - Both paths side-by-side")
 message("\nTo include in paper, add to main.tex:")
 message("  \\input{sim_tables/section8_1}")
+message("  \\input{sim_tables/section8_2}")
 message("  \\input{sim_tables/section8_3_combined}")

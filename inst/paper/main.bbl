@@ -1,4 +1,4 @@
-\begin{thebibliography}{36}
+\begin{thebibliography}{40}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -53,6 +53,17 @@ Nancy Cartwright.
   Economics}.
 \newblock Cambridge University Press, 2007.
 
+\bibitem[Chernozhukov et~al.(2018)Chernozhukov, Chetverikov, Demirer, Duflo,
+  Hansen, Newey, and Robins]{chernozhukovDoubleDebiasedMachine2018}
+Victor Chernozhukov, Denis Chetverikov, Mert Demirer, Esther Duflo, Christian
+  Hansen, Whitney Newey, and James Robins.
+\newblock Double/debiased machine learning for treatment and structural
+  parameters.
+\newblock \emph{The Econometrics Journal}, 21\penalty0 (1):\penalty0 C1--C68,
+  2018.
+\newblock ISSN 1368-4221.
+\newblock \doi{10.1111/ectj.12097}.
+
 \bibitem[Cintron et~al.(2022)Cintron, Adler, Gottlieb, Hagan, Tan, Vlahov,
   Glymour, and Matthay]{cintronHeterogeneousTreatmentEffects2022}
 Dakota~W. Cintron, Nancy~E. Adler, Laura~M. Gottlieb, Erin Hagan, May~Lynn Tan,
@@ -77,6 +88,13 @@ Cl{\'e}ment De~Chaisemartin and Xavier {d'Haultfoeuille}.
   heterogeneous treatment effects: {{A}} survey.
 \newblock \emph{The econometrics journal}, 26\penalty0 (3):\penalty0 C1--C30,
   2023.
+
+\bibitem[Deb et~al.(2026)Deb, Dwivedi, and
+  Basu]{debCounterfactualForecastingPanel2026}
+Navonil Deb, Raaz Dwivedi, and Sumanta Basu.
+\newblock Counterfactual forecasting for panel data.
+\newblock \emph{arXiv preprint arXiv:2511.06189}, 2026.
+\newblock Version 2, February 2026.
 
 \bibitem[Dette and Schumann(2024)]{detteTestingEquivalencePreTrends2024}
 Holger Dette and Martin Schumann.
@@ -212,6 +230,15 @@ Ashesh Rambachan and Jonathan Roth.
 \newblock \emph{Review of Economic Studies}, 90\penalty0 (5):\penalty0
   2555--2591, 2023.
 
+\bibitem[Robins(1986)]{robinsNewApproachCausal1986}
+James Robins.
+\newblock A new approach to causal inference in mortality studies with a
+  sustained exposure period---application to control of the healthy worker
+  survivor effect.
+\newblock \emph{Mathematical Modelling}, 7\penalty0 (9--12):\penalty0
+  1393--1512, 1986.
+\newblock \doi{10.1016/0270-0255(86)90088-6}.
+
 \bibitem[Roth(2022)]{rothPretestCautionEventstudy2022}
 Jonathan Roth.
 \newblock Pretest with caution: {{Event-study}} estimates after testing for
@@ -226,6 +253,15 @@ Jonathan Roth and Pedro H.~C. Sant'Anna.
   (4):\penalty0 669--709, November 2023.
 \newblock ISSN 2832-9368, 2832-9376.
 \newblock \doi{10.1086/726581}.
+
+\bibitem[Sant'Anna and
+  Zhao(2020)]{santannaDoublyRobustDifferenceindifferences2020}
+Pedro H.~C. Sant'Anna and Jun Zhao.
+\newblock Doubly robust difference-in-differences estimators.
+\newblock \emph{Journal of Econometrics}, 219\penalty0 (1):\penalty0 101--122,
+  2020.
+\newblock ISSN 0304-4076.
+\newblock \doi{10.1016/j.jeconom.2020.06.003}.
 
 \bibitem[Sasaki and Ura(2023)]{sasakiEstimationInferencePolicy2023}
 Yuya Sasaki and Takuya Ura.

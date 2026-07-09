@@ -27,7 +27,8 @@ suppressPackageStartupMessages({
   library(tibble)
 })
 
-devtools::load_all("package")
+# Package lives at the repo root (was package/ pre-Phase-2). Fall back for older checkouts.
+if (file.exists("DESCRIPTION")) devtools::load_all(".") else devtools::load_all("package")
 source("sims/scripts/dgp_helpers.R")
 source("sims/scripts/dgp_helpers_section8.R")
 

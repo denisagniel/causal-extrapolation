@@ -42,9 +42,9 @@ devtools::load_all(".")
 set.seed(20260709)
 dir_create("application/results")
 
-cat("=== Phase 2.4: Path 3 - Direct CATE + Covariate Transport (DiD) ===\n\n")
+message("=== Phase 2.4: Path 3 - Direct CATE + Covariate Transport (DiD) ===\n")
 
-data <- readRDS("application/results/analysis_data.rds")
+data <- readr::read_rds("application/results/analysis_data.rds")
 
 # Covariates usable for transport (urbanization dropped: 100% missing among treated).
 covs <- c("poverty_rate", "pct_black", "unemployment", "pct_hispanic")
@@ -54,9 +54,9 @@ early_adopters <- data %>%
   filter(cohort > 0, cohort <= 2015) %>%
   distinct(state, cohort)
 
-cat("Early-adopter (treated) states:", nrow(early_adopters), "\n")
-cat("Never-treated control states:",
-    n_distinct(data$state[data$cohort == 0]), "\n\n")
+message("Early-adopter (treated) states: ", nrow(early_adopters))
+message("Never-treated control states: ",
+        n_distinct(data$state[data$cohort == 0]), "\n")
 
 # ---------------------------------------------------------------------------
 # 1. Build the conditional-DiD source contract on the training window (<= 2015).
@@ -86,8 +86,8 @@ src <- dY_tbl %>%
   inner_join(X_tbl, by = "state") %>%
   drop_na()
 
-cat("Source contract:", nrow(src), "states (",
-    sum(src$A), "treated,", sum(1 - src$A), "control )\n\n")
+message("Source contract: ", nrow(src), " states ( ",
+        sum(src$A), " treated, ", sum(1 - src$A), " control )\n")
 
 X_src <- src[, covs]
 A_src <- src$A
@@ -168,18 +168,18 @@ predict_path3 <- function(build_contract, label) {
     tibble(year = t, att_pred = res$estimate, se_pred = res$se,
            ci_lower = res$ci[1], ci_upper = res$ci[2], n_eff = res$n_eff)
   })
-  cat("Path 3 (", label, ") predictions 2016-2022:\n", sep = "")
+  message("Path 3 (", label, ") predictions 2016-2022:")
   print(rows)
   # Report the overlap diagnostic explicitly: effective sample vs the 43 source states.
-  cat(sprintf("  overlap: n_eff ranges %.0f-%.0f of %d source states (low => heavy shift)\n\n",
-              min(rows$n_eff), max(rows$n_eff), n_src))
+  message(sprintf("  overlap: n_eff ranges %.0f-%.0f of %d source states (low => heavy shift)\n",
+                  min(rows$n_eff), max(rows$n_eff), n_src))
   rows
 }
 
-cat("--- Learner (a): parametric conditional DR-DiD (primary) ---\n")
+message("--- Learner (a): parametric conditional DR-DiD (primary) ---")
 pred_param <- predict_path3(build_contract_parametric, "parametric")
 
-cat("--- Learner (b): causal forest on dY (robustness) ---\n")
+message("--- Learner (b): causal forest on dY (robustness) ---")
 pred_forest <- predict_path3(build_contract_forest, "causal forest")
 
 # ---------------------------------------------------------------------------
@@ -192,7 +192,7 @@ omega_tbl <- readr::read_csv("application/results/syg_cohorts.csv",
   mutate(omega = n_states / sum(n_states))
 
 # Primary = parametric; forest carried as a sensitivity result.
-saveRDS(list(
+readr::write_rds(list(
   predictions = pred_param %>% select(year, att_pred, se_pred, ci_lower, ci_upper),
   predictions_forest = if (!is.null(pred_forest))
     pred_forest %>% select(year, att_pred, se_pred, ci_lower, ci_upper) else NULL,
@@ -203,6 +203,6 @@ saveRDS(list(
   method_forest = "Direct CATE + covariate transport (conditional DR-DiD, causal forest)"
 ), "application/results/path3_covariate_integration.rds")
 
-cat("Saved: application/results/path3_covariate_integration.rds\n")
-cat("\n=== Phase 2.4 Complete ===\n")
-cat("Next: Run 06_validation.R\n")
+message("Saved: application/results/path3_covariate_integration.rds")
+message("\n=== Phase 2.4 Complete ===")
+message("Next: Run 06_validation.R")

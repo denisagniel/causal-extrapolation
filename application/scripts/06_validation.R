@@ -4,21 +4,21 @@
 library(tidyverse)
 library(fs)
 
-cat("=== Phase 2.5: Validation ===\n\n")
+message("=== Phase 2.5: Validation ===\n")
 
 dir_create("application/results")
 
 # Path 1 / Path 2 / Path 3 predictions (all EIF-based).
-path1 <- readRDS("application/results/path1_homogeneity.rds")
-path2 <- readRDS("application/results/path2_model_selection.rds")
-path3 <- readRDS("application/results/path3_covariate_integration.rds")
+path1 <- readr::read_rds("application/results/path1_homogeneity.rds")
+path2 <- readr::read_rds("application/results/path2_model_selection.rds")
+path3 <- readr::read_rds("application/results/path3_covariate_integration.rds")
 
 # Realized ATTs (from full-period estimation), aggregated by year with the SAME cohort
 # weights the predictions use. The predictions target sum_g omega_g * tau_g (omega =
 # cohort-size weights, renormalized over cohorts post-treatment that year), so the
 # realized validation target MUST use the same weighting or the comparison mixes
 # estimands (an equal-weighted realized mean vs an omega-weighted prediction).
-realized <- readRDS("application/results/realized_atts_2016_2022.rds")
+realized <- readr::read_rds("application/results/realized_atts_2016_2022.rds")
 
 # omega_g by cohort (from Path 1; identical weights in Path 2).
 omega_by_cohort <- path1$omega %>% select(cohort, omega)
@@ -34,9 +34,9 @@ realized_yearly <- realized %>%
     se_realized = mean(se, na.rm = TRUE),
     n_groups = n(), .groups = "drop")
 
-cat("Realized ATTs by year (omega-weighted, matching predictions):\n")
+message("Realized ATTs by year (omega-weighted, matching predictions):")
 print(realized_yearly)
-cat("\n")
+message("")
 
 all_preds <- realized_yearly %>%
   select(year, realized = att_realized) %>%
@@ -53,9 +53,9 @@ all_preds <- realized_yearly %>%
                                          lo_path3 = ci_lower, hi_path3 = ci_upper),
             by = "year")
 
-cat("Predictions vs realized:\n")
+message("Predictions vs realized:")
 print(all_preds)
-cat("\n")
+message("")
 
 # Validation metrics per path.
 metric_row <- function(pred, lo, hi, realized, label, method) {
@@ -76,13 +76,13 @@ validation_summary <- bind_rows(
              all_preds$realized, "Path 3", path3$method)
 )
 
-cat("Validation summary (Paths 1, 2 & 3):\n")
+message("Validation summary (Paths 1, 2 & 3):")
 print(validation_summary)
-cat("\nBest by MSPE:", validation_summary$path[which.min(validation_summary$mspe)], "\n")
+message("\nBest by MSPE: ", validation_summary$path[which.min(validation_summary$mspe)])
 
-saveRDS(validation_summary, "application/results/validation_summary.rds")
-saveRDS(all_preds, "application/results/validation_full.rds")
-cat("\nSaved: application/results/validation_summary.rds, validation_full.rds\n")
+readr::write_rds(validation_summary, "application/results/validation_summary.rds")
+readr::write_rds(all_preds, "application/results/validation_full.rds")
+message("\nSaved: application/results/validation_summary.rds, validation_full.rds")
 
-cat("\n=== Phase 2.5 Complete ===\n")
-cat("Next: Run 07_generate_tables.R\n")
+message("\n=== Phase 2.5 Complete ===")
+message("Next: Run 07_generate_tables.R")

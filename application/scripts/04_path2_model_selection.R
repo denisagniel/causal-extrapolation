@@ -10,9 +10,9 @@ devtools::load_all(".")
 set.seed(20260709)
 dir_create("application/results")
 
-cat("=== Phase 2.3: Path 2 - Model Selection (time-series CV) ===\n\n")
+message("=== Phase 2.3: Path 2 - Model Selection (time-series CV) ===\n")
 
-gt_obj <- readRDS("application/results/gt_object_training.rds")
+gt_obj <- readr::read_rds("application/results/gt_object_training.rds")
 syg_cohorts <- readr::read_csv("application/results/syg_cohorts.csv",
                                show_col_types = FALSE)
 
@@ -24,8 +24,8 @@ gt_post$phi <- gt_obj$phi[post_idx]
 gt_post$groups <- sort(unique(gt_post$data$g))
 gt_post$event_times <- sort(unique(gt_post$data$k))
 
-cat("Post-treatment cells:", nrow(gt_post$data), "| event times",
-    min(gt_post$data$k), "-", max(gt_post$data$k), "\n")
+message("Post-treatment cells: ", nrow(gt_post$data), " | event times ",
+        min(gt_post$data$k), " - ", max(gt_post$data$k))
 
 # Cohort weights (match Path 1): proportional to number of treated states.
 omega_tbl <- tibble(cohort = gt_post$groups) %>%
@@ -53,9 +53,9 @@ cv <- cv_extrapolate_ATT(
 )
 best_name <- select_best_model(cv, criterion = "mspe")  # public selection API
 
-cat("\nCV results (time-series, event scale):\n")
+message("\nCV results (time-series, event scale):")
 print(cv$results)
-cat("\nSelected model (min MSPE):", best_name, "\n\n")
+message("\nSelected model (min MSPE): ", best_name, "\n")
 
 best_spec <- specs[[best_name]]
 
@@ -114,10 +114,10 @@ year_preds <- purrr::map_dfr(future_years, function(yr) {
          ci_lower = inf$ci[1], ci_upper = inf$ci[2])
 })
 
-cat("Predictions for 2016-2022 (model:", best_name, ", EIF-based):\n")
+message("Predictions for 2016-2022 (model: ", best_name, " , EIF-based):")
 print(year_preds)
 
-saveRDS(list(
+readr::write_rds(list(
   predictions = year_preds,
   best_model = best_name,
   cv_results = cv$results,
@@ -125,6 +125,6 @@ saveRDS(list(
   method = paste0("Model selection via time-series CV (", best_name, ", EIF-based)")
 ), "application/results/path2_model_selection.rds")
 
-cat("\nSaved: application/results/path2_model_selection.rds\n")
-cat("\n=== Phase 2.3 Complete ===\n")
-cat("Next: Run 06_validation.R\n")
+message("\nSaved: application/results/path2_model_selection.rds")
+message("\n=== Phase 2.3 Complete ===")
+message("Next: Run 06_validation.R")
