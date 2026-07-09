@@ -2,7 +2,7 @@
 % Please edit documentation in R/score_builders.R
 \name{score_drdid}
 \alias{score_drdid}
-\title{DR-DiD correction (difference-in-differences design)}
+\title{DR-DiD correction (difference-in-differences design) -- EXPERIMENTAL, NOT VALIDATED}
 \usage{
 score_drdid(cate)
 }
@@ -10,18 +10,19 @@ score_drdid(cate)
 \item{cate}{A validated CATE contract list with elements \code{A}, \code{dY}, \code{m0_dY}, \code{e}.}
 }
 \value{
-Numeric vector of length n (the DR-DiD correction per observation).
+Numeric vector of length n.
 }
 \description{
-Computes the doubly-robust difference-in-differences correction of Sant'Anna and Zhao
-(2020) in its conditional (per-\eqn{X}) form: the residualized outcome-change score
-\deqn{\frac{A_i - e(X_i)}{e(X_i)(1 - e(X_i))}\,\big(\Delta Y_i - m_0(X_i)\big),}
-where \eqn{\Delta Y_i} is the observed outcome change and \eqn{m_0(X_i)} is the
-conditional expectation of the change among the untreated. This score is orthogonal to
-the nuisances \eqn{(m_0, e)}. Reweighted by \eqn{w(X_i)} in \code{\link[=integrate_cate]{integrate_cate()}}.
+Intended to compute a doubly-robust difference-in-differences correction in its
+conditional (per-\eqn{X}) form. \strong{This implementation is not yet validated against the
+Sant'Anna and Zhao (2020) DR-DiD influence function and is not mean-zero as written}
+(it lacks the propensity normalization by \eqn{\mathbb{E}[A]} and does not residualize
+the treated arm). The \code{design = "did"} path in \code{\link[=integrate_cate]{integrate_cate()}} is therefore gated
+off until this score is derived in the theory note and cross-checked numerically
+against \code{DRDID::drdid()}. Kept as an internal placeholder only; do not rely on it.
 }
 \references{
 Sant'Anna, P. H. C., & Zhao, J. (2020). Doubly robust
-difference-in-differences estimators. \emph{Journal of Econometrics}, 219(1), 101–122.
+difference-in-differences estimators. \emph{Journal of Econometrics}, 219(1), 101-122.
 }
 \keyword{internal}

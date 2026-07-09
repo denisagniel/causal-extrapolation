@@ -26,21 +26,23 @@ score_aipw <- function(cate) {
     (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
 }
 
-#' DR-DiD correction (difference-in-differences design)
+#' DR-DiD correction (difference-in-differences design) -- EXPERIMENTAL, NOT VALIDATED
 #'
-#' Computes the doubly-robust difference-in-differences correction of Sant'Anna and Zhao
-#' (2020) in its conditional (per-\eqn{X}) form: the residualized outcome-change score
-#' \deqn{\frac{A_i - e(X_i)}{e(X_i)(1 - e(X_i))}\,\big(\Delta Y_i - m_0(X_i)\big),}
-#' where \eqn{\Delta Y_i} is the observed outcome change and \eqn{m_0(X_i)} is the
-#' conditional expectation of the change among the untreated. This score is orthogonal to
-#' the nuisances \eqn{(m_0, e)}. Reweighted by \eqn{w(X_i)} in [integrate_cate()].
+#' Intended to compute a doubly-robust difference-in-differences correction in its
+#' conditional (per-\eqn{X}) form. **This implementation is not yet validated against the
+#' Sant'Anna and Zhao (2020) DR-DiD influence function and is not mean-zero as written**
+#' (it lacks the propensity normalization by \eqn{\mathbb{E}[A]} and does not residualize
+#' the treated arm). The `design = "did"` path in [integrate_cate()] is therefore gated
+#' off until this score is derived in the theory note and cross-checked numerically
+#' against `DRDID::drdid()`. Kept as an internal placeholder only; do not rely on it.
 #'
 #' @param cate A validated CATE contract list with elements `A`, `dY`, `m0_dY`, `e`.
-#' @return Numeric vector of length n (the DR-DiD correction per observation).
+#' @return Numeric vector of length n.
 #' @references Sant'Anna, P. H. C., & Zhao, J. (2020). Doubly robust
-#'   difference-in-differences estimators. \emph{Journal of Econometrics}, 219(1), 101–122.
+#'   difference-in-differences estimators. \emph{Journal of Econometrics}, 219(1), 101-122.
 #' @keywords internal
 score_drdid <- function(cate) {
-  # Residualized-change DR-DiD score; orthogonal to (m0, e). Length-n vector.
+  # PLACEHOLDER residualized-change score -- NOT the validated Sant'Anna-Zhao score.
+  # See the function docs; design = "did" is gated off in integrate_cate() until fixed.
   (cate$A - cate$e) / (cate$e * (1 - cate$e)) * (cate$dY - cate$m0_dY)
 }

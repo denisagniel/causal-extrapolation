@@ -16,3 +16,4 @@
 
 # Redundant raw archive (CSVs extracted alongside)
 application/data/rstudio-export.zip
+tests/testthat/Rplots.pdf

@@ -182,9 +182,9 @@ gt_object_from_att_gt <- function(x, extract_eif = TRUE) {
 did_extract_gt <- function(did_obj, ids = NULL) {
   .Deprecated("as_gt_object", package = "extrapolateATT")
 
-  # Preserve backward-compatible error message
-  # Accept both "att_gt" and "AGGTEobj" (different versions of did use different classes)
-  if (!inherits(did_obj, "att_gt") && !inherits(did_obj, "AGGTEobj")) {
+  # Preserve backward-compatible error message.
+  # Accept "att_gt", "AGGTEobj", and "MP" (modern did::att_gt() returns class MP).
+  if (!inherits(did_obj, c("att_gt", "AGGTEobj", "MP"))) {
     stop("did_obj must be an att_gt object.", call. = FALSE)
   }
 
