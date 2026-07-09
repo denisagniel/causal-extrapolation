@@ -1,5 +1,20 @@
-# Phase 2.4: Path 3 - Covariate Integration
-# Conditional model: effects vary by state covariates
+# ============================================================================
+# SUPERSEDED / DEFERRED -- DO NOT RUN AS PART OF THE PIPELINE (2026-07-09)
+# ----------------------------------------------------------------------------
+# This script implements the OLD Path 3 (lm(att ~ covariates) on group-level
+# ATTs -- the "ecological regression" the audit flagged as invalid, C1). It is
+# retained only for reference/provenance.
+#
+# The reframed Path 3 = direct CATE + covariate transport (package function
+# integrate_cate()). In this DiD application, the correct identification is a
+# CONDITIONAL DR-DiD design, whose transport influence function is not yet
+# validated -- integrate_cate(design = "did") is gated off in the package.
+#
+# Path 3 for the application is therefore DEFERRED until that transport EIF is
+# derived and un-gated. Its output is NOT consumed by 06_validation.R or
+# 07_generate_tables.R. See quality_reports/plans (Phase 3) and the DiD-theory
+# deferred item.
+# ============================================================================
 
 library(tidyverse)
 

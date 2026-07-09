@@ -3,6 +3,10 @@
 # Training: 1981-2015, Validation: 2016-2022
 
 library(tidyverse)
+library(fs)
+
+set.seed(20260709)
+dir_create("application/results")
 
 # Load raw data
 raw_data <- read_csv("application/data/underlying-data_firearm-homicide.csv",

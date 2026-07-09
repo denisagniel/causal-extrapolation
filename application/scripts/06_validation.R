@@ -1,105 +1,82 @@
 # Phase 2.5: Validation
-# Compare predictions against realized 2016-2022 outcomes
+# Compare Path 1 / Path 2 predictions (EIF-based) against realized 2016-2022 ATTs.
+# Path 3 is deferred (see 05 banner) pending the DiD transport influence function.
 
 library(tidyverse)
+library(fs)
 
 cat("=== Phase 2.5: Validation ===\n\n")
 
-# Load realized ATTs (from full estimation)
+dir_create("application/results")
+
+# Path 1 / Path 2 predictions (both now EIF-based).
+path1 <- readRDS("application/results/path1_homogeneity.rds")
+path2 <- readRDS("application/results/path2_model_selection.rds")
+
+# Realized ATTs (from full-period estimation), aggregated by year with the SAME cohort
+# weights the predictions use. The predictions target sum_g omega_g * tau_g (omega =
+# cohort-size weights, renormalized over cohorts post-treatment that year), so the
+# realized validation target MUST use the same weighting or the comparison mixes
+# estimands (an equal-weighted realized mean vs an omega-weighted prediction).
 realized <- readRDS("application/results/realized_atts_2016_2022.rds")
 
-cat("Realized ATTs (2016-2022):\n")
-cat("  Observations:", nrow(realized), "\n")
-cat("  Mean ATT:", round(mean(realized$att, na.rm = TRUE), 3), "\n")
-cat("  SD ATT:", round(sd(realized$att, na.rm = TRUE), 3), "\n\n")
+# omega_g by cohort (from Path 1; identical weights in Path 2).
+omega_by_cohort <- path1$omega %>% select(cohort, omega)
 
-# Compute simple average by year for validation
 realized_yearly <- realized %>%
+  left_join(omega_by_cohort, by = c("group" = "cohort")) %>%
+  mutate(omega = replace_na(omega, 0)) %>%
   group_by(year) %>%
   summarize(
-    att_realized = mean(att, na.rm = TRUE),
-    se_realized = mean(se, na.rm = TRUE),  # Average SE across groups
-    n_groups = n(),
-    .groups = "drop"
-  )
+    # Renormalize omega over the cohorts contributing this year, matching the
+    # per-year renormalization in scripts 03/04.
+    att_realized = weighted.mean(att, omega, na.rm = TRUE),
+    se_realized = mean(se, na.rm = TRUE),
+    n_groups = n(), .groups = "drop")
 
-cat("Realized ATTs by year:\n")
+cat("Realized ATTs by year (omega-weighted, matching predictions):\n")
 print(realized_yearly)
 cat("\n")
 
-# Load predictions from all three paths
-path1 <- readRDS("application/results/path1_homogeneity.rds")
-path2 <- readRDS("application/results/path2_model_selection.rds")
-path3 <- readRDS("application/results/path3_covariate_integration.rds")
+all_preds <- realized_yearly %>%
+  select(year, realized = att_realized) %>%
+  left_join(path1$predictions %>% select(year, path1 = att_pred,
+                                         se_path1 = se_pred,
+                                         lo_path1 = ci_lower, hi_path1 = ci_upper),
+            by = "year") %>%
+  left_join(path2$predictions %>% select(year, path2 = att_pred,
+                                         se_path2 = se_pred,
+                                         lo_path2 = ci_lower, hi_path2 = ci_upper),
+            by = "year")
 
-# Combine predictions
-all_preds <- data.frame(
-  year = path1$predictions$year,
-  realized = realized_yearly$att_realized,
-  path1 = path1$predictions$att_pred,
-  path2 = path2$predictions$att_pred,
-  path3 = path3$predictions$att_pred,
-  se_realized = realized_yearly$se_realized,
-  se_path1 = path1$predictions$se_pred,
-  se_path2 = path2$predictions$se_pred,
-  se_path3 = path3$predictions$se_pred
-)
-
-cat("Combined predictions and realized values:\n")
+cat("Predictions vs realized:\n")
 print(all_preds)
 cat("\n")
 
-# Compute validation metrics
+# Validation metrics per path.
+metric_row <- function(pred, lo, hi, realized, label, method) {
+  tibble(
+    path = label, method = method,
+    mspe = mean((pred - realized)^2, na.rm = TRUE),
+    mae = mean(abs(pred - realized), na.rm = TRUE),
+    coverage_95 = mean(realized >= lo & realized <= hi, na.rm = TRUE)
+  )
+}
 
-# Mean Squared Prediction Error (MSPE)
-mspe1 <- mean((all_preds$path1 - all_preds$realized)^2, na.rm = TRUE)
-mspe2 <- mean((all_preds$path2 - all_preds$realized)^2, na.rm = TRUE)
-mspe3 <- mean((all_preds$path3 - all_preds$realized)^2, na.rm = TRUE)
-
-# Mean Absolute Error (MAE)
-mae1 <- mean(abs(all_preds$path1 - all_preds$realized), na.rm = TRUE)
-mae2 <- mean(abs(all_preds$path2 - all_preds$realized), na.rm = TRUE)
-mae3 <- mean(abs(all_preds$path3 - all_preds$realized), na.rm = TRUE)
-
-# Coverage rate (95% CI)
-# Path 1
-ci_lower1 <- path1$predictions$ci_lower
-ci_upper1 <- path1$predictions$ci_upper
-coverage1 <- mean(all_preds$realized >= ci_lower1 & all_preds$realized <= ci_upper1)
-
-# Path 2
-ci_lower2 <- path2$predictions$ci_lower
-ci_upper2 <- path2$predictions$ci_upper
-coverage2 <- mean(all_preds$realized >= ci_lower2 & all_preds$realized <= ci_upper2)
-
-# Path 3
-ci_lower3 <- path3$predictions$ci_lower
-ci_upper3 <- path3$predictions$ci_upper
-coverage3 <- mean(all_preds$realized >= ci_lower3 & all_preds$realized <= ci_upper3)
-
-# Summarize
-validation_summary <- data.frame(
-  path = c("Path 1: Homogeneity", "Path 2: Model Selection", "Path 3: Covariate Integration"),
-  method = c(path1$method, path2$method, path3$method),
-  mspe = c(mspe1, mspe2, mspe3),
-  mae = c(mae1, mae2, mae3),
-  coverage_95 = c(coverage1, coverage2, coverage3)
+validation_summary <- bind_rows(
+  metric_row(all_preds$path1, all_preds$lo_path1, all_preds$hi_path1,
+             all_preds$realized, "Path 1", path1$method),
+  metric_row(all_preds$path2, all_preds$lo_path2, all_preds$hi_path2,
+             all_preds$realized, "Path 2", path2$method)
 )
 
-cat("Validation Summary:\n")
+cat("Validation summary (Path 1 & 2; Path 3 deferred):\n")
 print(validation_summary)
-cat("\n")
+cat("\nBest by MSPE:", validation_summary$path[which.min(validation_summary$mspe)], "\n")
 
-# Best method by MSPE
-best_method <- validation_summary$path[which.min(validation_summary$mspe)]
-cat("Best method by MSPE:", best_method, "\n\n")
-
-# Save results
 saveRDS(validation_summary, "application/results/validation_summary.rds")
 saveRDS(all_preds, "application/results/validation_full.rds")
-
-cat("Saved: application/results/validation_summary.rds\n")
-cat("Saved: application/results/validation_full.rds\n")
+cat("\nSaved: application/results/validation_summary.rds, validation_full.rds\n")
 
 cat("\n=== Phase 2.5 Complete ===\n")
 cat("Next: Run 07_generate_tables.R\n")
