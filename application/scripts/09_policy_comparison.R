@@ -4,10 +4,10 @@
 library(tidyverse)
 library(did)
 
-cat("=== Quick Policy Comparison ===\n\n")
+message("=== Quick Policy Comparison ===\n")
 
 # Load data
-data <- readRDS("application/results/analysis_data.rds")
+data <- readr::read_rds("application/results/analysis_data.rds")
 
 # Define policies to test
 policies <- c("syg", "ubc", "ma20", "cc_pc", "cc_si", "cap", "vm")
@@ -23,7 +23,7 @@ policy_names <- c(
 
 # Function to analyze one policy
 analyze_policy <- function(policy_var, data, verbose = TRUE) {
-  if (verbose) cat("Analyzing", policy_names[policy_var], "...\n")
+  if (verbose) message("Analyzing ", policy_names[policy_var], " ...")
 
   # Identify treatment cohorts
   cohorts <- data %>%
@@ -36,11 +36,11 @@ analyze_policy <- function(policy_var, data, verbose = TRUE) {
   n_early <- if (n_adopters > 0) sum(cohorts$cohort_year <= 2015) else 0
 
   if (verbose) {
-    cat("  Adopters:", n_adopters, "(", n_early, "by 2015)\n")
+    message("  Adopters: ", n_adopters, " ( ", n_early, " by 2015)")
   }
 
   if (n_early < 3) {
-    if (verbose) cat("  SKIP: Too few early adopters (<3)\n\n")
+    if (verbose) message("  SKIP: Too few early adopters (<3)\n")
     return(NULL)
   }
 
@@ -65,7 +65,7 @@ analyze_policy <- function(policy_var, data, verbose = TRUE) {
 
   # Skip if no variation
   if (length(unique(training$G[training$G > 0])) < 2) {
-    if (verbose) cat("  SKIP: Insufficient cohort variation\n\n")
+    if (verbose) message("  SKIP: Insufficient cohort variation\n")
     return(NULL)
   }
 
@@ -133,7 +133,7 @@ analyze_policy <- function(policy_var, data, verbose = TRUE) {
       summarize(att_realized = mean(att, na.rm = TRUE), .groups = "drop")
 
     if (nrow(realized) == 0) {
-      if (verbose) cat("  SKIP: No realized ATTs for validation\n\n")
+      if (verbose) message("  SKIP: No realized ATTs for validation\n")
       return(NULL)
     }
 
@@ -149,9 +149,9 @@ analyze_policy <- function(policy_var, data, verbose = TRUE) {
                      realized$att_realized <= ci_upper, na.rm = TRUE)
 
     if (verbose) {
-      cat("  Prediction:", round(mean_att, 3),
-          "| Realized mean:", round(mean(realized$att_realized), 3),
-          "| MSPE:", round(mspe, 3), "\n\n")
+      message("  Prediction: ", round(mean_att, 3),
+              " | Realized mean: ", round(mean(realized$att_realized), 3),
+              " | MSPE: ", round(mspe, 3), "\n")
     }
 
     return(list(
@@ -169,13 +169,13 @@ analyze_policy <- function(policy_var, data, verbose = TRUE) {
     ))
 
   }, error = function(e) {
-    if (verbose) cat("  ERROR:", e$message, "\n\n")
+    if (verbose) message("  ERROR: ", e$message, "\n")
     return(NULL)
   })
 }
 
 # Run comparison for all policies
-cat("Testing all policies...\n\n")
+message("Testing all policies...\n")
 
 results_list <- lapply(policies, function(p) {
   analyze_policy(p, data, verbose = TRUE)
@@ -185,7 +185,7 @@ results_list <- lapply(policies, function(p) {
 results_list <- results_list[!sapply(results_list, is.null)]
 
 if (length(results_list) == 0) {
-  cat("ERROR: No policies could be analyzed\n")
+  message("ERROR: No policies could be analyzed")
   quit(status = 1)
 }
 
@@ -200,45 +200,45 @@ results_df <- bind_rows(results_list) %>%
   arrange(mspe)
 
 # Print summary table
-cat("\n=== Policy Comparison Results ===\n\n")
-cat("Ranked by MSPE (lower is better):\n\n")
+message("\n=== Policy Comparison Results ===\n")
+message("Ranked by MSPE (lower is better):\n")
 
 print(results_df %>%
   select(policy_name, n_early, prediction, realized_mean, mspe, mae, coverage) %>%
   mutate(across(where(is.numeric) & !n_early, ~round(.x, 3))))
 
 # Save results
-saveRDS(results_df, "application/results/policy_comparison.rds")
+readr::write_rds(results_df, "application/results/policy_comparison.rds")
 write_csv(results_df, "application/results/policy_comparison.csv")
 
-cat("\nSaved: application/results/policy_comparison.{rds,csv}\n")
+message("\nSaved: application/results/policy_comparison.{rds,csv}")
 
 # Identify best and worst
 best <- results_df %>% slice_min(mspe, n = 1)
 worst <- results_df %>% slice_max(mspe, n = 1)
 
-cat("\n=== Key Findings ===\n\n")
-cat("BEST predictor:", best$policy_name, "\n")
-cat("  - Prediction:", round(best$prediction, 3), "vs Realized:", round(best$realized_mean, 3), "\n")
-cat("  - MSPE:", round(best$mspe, 3), "| Coverage:", round(best$coverage * 100, 0), "%\n\n")
+message("\n=== Key Findings ===\n")
+message("BEST predictor: ", best$policy_name)
+message("  - Prediction: ", round(best$prediction, 3), " vs Realized: ", round(best$realized_mean, 3))
+message("  - MSPE: ", round(best$mspe, 3), " | Coverage: ", round(best$coverage * 100, 0), " %\n")
 
-cat("WORST predictor:", worst$policy_name, "\n")
-cat("  - Prediction:", round(worst$prediction, 3), "vs Realized:", round(worst$realized_mean, 3), "\n")
-cat("  - MSPE:", round(worst$mspe, 3), "| Coverage:", round(worst$coverage * 100, 0), "%\n\n")
+message("WORST predictor: ", worst$policy_name)
+message("  - Prediction: ", round(worst$prediction, 3), " vs Realized: ", round(worst$realized_mean, 3))
+message("  - MSPE: ", round(worst$mspe, 3), " | Coverage: ", round(worst$coverage * 100, 0), " %\n")
 
 # Compare to SYG
 syg_result <- results_df %>% filter(policy == "syg")
 if (nrow(syg_result) > 0) {
   syg_rank <- which(results_df$policy == "syg")
-  cat("SYG ranking:", syg_rank, "out of", nrow(results_df), "policies\n")
+  message("SYG ranking: ", syg_rank, " out of ", nrow(results_df), " policies")
 
   if (syg_rank == 1) {
-    cat("  → SYG is the BEST predictor (no need to change)\n")
+    message("  → SYG is the BEST predictor (no need to change)")
   } else if (syg_rank == nrow(results_df)) {
-    cat("  → SYG is the WORST predictor (consider replacing)\n")
+    message("  → SYG is the WORST predictor (consider replacing)")
   } else {
-    cat("  → SYG is mid-range (representative example)\n")
+    message("  → SYG is mid-range (representative example)")
   }
 }
 
-cat("\n=== Comparison Complete ===\n")
+message("\n=== Comparison Complete ===")

@@ -15,9 +15,9 @@ set.seed(20260709)
 dir_create("application/results")
 
 # Load analysis-ready data
-data <- readRDS("application/results/analysis_data.rds")
+data <- readr::read_rds("application/results/analysis_data.rds")
 
-cat("=== Phase 2.1: First-Stage Estimation ===\n\n")
+message("=== Phase 2.1: First-Stage Estimation ===\n")
 
 # ---------------------------------------------------------------------------
 # Helper: estimate group-time ATTs with did::att_gt() and convert to gt_object.
@@ -54,29 +54,29 @@ estimate_gt <- function(df) {
 
 # --- Training period: 1981-2015 -------------------------------------------
 training_data <- data %>% filter(year <= 2015)
-cat("Training data:", nrow(training_data), "observations,",
-    length(unique(training_data$state)), "states,",
-    min(training_data$year), "-", max(training_data$year), "\n")
+message("Training data: ", nrow(training_data), " observations, ",
+        length(unique(training_data$state)), " states, ",
+        min(training_data$year), " - ", max(training_data$year))
 
-cat("Estimating group-time ATTs (training period)...\n")
+message("Estimating group-time ATTs (training period)...")
 gt_obj_training <- estimate_gt(training_data)
 
 if (!isTRUE(gt_obj_training$meta$eif_available)) {
   stop("Training gt_object has no EIFs; downstream EIF-based inference would be invalid.")
 }
 
-cat("  Cohorts:", paste(gt_obj_training$groups[gt_obj_training$groups > 0], collapse = ", "), "\n")
-cat("  Group-time cells:", nrow(gt_obj_training$data), "| EIF vectors:",
-    length(gt_obj_training$phi), "| n =", gt_obj_training$n, "\n\n")
+message("  Cohorts: ", paste(gt_obj_training$groups[gt_obj_training$groups > 0], collapse = ", "))
+message("  Group-time cells: ", nrow(gt_obj_training$data), " | EIF vectors: ",
+        length(gt_obj_training$phi), " | n = ", gt_obj_training$n, "\n")
 
-saveRDS(gt_obj_training, "application/results/gt_object_training.rds")
-cat("Saved: application/results/gt_object_training.rds\n\n")
+readr::write_rds(gt_obj_training, "application/results/gt_object_training.rds")
+message("Saved: application/results/gt_object_training.rds\n")
 
 # --- Full period: 1981-2022 (for realized-ATT validation targets) ----------
-cat("Estimating group-time ATTs (full period)...\n")
+message("Estimating group-time ATTs (full period)...")
 gt_obj_full <- estimate_gt(data)
-saveRDS(gt_obj_full, "application/results/gt_object_full.rds")
-cat("Saved: application/results/gt_object_full.rds\n\n")
+readr::write_rds(gt_obj_full, "application/results/gt_object_full.rds")
+message("Saved: application/results/gt_object_full.rds\n")
 
 # Realized ATTs for 2016-2022 (early adopters), the validation targets.
 realized_atts <- gt_obj_full$data %>%
@@ -84,9 +84,9 @@ realized_atts <- gt_obj_full$data %>%
   transmute(group = g, year = t, att = tau_hat,
             se = if ("se" %in% names(.)) se else NA_real_)
 
-cat("Realized ATTs (2016-2022) for early adopters:", nrow(realized_atts), "rows\n")
-saveRDS(realized_atts, "application/results/realized_atts_2016_2022.rds")
-cat("Saved: application/results/realized_atts_2016_2022.rds\n")
+message("Realized ATTs (2016-2022) for early adopters: ", nrow(realized_atts), " rows")
+readr::write_rds(realized_atts, "application/results/realized_atts_2016_2022.rds")
+message("Saved: application/results/realized_atts_2016_2022.rds")
 
-cat("\n=== Phase 2.1 Complete ===\n")
-cat("Next: Run 03_path1_homogeneity.R\n")
+message("\n=== Phase 2.1 Complete ===")
+message("Next: Run 03_path1_homogeneity.R")

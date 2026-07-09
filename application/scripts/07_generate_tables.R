@@ -5,20 +5,20 @@
 library(tidyverse)
 library(fs)
 
-cat("=== Phase 2.6: Generate LaTeX Tables ===\n\n")
+message("=== Phase 2.6: Generate LaTeX Tables ===\n")
 
 dir_create("inst/paper/sim_tables")
 
 f <- function(x, d = 2) format(round(x, d), nsmall = d)
 pct <- function(x, d = 0) format(round(100 * x, d), nsmall = d)
 
-val_summary <- readRDS("application/results/validation_summary.rds")
-val_full <- readRDS("application/results/validation_full.rds")
+val_summary <- readr::read_rds("application/results/validation_summary.rds")
+val_full <- readr::read_rds("application/results/validation_full.rds")
 
 # ---------------------------------------------------------------------------
 # Table 9.1: Validation summary (main results) — Paths 1, 2 & 3.
 # ---------------------------------------------------------------------------
-cat("Generating Table 9.1: Validation summary...\n")
+message("Generating Table 9.1: Validation summary...")
 
 table9_1 <- c(
   "\\begin{table}[htbp]",
@@ -54,12 +54,12 @@ table9_1 <- c(table9_1,
   "\\end{table}"
 )
 writeLines(table9_1, "inst/paper/sim_tables/section9_validation.tex")
-cat("Saved: inst/paper/sim_tables/section9_validation.tex\n\n")
+message("Saved: inst/paper/sim_tables/section9_validation.tex\n")
 
 # ---------------------------------------------------------------------------
 # Table 9.2: Year-by-year predictions vs realized.
 # ---------------------------------------------------------------------------
-cat("Generating Table 9.2: Year-by-year comparison...\n")
+message("Generating Table 9.2: Year-by-year comparison...")
 
 table9_2 <- c(
   "\\begin{table}[htbp]",
@@ -98,13 +98,13 @@ table9_2 <- c(table9_2,
   "\\end{table}"
 )
 writeLines(table9_2, "inst/paper/sim_tables/section9_yearly.tex")
-cat("Saved: inst/paper/sim_tables/section9_yearly.tex\n\n")
+message("Saved: inst/paper/sim_tables/section9_yearly.tex\n")
 
 # ---------------------------------------------------------------------------
 # Table 9.3: Data summary.
 # ---------------------------------------------------------------------------
-cat("Generating Table 9.3: Data summary...\n")
-data <- readRDS("application/results/analysis_data.rds")
+message("Generating Table 9.3: Data summary...")
+data <- readr::read_rds("application/results/analysis_data.rds")
 syg_cohorts <- read_csv("application/results/syg_cohorts.csv", show_col_types = FALSE)
 training <- data %>% filter(year <= 2015)
 validation <- data %>% filter(year >= 2016)
@@ -142,6 +142,6 @@ table9_3 <- c(
   "\\end{table}"
 )
 writeLines(table9_3, "inst/paper/sim_tables/section9_data.tex")
-cat("Saved: inst/paper/sim_tables/section9_data.tex\n\n")
+message("Saved: inst/paper/sim_tables/section9_data.tex\n")
 
-cat("=== Phase 2.6 Complete ===\n")
+message("=== Phase 2.6 Complete ===")

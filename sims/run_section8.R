@@ -4,9 +4,8 @@
 #
 # This script runs all Section 8 simulations showing method limitations:
 #   - Section 8.1: Non-smooth dynamics (Path 2 break point)
+#   - Section 8.2: Conditional misspecification (Path 3 break point, unobserved heterogeneity)
 #   - Section 8.3: Small-sample extrapolation (all paths)
-#
-# Section 8.2 (conditional misspecification) deferred pending API design.
 #
 # These simulations complement Sections 1-7 (which show methods working) by
 # showing where they break. This honesty builds credibility per research constitution.
@@ -31,6 +30,18 @@ source("sims/scripts/sim_section8_1_nonsmooth.R")
 cli_alert_success("Section 8.1 complete")
 
 # ============================================================================
+# Section 8.2: Conditional Misspecification (Path 3 Break Point)
+# ============================================================================
+
+cli_h2("Section 8.2: Conditional Misspecification")
+cli_alert("DGP: unobserved effect modifier U correlated with observed X")
+cli_alert("Methods: Path 3 with X-only model (misspecified) vs oracle (X and U)")
+cli_alert("Expected: X-only bias grows with cor(X,U); oracle unbiased")
+
+source("sims/scripts/sim_section8_2_misspec.R")
+cli_alert_success("Section 8.2 complete")
+
+# ============================================================================
 # Section 8.3: Small-Sample Extrapolation (All Paths)
 # ============================================================================
 
@@ -53,6 +64,7 @@ cli_alert_info("Results saved to sims/results/")
 
 cli_ul(c(
   "section8_1_nonsmooth.rds - Path 2 fails on piecewise linear DGP",
+  "section8_2_misspec.rds - Path 3 fails under unobserved heterogeneity",
   "section8_3_smallsample.rds - Uncertainty explosion with few periods"
 ))
 
