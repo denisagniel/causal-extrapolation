@@ -4,6 +4,9 @@
 .Ruserdata
 .DS_Store
 
+# Agent memory store (machine-specific; directory name encodes an absolute path)
+.claude/projects/
+
 # LaTeX build artifacts
 *.aux
 *.bbl
