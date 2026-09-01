@@ -452,7 +452,3 @@ Fixed two blocking errors preventing VS Code / latexmk compilation:
 
 - Forward-Looking Estimands section (§3) — next to draft
 - Section labels (sec:identification, sec:path1/2/3) referenced in §2.3 but not yet defined
-
----
-**Context compaction () at 11:06**
-Check git log and quality_reports/plans/ for current state.
