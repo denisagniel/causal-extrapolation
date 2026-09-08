@@ -26,3 +26,7 @@ inst/paper/main-lean.pdf
 # Redundant raw archive (CSVs extracted alongside)
 application/data/rstudio-export.zip
 tests/testthat/Rplots.pdf
+
+# agent framework: local backups and runtime state (not shared)
+.claude/local/
+.omo/run-continuation/
