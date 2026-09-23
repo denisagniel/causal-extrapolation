@@ -1,0 +1,8 @@
+\subsection{Model selection when the true model is not a candidate}\label{sec:cv-robustness}
+
+This is a robustness check on the Section~\ref{sec:cv-simulation} exercise, repeated with a \emph{cubic} DGP: $\theta_{gt} = \alpha_g + \beta_g (t - g) + \gamma_g (t - g)^2 + \delta_g (t - g)^3$, where $\delta_g \in \{0.01, 0.008, 0.012\}$. The cubic functional form is not among the three candidates (linear, quadratic, natural spline). Table~\ref{tab:cv_cubic} shows that CV selects the spline model (MSPE: \cvCubicBestMSPE), the most flexible of the three candidates, as the best approximation to the cubic dynamics. The quadratic model does better than linear but worse than the spline (MSPE: \cvCubicQuadraticMSPE), and the linear model performs worst (MSPE: \cvCubicLinearMSPE), correctly indicating underspecification. This demonstrates that even when the true model is not in the candidate set, CV identifies the best available approximation among the candidates offered, rather than defaulting to a fixed choice.
+
+\input{sim_tables/section7_cv_cubic}
+
+\paragraph{Discussion.}
+These results illustrate the utility of time-series CV for model selection in causal extrapolation. When the true model is in the candidate set, CV correctly identifies it. When the true model is absent, CV selects the best approximation, with the MSPE magnitude signaling the degree of misspecification. Researchers should use CV to guide model choice, report sensitivity across top-performing models, and interpret MSPE values as indicators of extrapolation risk: low MSPE suggests reliable extrapolation, while high MSPE (especially relative to the scale of $\theta_{gt}$) signals model-dependence and warrants caution.

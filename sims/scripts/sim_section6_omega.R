@@ -6,7 +6,7 @@ suppressPackageStartupMessages({
   library(tibble)
 })
 
-devtools::load_all("package")
+if (file.exists("DESCRIPTION")) devtools::load_all(".") else devtools::load_all("package")
 source("sims/scripts/dgp_helpers.R")
 
 q <- 3

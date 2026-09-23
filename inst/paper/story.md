@@ -2,7 +2,9 @@
 
 **Instance path:** `inst/paper/story.md`
 **Governed by:** `.claude/rules/paper-protocol.md`
-**Status:** draft as of 2026-09-18
+**Status:** draft as of 2026-09-23. Reconciled against the simulation suite as of this date
+(Section 4b added a real-first-stage validation; the simulations-section scope-boundary bullet
+below is updated accordingly). No major claim (S1-S8) changed.
 
 ## Framing
 
@@ -67,9 +69,13 @@ error and interval coverage rather than in-sample fit.
 - **It does not solve post-selection inference.** The influence functions condition on the chosen
   temporal model; the randomness introduced by selecting that model via cross-validation is
   acknowledged and not accounted for.
-- **The simulations do not exercise a real first stage.** They inject noise into known group-time
-  effects and construct matching influence functions, deliberately isolating the aggregation and
-  extrapolation step from any particular difference-in-differences estimator.
+- **Most of the simulations do not exercise a real first stage.** They inject noise into known
+  group-time effects and construct matching influence functions, deliberately isolating the
+  aggregation and extrapolation step from any particular difference-in-differences estimator.
+  One simulation is the exception: the paper validates EIF-based inference end-to-end against a
+  real first-stage estimator (`did::att_gt()`), confirming that the propagated variance achieves
+  nominal coverage when the EIFs come from an actual semiparametric estimator rather than
+  injected noise.
 - **The empirical section is a validation exercise, not a substantive policy finding.** It reports
   a prediction failure and does not advance a causal claim about the law it studies.
 

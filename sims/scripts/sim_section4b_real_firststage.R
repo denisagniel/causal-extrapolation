@@ -40,6 +40,16 @@ p             <- 5L
 n_per_cohort  <- 200L    # units per treated cohort; control group same size -> ~800 total
 omega         <- rep(1 / q, q)
 future_time   <- p + 1L
+# generate_panel_data() relabels cohorts/calendar time as g_did = g_orig + 1,
+# t_did = t_orig + 1 (guarantees a pre-period for did::att_gt()). as_gt_object()
+# copies did::att_gt()'s $group/$t verbatim (see gt_object_from_att_gt() in
+# R/from_did.R), so the resulting gt_object lives in did-space calendar
+# coordinates. extrapolate_ATT(time_scale = "calendar") must therefore target
+# future_time + 1, not future_time, or it extrapolates to the last *observed*
+# did-space period instead of one period ahead -- an off-by-one that biased
+# the FATT estimate toward the last observed slope-step and collapsed coverage
+# (95% CI coverage measured ~23% instead of ~95% before this fix).
+future_time_did <- future_time + 1L
 level         <- 0.95
 sigma_Y       <- 0.5
 sigma_alpha   <- 1.0
@@ -97,7 +107,7 @@ for (r in seq_len(n_replicates)) {
   }
 
   ex   <- extrapolate_ATT(gt, h_fun = hg_linear, dh_fun = dh_linear,
-                          future_value = future_time, time_scale = "calendar",
+                          future_value = future_time_did, time_scale = "calendar",
                           omega = omega, per_group = FALSE)
   inf  <- compute_variance(ex$phi_future, estimate = ex$tau_future, level = level)
   inf2 <- compute_variance(ex$phi_future, estimate = ex$tau_future, level = 0.90)

@@ -1,0 +1,14 @@
+\begin{table}[ht]
+\centering
+\caption{Model selection when true DGP is cubic (not in candidate set).}
+\label{tab:cv_cubic}
+\begin{tabular}{lcccc|c}
+\toprule
+Model & $h=1$ & $h=2$ & $h=3$ & Avg MSPE & Selected \\
+\midrule
+Linear & 2.670 & 2.786 & 3.022 & 2.826 &  \\
+Quadratic & 0.375 & 0.580 & 1.154 & 0.703 &  \\
+Spline (df=4) & 0.153 & 0.330 & 1.108 & 0.530 & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}

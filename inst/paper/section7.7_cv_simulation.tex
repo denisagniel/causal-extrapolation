@@ -1,4 +1,5 @@
-\subsection{Model selection via cross-validation}
+\subsection{Model selection via cross-validation}\label{sec:cv-simulation}
+\input{sim_tables/section7_cv_facts}
 
 This section demonstrates the time-series cross-validation procedure proposed in Section~\ref{sec:model-selection}. We simulate data where the true group-time effects follow a known functional form, apply the CV procedure to select among candidate models, and evaluate whether CV identifies the correct model.
 
@@ -29,40 +30,8 @@ For each model $m \in \{1, 2, 3\}$ and horizon $h \in \{1, 2, 3\}$:
 The average MSPE is $\text{MSPE}_m = \frac{1}{3} \sum_{h=1}^3 \text{MSPE}_m(h)$. The model with the lowest average MSPE is selected.
 
 \paragraph{Results.}
-Table~\ref{tab:cv_quadratic} shows the MSPE for each model and horizon. The quadratic model achieves the lowest average MSPE (0.456), substantially outperforming the linear model (0.841) and the spline (0.597). Cross-validation correctly identifies the quadratic model as the best fit. Extrapolating to period $p + 1$ using the selected quadratic model yields $\widehat{\theta}_{p+1} = -0.573$, close to the true value $\theta_{p+1} = -0.596$ (error: 0.023).
+Table~\ref{tab:cv_quadratic} shows the MSPE for each model and horizon. The quadratic model achieves the lowest average MSPE (\cvQuadBestMSPE), substantially outperforming the linear model (\cvQuadLinearMSPE) and the spline (\cvQuadSplineMSPE). Cross-validation correctly identifies the quadratic model as the best fit. Extrapolating to period $p + 1$ using the selected quadratic model yields $\widehat{\theta}_{p+1} = \cvQuadPredFATT$, compared to the true value $\theta_{p+1} = \cvQuadTrueFATT$ (error: \cvQuadFATTError).
 
-\begin{table}[ht]
-\centering
-\caption{Model selection via time-series cross-validation: True DGP is quadratic}
-\label{tab:cv_quadratic}
-\begin{tabular}{lcccc|c}
-\toprule
-Model & $h=1$ & $h=2$ & $h=3$ & Avg MSPE & Selected \\
-\midrule
-Linear        & 0.800 & 0.814 & 0.909 & 0.841 & \\
-Quadratic     & 0.431 & 0.490 & 0.448 & \textbf{0.456} & \checkmark \\
-Spline (df=4) & 0.466 & 0.722 & 0.603 & 0.597 & \\
-\bottomrule
-\end{tabular}
-\end{table}
+\input{sim_tables/section7_cv_quadratic}
 
-\paragraph{Robustness: True model not in candidate set.}
-We repeat the exercise with a \emph{cubic} DGP: $\theta_{gt} = \alpha_g + \beta_g (t - g) + \gamma_g (t - g)^2 + \delta_g (t - g)^3$, where $\delta_g \in \{0.01, 0.008, 0.012\}$. The cubic functional form is not among the three candidates. Table~\ref{tab:cv_cubic} shows that CV selects the quadratic model (MSPE: 0.621), which provides a reasonable approximation despite misspecification. The linear model performs poorly (MSPE: 2.439), correctly indicating underspecification. This demonstrates that even when the true model is not in the candidate set, CV identifies the best available approximation.
-
-\begin{table}[ht]
-\centering
-\caption{Model selection when true DGP is cubic (not in candidate set)}
-\label{tab:cv_cubic}
-\begin{tabular}{lcccc|c}
-\toprule
-Model & $h=1$ & $h=2$ & $h=3$ & Avg MSPE & Selected \\
-\midrule
-Linear        & 2.286 & 2.506 & 2.526 & 2.439 & \\
-Quadratic     & 0.574 & 0.654 & 0.635 & \textbf{0.621} & \checkmark \\
-Spline (df=4) & 0.780 & 0.684 & 0.717 & 0.727 & \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Discussion.}
-These results illustrate the utility of time-series CV for model selection in causal extrapolation. When the true model is in the candidate set, CV correctly identifies it. When the true model is absent, CV selects the best approximation, with the MSPE magnitude signaling the degree of misspecification. Researchers should use CV to guide model choice, report sensitivity across top-performing models, and interpret MSPE values as indicators of extrapolation risk: low MSPE suggests reliable extrapolation, while high MSPE (especially relative to the scale of $\theta_{gt}$) signals model-dependence and warrants caution.
+CV also behaves sensibly when the true model is not among the candidates, correctly favoring the most flexible available approximation rather than defaulting to a fixed choice; Appendix~\ref{app:additional-sims} reports this robustness check in full.

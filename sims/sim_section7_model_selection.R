@@ -194,7 +194,7 @@ print(table_data)
 
 # Save table
 write.csv(table_data,
-          file = "latex/Estimating_policy_effects_in_the_presence_of_heterogeneity/sim_tables/section7_model_selection.csv",
+          file = "inst/paper/sim_tables/section7_model_selection.csv",
           row.names = FALSE)
 
 # ------------------------------------------------------------------------------
@@ -227,6 +227,42 @@ fatt_true <- sum(omega * theta_p1_true)
 cat("True FATT:", round(fatt_true, 3), "\n")
 cat("Predicted FATT (", best_model, "):", round(result$tau_future, 3), "\n")
 cat("Error:", round(result$tau_future - fatt_true, 3), "\n")
+
+# --- Write LaTeX table fragment (quadratic-DGP scenario) --------------------
+# Generated, not hand-typed, so it cannot drift from what this script computes.
+f3  <- function(x) format(round(x, 3), nsmall = 3, trim = TRUE)
+chk <- function(model_key, best) if (identical(model_key, best)) "\\checkmark" else ""
+
+fs::dir_create("inst/paper/sim_tables")
+writeLines(c(
+  "\\begin{table}[ht]",
+  "\\centering",
+  "\\caption{Model selection via time-series cross-validation: true DGP is quadratic.}",
+  "\\label{tab:cv_quadratic}",
+  "\\begin{tabular}{lcccc|c}",
+  "\\toprule",
+  "Model & $h=1$ & $h=2$ & $h=3$ & Avg MSPE & Selected \\\\",
+  "\\midrule",
+  paste0(table_data$Model[1], " & ", f3(table_data$h1[1]), " & ", f3(table_data$h2[1]), " & ", f3(table_data$h3[1]), " & ", f3(table_data$Avg_MSPE[1]), " & ", chk(model_order[1], best_model), " \\\\"),
+  paste0(table_data$Model[2], " & ", f3(table_data$h1[2]), " & ", f3(table_data$h2[2]), " & ", f3(table_data$h3[2]), " & ", f3(table_data$Avg_MSPE[2]), " & ", chk(model_order[2], best_model), " \\\\"),
+  paste0(table_data$Model[3], " & ", f3(table_data$h1[3]), " & ", f3(table_data$h2[3]), " & ", f3(table_data$h3[3]), " & ", f3(table_data$Avg_MSPE[3]), " & ", chk(model_order[3], best_model), " \\\\"),
+  "\\bottomrule",
+  "\\end{tabular}",
+  "\\end{table}"
+), "inst/paper/sim_tables/section7_cv_quadratic.tex")
+message("Wrote sim_tables/section7_cv_quadratic.tex")
+
+# Small facts file for the surrounding prose (avoids hand-typed numbers there too)
+writeLines(c(
+  paste0("\\newcommand{\\cvQuadBestModel}{", best_model, "}"),
+  paste0("\\newcommand{\\cvQuadBestMSPE}{", f3(table_data$Avg_MSPE[table_data$Model == "Quadratic"]), "}"),
+  paste0("\\newcommand{\\cvQuadLinearMSPE}{", f3(table_data$Avg_MSPE[table_data$Model == "Linear"]), "}"),
+  paste0("\\newcommand{\\cvQuadSplineMSPE}{", f3(table_data$Avg_MSPE[table_data$Model == "Spline (df=4)"]), "}"),
+  paste0("\\newcommand{\\cvQuadTrueFATT}{", f3(fatt_true), "}"),
+  paste0("\\newcommand{\\cvQuadPredFATT}{", f3(result$tau_future), "}"),
+  paste0("\\newcommand{\\cvQuadFATTError}{", f3(result$tau_future - fatt_true), "}")
+), "inst/paper/sim_tables/section7_cv_facts.tex")
+message("Wrote sim_tables/section7_cv_facts.tex")
 
 # ------------------------------------------------------------------------------
 # Scenario 2: True model NOT in candidate set (Cubic DGP)
@@ -342,12 +378,41 @@ print(table_data_cubic)
 
 # Save cubic table
 write.csv(table_data_cubic,
-          file = "latex/Estimating_policy_effects_in_the_presence_of_heterogeneity/sim_tables/section7_model_selection_cubic.csv",
+          file = "inst/paper/sim_tables/section7_model_selection_cubic.csv",
           row.names = FALSE)
 
 cat("\n")
 cat("Best approximation:", cv_result_cubic$best_model, "\n")
 cat("(Spline or quadratic should win as most flexible approximations)\n")
+
+# --- Write LaTeX table fragment (cubic-DGP robustness scenario) -------------
+best_model_cubic <- cv_result_cubic$best_model
+writeLines(c(
+  "\\begin{table}[ht]",
+  "\\centering",
+  "\\caption{Model selection when true DGP is cubic (not in candidate set).}",
+  "\\label{tab:cv_cubic}",
+  "\\begin{tabular}{lcccc|c}",
+  "\\toprule",
+  "Model & $h=1$ & $h=2$ & $h=3$ & Avg MSPE & Selected \\\\",
+  "\\midrule",
+  paste0(table_data_cubic$Model[1], " & ", f3(table_data_cubic$h1[1]), " & ", f3(table_data_cubic$h2[1]), " & ", f3(table_data_cubic$h3[1]), " & ", f3(table_data_cubic$Avg_MSPE[1]), " & ", chk(model_order[1], best_model_cubic), " \\\\"),
+  paste0(table_data_cubic$Model[2], " & ", f3(table_data_cubic$h1[2]), " & ", f3(table_data_cubic$h2[2]), " & ", f3(table_data_cubic$h3[2]), " & ", f3(table_data_cubic$Avg_MSPE[2]), " & ", chk(model_order[2], best_model_cubic), " \\\\"),
+  paste0(table_data_cubic$Model[3], " & ", f3(table_data_cubic$h1[3]), " & ", f3(table_data_cubic$h2[3]), " & ", f3(table_data_cubic$h3[3]), " & ", f3(table_data_cubic$Avg_MSPE[3]), " & ", chk(model_order[3], best_model_cubic), " \\\\"),
+  "\\bottomrule",
+  "\\end{tabular}",
+  "\\end{table}"
+), "inst/paper/sim_tables/section7_cv_cubic.tex")
+message("Wrote sim_tables/section7_cv_cubic.tex")
+
+# Append cubic-scenario facts to the same facts file
+write(c(
+  paste0("\\newcommand{\\cvCubicBestModel}{", best_model_cubic, "}"),
+  paste0("\\newcommand{\\cvCubicBestMSPE}{", f3(table_data_cubic$Avg_MSPE[table_data_cubic$Model == model_names[model_order == best_model_cubic]]), "}"),
+  paste0("\\newcommand{\\cvCubicLinearMSPE}{", f3(table_data_cubic$Avg_MSPE[table_data_cubic$Model == "Linear"]), "}"),
+  paste0("\\newcommand{\\cvCubicQuadraticMSPE}{", f3(table_data_cubic$Avg_MSPE[table_data_cubic$Model == "Quadratic"]), "}")
+), "inst/paper/sim_tables/section7_cv_facts.tex", append = TRUE)
+message("Appended cubic facts to sim_tables/section7_cv_facts.tex")
 
 cat("\n========================================\n")
 cat("Simulation complete. Tables saved to:\n")
