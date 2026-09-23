@@ -85,6 +85,30 @@ writeLines(c(
   "\\end{table}"
 ), file.path(sim_tables_dir, "section4.tex"))
 
+# Section 4b: EIF variance and coverage, real did::att_gt() first stage
+if (file.exists(file.path(results_dir, "section4b_real_firststage.rds"))) {
+  p4b <- readRDS(file.path(results_dir, "section4b_real_firststage.rds"))
+  writeLines(c(
+    "\\begin{table}[htbp]",
+    "\\centering",
+    "\\caption{EIF-based variance and Wald coverage, real \\texttt{did::att\\_gt()} first stage (Path 2, correct specification; ", p4b$n_valid, " replicates).}",
+    "\\label{tab:eif-real}",
+    "\\begin{tabular}{lc}",
+    "\\toprule",
+    "Metric & Value \\\\",
+    "\\midrule",
+    "Variance ratio (est./emp.) & ", f(p4b$variance_ratio, 2), " \\\\",
+    "95\\% coverage & ", pct(p4b$coverage_95), "\\% \\\\",
+    "90\\% coverage & ", pct(p4b$coverage_90), "\\% \\\\",
+    "\\bottomrule",
+    "\\end{tabular}",
+    "\\end{table}"
+  ), file.path(sim_tables_dir, "section4b.tex"))
+  message("Wrote section4b.tex")
+} else {
+  message("Section 4b results not found; skipping section4b.tex")
+}
+
 # Section 5: Path 1 vs Path 2
 p5 <- readRDS(file.path(results_dir, "section5_path1_vs_path2.rds"))
 P1 <- p5$Path1
@@ -107,21 +131,47 @@ writeLines(c(
 
 message("Wrote sim_tables/section2.tex, section3.tex, section4.tex, section5.tex")
 
-# Section 7: Path 3 (covariate integration) under regime change
-if (file.exists(file.path(results_dir, "section7_path3_covariates.rds"))) {
-  p7 <- readRDS(file.path(results_dir, "section7_path3_covariates.rds"))
-  p1 <- p7$Path1_TimeHomogeneity
-  p2 <- p7$Path2_TemporalExtrapolation
-  # Try both old and new names for backward compatibility
-  p3 <- if (!is.null(p7$Path3_CovariateIntegration)) {
-    p7$Path3_CovariateIntegration
-  } else {
-    p7$Path3_CovariateIntegration_Oracle
-  }
+# Section 6: Role of omega_g (cohort composition weights)
+if (file.exists(file.path(results_dir, "section6_omega.rds"))) {
+  p6 <- readRDS(file.path(results_dir, "section6_omega.rds"))
+  ec <- p6$early_correct
+  ew <- p6$early_wrong
+  lc <- p6$late_correct
+  lw <- p6$late_wrong
+  f4 <- function(x) format(round(x, 4), nsmall = 4, trim = TRUE, scientific = FALSE)
   writeLines(c(
     "\\begin{table}[htbp]",
     "\\centering",
-    "\\caption{Path 3 under regime change: covariate-driven effects when target distribution shifts. True FATT = ", f(p7$true_fatt), " (target $\\mu=", f(p7$mu_target), "$); backward-looking ATT = ", f(p7$true_backward_att), " (historical $\\bar{\\mu} \\approx 0$). Regime change gap = ", f(p7$regime_change_gap), ". Paths 1 and 2 fail (biased, zero coverage); Path 3 succeeds ($\\tau(X)$ is regime-invariant).}",
+    "\\caption{Role of cohort weights $\\omega_g$: same DGP, two compositions (early- vs late-adopter-heavy), correct vs uniform $\\omega_g$. Path 1 (constant-within-group) is biased regardless of $\\omega_g$, since the DGP has genuine event-time dynamics; Path 2 (correctly specified) is unbiased under the correct $\\omega_g$ but picks up bias from misweighting cohorts under an incorrectly assumed uniform $\\omega_g$ (", ec$n_replicates, " replicates per cell).}",
+    "\\label{tab:omega}",
+    "\\begin{tabular}{lc cc cc}",
+    "\\toprule",
+    "& & \\multicolumn{2}{c}{Path 1 bias} & \\multicolumn{2}{c}{Path 2 bias} \\\\",
+    "\\cmidrule(lr){3-4} \\cmidrule(lr){5-6}",
+    "Composition & True FATT & Correct $\\omega_g$ & Uniform $\\omega_g$ & Correct $\\omega_g$ & Uniform $\\omega_g$ \\\\",
+    "\\midrule",
+    paste0("Early-heavy ($\\omega=(.6,.3,.1)$) & ", f(ec$true_fatt), " & ", f4(ec$path1_bias), " & ", f4(ew$path1_bias), " & ", f4(ec$path2_bias), " & ", f4(ew$path2_bias), " \\\\"),
+    paste0("Late-heavy ($\\omega=(.1,.3,.6)$) & ", f(lc$true_fatt), " & ", f4(lc$path1_bias), " & ", f4(lw$path1_bias), " & ", f4(lc$path2_bias), " & ", f4(lw$path2_bias), " \\\\"),
+    "\\bottomrule",
+    "\\end{tabular}",
+    "\\end{table}"
+  ), file.path(sim_tables_dir, "section6.tex"))
+  message("Wrote sim_tables/section6.tex")
+} else {
+  message("Section 6 results not found; skipping section6.tex")
+}
+
+# Section 7: Path 3 (covariate integration) under regime change
+if (file.exists(file.path(results_dir, "section7_path3_covariates.rds"))) {
+  p7 <- readRDS(file.path(results_dir, "section7_path3_covariates.rds"))
+  p1  <- p7$Path1_TimeHomogeneity
+  p2  <- p7$Path2_TemporalExtrapolation
+  p3o <- p7$Path3_Oracle
+  p3g <- p7$Path3_GRF
+  writeLines(c(
+    "\\begin{table}[htbp]",
+    "\\centering",
+    "\\caption{Path 3 under regime change: covariate-driven effects when target distribution shifts. True FATT = ", f(p7$true_fatt), " (target $\\mu=", f(p7$mu_target), "$); backward-looking ATT = ", f(p7$true_backward_att), " (historical $\\bar{\\mu} \\approx 0$). Regime change gap = ", f(p7$regime_change_gap), ". Paths 1 and 2 fail (biased, zero coverage); Path 3 succeeds whether $\\tau(X)$ is known (oracle) or estimated (\\texttt{grf}), since $\\tau(X)$ is regime-invariant; ", p7$n_replicates, " replicates.}",
     "\\label{tab:path3}",
     "\\begin{tabular}{lcccc}",
     "\\toprule",
@@ -129,7 +179,8 @@ if (file.exists(file.path(results_dir, "section7_path3_covariates.rds"))) {
     "\\midrule",
     "1: Time homogeneity & ", f(p7$true_fatt), " & ", f(p1$bias), " & ", f(p1$rmse), " & ", pct(p1$coverage), "\\% \\\\",
     "2: Temporal extrapolation & ", f(p7$true_fatt), " & ", f(p2$bias), " & ", f(p2$rmse), " & ", pct(p2$coverage), "\\% \\\\",
-    "3: Covariate integration & ", f(p7$true_fatt), " & ", f(p3$bias), " & ", f(p3$rmse), " & ", pct(p3$coverage), "\\% \\\\",
+    "3a: Covariate integration (oracle $\\tau(X)$) & ", f(p7$true_fatt), " & ", f(p3o$bias), " & ", f(p3o$rmse), " & ", pct(p3o$coverage), "\\% \\\\",
+    "3b: Covariate integration (estimated $\\widehat{\\tau}(X)$, \\texttt{grf}) & ", f(p7$true_fatt), " & ", f(p3g$bias), " & ", f(p3g$rmse), " & ", pct(p3g$coverage), "\\% \\\\",
     "\\bottomrule",
     "\\end{tabular}",
     "\\end{table}"

@@ -347,6 +347,23 @@ add_did_eif <- function(theta_gt, n_per_cohort, p,
     ...
   )
 
+  # did::att_gt() reports ATT(g,t) for EVERY (g,t) pair it can identify,
+  # including pre-treatment placebo cells (t < g, i.e. event time k < 0) used
+  # for parallel-trends diagnostics. as_gt_object() passes these through
+  # verbatim (gt_object_from_att_gt() copies att$group/att$t as-is), but
+  # hg_linear()/extrapolate_ATT() fit a single OLS line per group across
+  # whatever cells they're given -- pre-treatment cells (true ATT ~= 0 by
+  # design) pooled with the increasing post-treatment cells flatten the
+  # fitted slope and bias the extrapolated FATT downward. Path 2's model
+  # theta_gt = f(g,t;gamma) is defined for post-treatment cells only, so
+  # filter to t >= g (k >= 0) before building the gt_object.
+  post_idx <- att$t >= att$group
+  att$group <- att$group[post_idx]
+  att$t     <- att$t[post_idx]
+  att$att   <- att$att[post_idx]
+  if (!is.null(att$se)) att$se <- att$se[post_idx]
+  if (!is.null(att$inffunc)) att$inffunc <- att$inffunc[, post_idx, drop = FALSE]
+
   # Convert to gt_object, extracting real inffunc EIFs
   as_gt_object(att, extract_eif = TRUE)
 }

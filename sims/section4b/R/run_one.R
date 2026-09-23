@@ -34,7 +34,7 @@ run_one <- function(unit_row) {
   ex   <- extrapolate_ATT(gt,
                           h_fun       = hg_linear,
                           dh_fun      = dh_linear,
-                          future_value = S4B_FUTURE_TIME,
+                          future_value = S4B_FUTURE_TIME_DID,
                           time_scale  = "calendar",
                           omega       = S4B_OMEGA,
                           per_group   = FALSE)

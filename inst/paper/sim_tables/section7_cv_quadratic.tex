@@ -1,0 +1,14 @@
+\begin{table}[ht]
+\centering
+\caption{Model selection via time-series cross-validation: true DGP is quadratic.}
+\label{tab:cv_quadratic}
+\begin{tabular}{lcccc|c}
+\toprule
+Model & $h=1$ & $h=2$ & $h=3$ & Avg MSPE & Selected \\
+\midrule
+Linear & 0.329 & 0.353 & 0.487 & 0.390 &  \\
+Quadratic & 0.008 & 0.028 & 0.013 & 0.016 & \checkmark \\
+Spline (df=4) & 0.037 & 0.025 & 0.176 & 0.080 &  \\
+\bottomrule
+\end{tabular}
+\end{table}
