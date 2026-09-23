@@ -214,3 +214,139 @@ generate_target_covariates <- function(n_target, mu_target, sigma_X = 1.0, seed 
   if (!is.null(seed)) set.seed(seed)
   tibble::tibble(X = stats::rnorm(n_target, mean = mu_target, sd = sigma_X))
 }
+
+# ============================================================================
+# Real first-stage: unit-level panel DGP + did::att_gt() integration
+# ============================================================================
+
+#' Generate unit-level staggered panel data from DGP parameters
+#'
+#' Creates a balanced panel suitable for `did::att_gt()`. Units are assigned
+#' to cohorts (treatment timing groups) with a "never-treated" control group.
+#' Potential outcomes follow a linear DGP with group-time heterogeneity
+#' matching `make_theta_gt()`.
+#'
+#' @param theta_gt Tibble from `make_theta_gt()` with columns g, t, k, theta_gt.
+#'   Defines true group-time ATTs. Internal group indices (1..q) are shifted to
+#'   start at 2 so every cohort has at least one pre-treatment period visible to did.
+#' @param n_per_cohort Number of units per treated cohort. The never-treated
+#'   control group receives the same number of units.
+#' @param p Last observed calendar time for the *original* theta_gt grid
+#'   (internal calendar time is extended by 1 to accommodate the shift).
+#' @param sigma_Y SD of idiosyncratic outcome noise.
+#' @param sigma_alpha SD of unit fixed effects.
+#' @param seed Optional seed for reproducibility.
+#' @return A tibble with columns: id, g_true (cohort; `Inf` = never-treated per
+#'   did convention), t (calendar time), Y (outcome), D (treatment indicator).
+#' @export
+generate_panel_data <- function(theta_gt, n_per_cohort, p,
+                                sigma_Y = 0.5, sigma_alpha = 1.0, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+
+  # Shift group indices by +1 so that the earliest cohort is treated at t=2,
+  # guaranteeing at least one pre-treatment period (t=1) for every cohort.
+  # Calendar times are similarly extended: t runs 1..(p+1).
+  groups_orig <- sort(unique(theta_gt$g))  # e.g. 1, 2, 3
+  q           <- length(groups_orig)
+  groups_did  <- groups_orig + 1L          # e.g. 2, 3, 4  (did cohort labels)
+  p_did       <- p + 1L                    # extend calendar to match shift
+
+  # Map did cohort label back to original for theta_gt lookup
+  g_did_to_orig <- setNames(groups_orig, as.character(groups_did))
+
+  # --- Assign units to cohorts ---
+  # did convention: Inf = never-treated (not 0, which did treats as treated at t=0)
+  all_cohorts <- c(Inf, groups_did)
+  n_units     <- (q + 1L) * n_per_cohort
+
+  cohort_vec <- rep(all_cohorts, each = n_per_cohort)
+  id_vec     <- seq_len(n_units)
+
+  # Unit fixed effects (shared across time)
+  alpha_i <- stats::rnorm(n_units, mean = 0, sd = sigma_alpha)
+
+  # Look up true theta_gt for each (did cohort, did calendar time) pair.
+  # did calendar t maps to original calendar t_orig = t_did - 1;
+  # did cohort g_did maps to original cohort g_orig via g_did_to_orig.
+  theta_lookup <- function(g_did_val, t_did_val) {
+    if (!is.finite(g_did_val)) return(0)          # never-treated
+    t_orig <- t_did_val - 1L
+    g_orig <- g_did_to_orig[as.character(as.integer(g_did_val))]
+    if (t_orig < g_orig) return(0)                # pre-treatment
+    row <- theta_gt[theta_gt$g == g_orig & theta_gt$t == t_orig, , drop = FALSE]
+    if (nrow(row) == 0L) return(0)
+    row$theta_gt[1L]
+  }
+
+  # Build long panel
+  panel <- expand.grid(id = id_vec, t = seq_len(p_did), stringsAsFactors = FALSE)
+  panel <- tibble::as_tibble(panel)
+  panel$g_true  <- cohort_vec[panel$id]
+  panel$alpha_i <- alpha_i[panel$id]
+  panel$D       <- as.integer(is.finite(panel$g_true) & panel$t >= panel$g_true)
+
+  # True ATT for this unit's (cohort, time) cell
+  panel$tau_gt <- mapply(theta_lookup, panel$g_true, panel$t)
+
+  # Potential outcomes: Y(0) = alpha_i + N(0, sigma_Y), Y(1) = Y(0) + tau_gt
+  panel$eps <- stats::rnorm(nrow(panel), mean = 0, sd = sigma_Y)
+  panel$Y   <- panel$alpha_i + panel$D * panel$tau_gt + panel$eps
+
+  # Keep only columns needed by did::att_gt()
+  tibble::tibble(
+    id     = panel$id,
+    g_true = panel$g_true,
+    t      = panel$t,
+    Y      = panel$Y,
+    D      = panel$D
+  )
+}
+
+#' Estimate group-time ATTs via did::att_gt() and return a gt_object
+#'
+#' Drop-in replacement for `add_noise_and_eif()` that uses a real
+#' `did::att_gt()` first stage instead of synthetic Gaussian noise.
+#' Exercises the full pipeline: unit-level data → did estimation →
+#' `as_gt_object()` → `extrapolate_ATT()` → `compute_variance()`.
+#'
+#' @param theta_gt Tibble from `make_theta_gt()`.
+#' @param n_per_cohort Units per treated cohort (and for never-treated group).
+#' @param p Last observed calendar time.
+#' @param sigma_Y SD of outcome noise.
+#' @param sigma_alpha SD of unit fixed effects.
+#' @param seed Optional seed (passed to `generate_panel_data()`).
+#' @param ... Additional arguments forwarded to `did::att_gt()`.
+#' @return A `gt_object` with real EIFs extracted from `did::att_gt()$inffunc`.
+#' @export
+add_did_eif <- function(theta_gt, n_per_cohort, p,
+                        sigma_Y = 0.5, sigma_alpha = 1.0,
+                        seed = NULL, ...) {
+  if (!requireNamespace("did", quietly = TRUE)) {
+    stop("Package 'did' is required for add_did_eif(). Install it with install.packages('did').",
+         call. = FALSE)
+  }
+
+  panel <- generate_panel_data(
+    theta_gt     = theta_gt,
+    n_per_cohort = n_per_cohort,
+    p            = p,
+    sigma_Y      = sigma_Y,
+    sigma_alpha  = sigma_alpha,
+    seed         = seed
+  )
+
+  # did::att_gt requires: yname, tname, idname, gname, data
+  # control_group = "nevertreated": units with g_true == 0 serve as controls
+  att <- did::att_gt(
+    yname         = "Y",
+    tname         = "t",
+    idname        = "id",
+    gname         = "g_true",
+    data          = panel,
+    control_group = "nevertreated",
+    ...
+  )
+
+  # Convert to gt_object, extracting real inffunc EIFs
+  as_gt_object(att, extract_eif = TRUE)
+}
