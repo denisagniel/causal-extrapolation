@@ -6,18 +6,22 @@
 \usage{
 .resolve_truncation(
   w_full,
+  w_aug,
   tau,
   correction,
   r,
   n,
   level,
+  regime,
   trunc,
   trunc_gamma,
   trunc_grid
 )
 }
 \arguments{
-\item{w_full}{Length-n untruncated weight vector.}
+\item{w_full}{Length-n untruncated centering weight vector.}
+
+\item{w_aug}{Length-n augmentation weight vector (never truncated).}
 
 \item{tau}{Length-n conditional ATT predictions.}
 
@@ -29,9 +33,12 @@
 
 \item{level}{Confidence level.}
 
-\item{trunc}{Truncation cap for weak overlap: \code{Inf} (default, no truncation), a numeric
-\eqn{C \ge 1}, or \code{"auto"} to select \eqn{C} from \code{trunc_grid} via the bias/SE budget
-\code{trunc_gamma}. See Details.}
+\item{regime}{\code{"internal_target"} or \code{"known_ratio"} (from
+\code{\link[=resolve_transport_weights]{resolve_transport_weights()}}).}
+
+\item{trunc}{Truncation cap for weak overlap, applicable to Form B (Regime (iii)) only:
+\code{Inf} (default, no truncation), a numeric \eqn{C \ge 1}, or \code{"auto"} to select \eqn{C}
+from \code{trunc_grid} via the bias/SE budget \code{trunc_gamma}. See Details.}
 
 \item{trunc_gamma}{Bias budget for \code{trunc = "auto"}, as a multiple of the standard error
 (default 0.25). Ignored unless \code{trunc = "auto"}.}
@@ -49,6 +56,10 @@ List with \code{core} (output of \code{.cate_core()} at the chosen cap), \code{t
 Dispatches on \code{trunc}: \code{Inf}/\code{NULL} (no truncation), \code{"auto"} (grid search over
 \code{trunc_grid} for the smallest cap meeting the \code{trunc_gamma} bias/SE budget), or a fixed
 finite numeric cap \verb{\\ge 1}. See \code{\link[=integrate_cate]{integrate_cate()}}'s Truncation section for the bound
-being budgeted.
+being budgeted. Only the centering weights are capped, and only in the
+known-density-ratio regime, where they coincide with the augmentation weights and so the
+bound's single-weight derivation applies; a finite cap in the internal-target regime is
+rejected (the argument is validated first, so a malformed \code{trunc} still reports its own
+problem).
 }
 \keyword{internal}

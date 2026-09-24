@@ -2,9 +2,9 @@
 % Please edit documentation in R/integrate_cate.R
 \name{resolve_transport_weights}
 \alias{resolve_transport_weights}
-\title{Resolve transport weights and the target-sampling correction}
+\title{Resolve the centering and augmentation transport weights}
 \usage{
-resolve_transport_weights(cate, target, weights, n)
+resolve_transport_weights(cate, target, weights, target_score = NULL, n)
 }
 \arguments{
 \item{cate}{Validated CATE contract list.}
@@ -13,15 +13,36 @@ resolve_transport_weights(cate, target, weights, n)
 
 \item{weights}{Form B length-n density-ratio vector or NULL.}
 
+\item{target_score}{Form A length-n membership-propensity vector, or NULL to use the
+treated-set default.}
+
 \item{n}{Source sample size.}
 }
 \value{
-List with \code{w}, \code{r}, \code{form}.
+List with \code{w_center}, \code{w_aug}, \code{r}, \code{form}, \code{regime}.
 }
 \description{
-Maps the Form A (\code{target} index) / Form B (\code{weights}) inputs to a common length-n
-weight vector \code{w} and the target-sampling correction \code{r} (identically zero in the
-supported fixed-target modes; see \code{\link[=integrate_cate]{integrate_cate()}}). The point estimate is assembled
-by \code{\link[=integrate_cate]{integrate_cate()}} as a doubly-robust one-step, so it is not computed here.
+Maps the Form A (\code{target} index) / Form B (\code{weights}) inputs to the two length-n weight
+vectors the transport score needs — \code{w_center} on the centered CATE term and \code{w_aug} on
+the orthogonal correction — plus the target-sampling correction \code{r} (identically zero in
+the supported modes; see \code{\link[=integrate_cate]{integrate_cate()}}). The point estimate is assembled by
+\code{\link[=integrate_cate]{integrate_cate()}} as a doubly-robust one-step, so it is not computed here.
+}
+\details{
+\strong{Regime (iii), known density ratio (Form B).} Target membership is smooth in
+\eqn{X} by construction, so one weight serves both terms:
+\eqn{w^{\mathrm{ctr}} = w^{\mathrm{aug}} = w}.
+
+\strong{Regime (i), internal target (Form A).} Membership is a hard indicator, so the two
+weights differ: \eqn{w^{\mathrm{ctr}}_i = (n/n^*)\mathbf{1}\{i \in \mathrm{target}\}}
+states which units the estimand averages over, while
+\eqn{w^{\mathrm{aug}}_i = q(X_i)/(n^*/n)} carries the correction, with
+\eqn{q(x) = \mathbb{P}(i \in \mathrm{target} \mid X = x)} supplied via \code{target_score}.
+The indicator cannot be reused on the correction: it annihilates whichever arm of the
+correction it excludes (for the treated-set target, \eqn{A(1 - A) \equiv 0} kills the
+untreated arm outright), which drops every control outcome from the score and forfeits
+robustness to a misspecified \eqn{\mu_0}. When \code{target} is exactly the treated set,
+\code{target_score} defaults to \code{cate$e} and \eqn{w^{\mathrm{aug}} = \hat e/\hat\pi}, the
+efficient ATT influence function's augmentation weight.
 }
 \keyword{internal}
