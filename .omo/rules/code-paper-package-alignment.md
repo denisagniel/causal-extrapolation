@@ -30,13 +30,13 @@ When a project has **simulation code** and/or an **R package** alongside a paper
 
 **Check:** For each simulation table or figure in the paper, trace it to a script and confirm the reported values can be reproduced from that script (or document why not).
 
-**Stem-pairing shortcut (SHOULD):** When a simulation study uses a `NN_short-name`
-stem (see `.claude/rules/canonical-paths.md`), the §1–§2 "locate the matching
-block / trace it to a script" checks become a single grep: the spec
-(`quality_reports/specs/NN_short-name.md`), script
-(`scripts/R/simulation-NN_short-name.R`), and output (`output/NN_short-name/`) are
-1:1 by construction. The stem is the mechanical backstop to these prose checks —
-it makes "does a matching artifact exist?" greppable, though you still verify the
+**Stem-pairing shortcut (SHOULD):** When a simulation study cites its spec stem
+from its `MANIFEST.md` (see `.claude/rules/canonical-paths.md`), the §1–§2 "locate
+the matching block / trace it to a script" checks become a single grep: the spec
+(`quality_reports/specs/YYYY-MM-DD_short-description.md`) and the study subtree
+(`simulations/<study-name>/`, with results in its `results/`) resolve to each other
+in one hop. That citation is the mechanical backstop to these prose checks — it
+makes "does a matching artifact exist?" greppable, though you still verify the
 *content* agrees (parameters, equations, reported values).
 
 ## 3. Package ↔ paper

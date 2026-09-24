@@ -56,4 +56,4 @@ The path is kept rather than deleted because roughly 90 framework and project fi
 are retired instead of silently reviving them.
 
 Full diagnosis and remediation plan:
-`missing-data-did/quality_reports/plans/2026-09-01_session-logging-architecture-remediation.md`
+recorded in the maintainer's separate `missing-data-did` project, not in this repo.
