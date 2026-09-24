@@ -2,13 +2,17 @@
 % Please edit documentation in R/integrate_cate.R
 \name{.cate_core}
 \alias{.cate_core}
-\title{Core transport-EIF computation for a fixed weight vector}
+\title{Core transport-EIF computation for a fixed pair of weight vectors}
 \usage{
-.cate_core(w, tau, correction, r, n, level)
+.cate_core(w_center, w_aug, tau, correction, r, n, level)
 }
 \arguments{
-\item{w}{Length-n weight vector to use (either \code{w_full} or a truncated/renormalized
-version of it).}
+\item{w_center}{Length-n weight on the centered CATE term (either the full centering
+weights or a truncated/renormalized version of them).}
+
+\item{w_aug}{Length-n weight on the orthogonal correction. Equal to \code{w_center} in the
+known-density-ratio regime; the renormalized target-membership propensity in the
+internal-target regime.}
 
 \item{tau}{Length-n conditional ATT predictions.}
 
@@ -21,13 +25,13 @@ version of it).}
 \item{level}{Confidence level.}
 }
 \value{
-List with \code{psi_hat}, \code{phi}, \code{n_eff}, \code{var}, \code{se}, \code{ci}, \code{w_used}.
+List with \code{psi_hat}, \code{phi}, \code{n_eff}, \code{var}, \code{se}, \code{ci}, \code{w_used}, \code{w_aug_used}.
 }
 \description{
-Given a resolved (possibly truncated) weight vector, assembles the doubly-robust
-one-step estimate and transport EIF, checks finiteness, warns on poor overlap, and
-computes the raw (pre-two-sample-addendum) variance. Factored out of
-\code{\link[=integrate_cate]{integrate_cate()}} so the truncation grid search in \code{\link[=.resolve_truncation]{.resolve_truncation()}} can call it
-repeatedly without duplicating the estimation logic.
+Given resolved (possibly truncated) centering and augmentation weights, assembles the
+doubly-robust one-step estimate and transport EIF, checks finiteness, warns on poor
+overlap, and computes the variance. Factored out of \code{\link[=integrate_cate]{integrate_cate()}} so the truncation
+grid search in \code{\link[=.resolve_truncation]{.resolve_truncation()}} can call it repeatedly without duplicating the
+estimation logic.
 }
 \keyword{internal}

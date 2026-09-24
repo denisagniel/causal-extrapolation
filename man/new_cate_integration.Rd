@@ -12,8 +12,10 @@ new_cate_integration(
   var,
   level,
   w,
+  w_aug,
   design,
   form,
+  regime,
   n,
   n_eff,
   trunc,
@@ -34,21 +36,25 @@ new_cate_integration(
 
 \item{level}{Confidence level.}
 
-\item{w}{Length-n transport weights (post-truncation if applicable).}
+\item{w}{Length-n centering weights (post-truncation if applicable).}
+
+\item{w_aug}{Length-n weights applied to the orthogonal correction.}
 
 \item{design}{Design string.}
 
 \item{form}{\code{"target_index"} or \code{"density_ratio"}.}
 
+\item{regime}{\code{"internal_target"} or \code{"known_ratio"}.}
+
 \item{n}{Source sample size.}
 
-\item{n_eff}{Effective sample size.}
+\item{n_eff}{Effective sample size of the centering weights.}
 
 \item{trunc}{Truncation cap actually used (\code{Inf} if none).}
 
 \item{trunc_diag}{List of truncation diagnostics (see \code{\link[=integrate_cate]{integrate_cate()}}).}
 
-\item{two_sample}{List of two-sample correction diagnostics, or \code{NULL}.}
+\item{two_sample}{Always \code{NULL}; retained for output-shape stability.}
 }
 \value{
 Object of class \code{cate_integration}.

@@ -1,19 +1,58 @@
 # Tests for integrate_cate() (Path 3: direct CATE + covariate transport)
 
-test_that("collapse certificate: target = source reduces to AIPW/ATT EIF", {
+test_that("ATT collapse certificate: target = treated reproduces Hahn's ATT EIF", {
+  # Regime (i) certificate. With target = the treated set and the unconfoundedness design,
+  # the transport EIF must reproduce the efficient ATT influence function exactly:
+  #   phi = (A/pi) (tau - theta) + (e/pi) * aug,
+  #   aug = A (Y - mu1)/e - (1 - A)(Y - mu0)/(1 - e).
+  # Note the two DIFFERENT weights: the hard indicator A/pi centers tau, while the SMOOTH
+  # propensity e/pi carries the augmentation. Weighting the augmentation by A/pi instead
+  # would annihilate its (1 - A) branch (since A(1 - A) == 0), discarding every untreated
+  # outcome and destroying double robustness with respect to mu0.
+  n <- 400
+  cate <- make_cate_input(n = n, d = 1, seed = 20260708)
+  target <- which(cate$A == 1)
+
+  res <- integrate_cate(cate, design = "unconfoundedness", target = target)
+
+  pi_hat <- mean(cate$A)
+  aug <- cate$A * (cate$Y - cate$mu1) / cate$e -
+    (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
+  w_center <- cate$A / pi_hat        # == (n / n_star) 1{i in target}
+  w_aug <- cate$e / pi_hat           # == target_score / P(i in target)
+
+  psi_ref <- mean(w_center * cate$tau) + mean(w_aug * aug)
+  phi_ref <- w_center * (cate$tau - psi_ref) + w_aug * aug
+
+  expect_equal(res$estimate, psi_ref, tolerance = 1e-12)
+  expect_equal(res$phi, phi_ref, tolerance = 1e-10)
+  # One-step estimate => EIF exactly mean-zero (mean(w_center) == 1 by construction).
+  expect_equal(mean(res$phi), 0, tolerance = 1e-10)
+
+  # The sharpest regression check against the single-weight bug: under that bug every
+  # untreated unit's influence-function contribution was identically zero.
+  expect_true(any(res$phi[cate$A == 0] != 0))
+  expect_false(all(res$phi[cate$A == 0] == 0))
+})
+
+
+test_that("ATE collapse certificate: target = full source reduces to AIPW/ATE EIF", {
   cate <- make_cate_input(n = 400, d = 1, seed = 20260708)
 
-  # Target = full source sample => w == 1, r == 0.
+  # Target = full source sample => both weights are identically 1, r == 0. At w == 1 for
+  # EVERY unit the score averages tau over the whole population, so the functional here is
+  # the ATE, not the ATT: this is the no-shift certificate against the ordinary AIPW/ATE
+  # efficient influence function.
   res <- integrate_cate(cate, design = "unconfoundedness", target = seq_len(400))
 
-  # Estimate is the ordinary AIPW/ATT one-step: plug-in mean(tau) + mean(AIPW correction).
+  # Estimate is the ordinary AIPW/ATE one-step: plug-in mean(tau) + mean(AIPW correction).
   correction <- cate$A * (cate$Y - cate$mu1) / cate$e -
     (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
   aipw_onestep <- mean(cate$tau) + mean(correction)
   expect_equal(res$estimate, aipw_onestep, tolerance = 1e-12)
 
   # phi must equal the hand-computed ordinary AIPW EIF (centered on the same estimate) to
-  # machine precision -- the collapse certificate.
+  # machine precision -- the no-shift (ATE) collapse certificate.
   ref <- reference_aipw_eif(cate, res$estimate)
   expect_equal(res$phi, ref, tolerance = 1e-10)
   # And the EIF is exactly mean-zero (estimate is the functional the EIF corresponds to).
@@ -36,21 +75,41 @@ test_that("weights = rep(1, n) matches target = seq_len(n) (Form B no-shift)", {
 })
 
 
-test_that("Form A (index) == Form B (implied weights) for a strict subset", {
+test_that("Form A and Form B are distinct estimators for a hard target subset", {
+  # Updated: Form A (an internal target) and Form B (a density ratio) no longer coincide
+  # when handed the same hard membership weight, and must not. Form B applies its weight to
+  # both terms of the score, which is correct for a smooth density ratio; a hard indicator
+  # used that way annihilates the untreated arm of the correction. Form A therefore weights
+  # the correction by the smooth membership propensity instead. This test now pins down both
+  # the Form B assembly and the fact that the two forms differ.
   cate <- make_cate_input(n = 500, d = 1, seed = 22)
   idx <- which(cate$A == 1)               # treated units (the FATT target)
   n <- 500
   n_star <- length(idx)
 
-  # Implied empirical density ratio for this index target.
+  # Implied hard membership weight for this index target.
   w_implied <- numeric(n)
   w_implied[idx] <- n / n_star
 
   res_a <- integrate_cate(cate, design = "unconfoundedness", target = idx)
   res_b <- integrate_cate(cate, design = "unconfoundedness", weights = w_implied)
 
-  expect_equal(res_a$estimate, res_b$estimate, tolerance = 1e-10)
-  expect_equal(res_a$phi, res_b$phi, tolerance = 1e-10)
+  # Form B: single weight on the whole score, exactly as documented for Regime (iii).
+  correction <- cate$A * (cate$Y - cate$mu1) / cate$e -
+    (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
+  psi_b <- mean(w_implied * cate$tau) + mean(w_implied * correction)
+  expect_equal(res_b$estimate, psi_b, tolerance = 1e-12)
+  expect_equal(res_b$phi, w_implied * (cate$tau - psi_b) + w_implied * correction,
+               tolerance = 1e-10)
+
+  # Both forms average tau over the same units, so their centering weights agree...
+  expect_equal(res_a$w, w_implied, tolerance = 1e-12)
+  # ... but the augmentation weights, and hence the scores, do not.
+  expect_false(isTRUE(all.equal(res_a$w_aug, res_b$w_aug)))
+  expect_false(isTRUE(all.equal(res_a$phi, res_b$phi)))
+  # Form A keeps the untreated arm alive; Form B with a hard weight discards it.
+  expect_true(any(res_a$phi[cate$A == 0] != 0))
+  expect_true(all(res_b$phi[cate$A == 0] == 0))
 })
 
 
@@ -87,23 +146,27 @@ test_that("d > 1 covariates: assembly matches a manual vectorized computation", 
   idx <- which(cate$A == 1)
   res <- integrate_cate(cate, design = "unconfoundedness", target = idx)
 
-  # Manual reconstruction of eq. (2) with w = (n/n_star) 1{idx} and the one-step psi.
+  # Manual reconstruction with the two weights and the one-step psi. Updated: the correction
+  # now carries the smooth membership propensity e/pihat rather than the hard indicator, so
+  # that both of its arms contribute.
   n <- 300
-  w <- numeric(n); w[idx] <- n / length(idx)
+  w_center <- numeric(n); w_center[idx] <- n / length(idx)
+  w_aug <- cate$e * (n / length(idx))
   correction <- cate$A * (cate$Y - cate$mu1) / cate$e -
     (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
-  psi <- mean(w * cate$tau) + mean(w * correction)  # one-step estimate
-  phi_manual <- w * (cate$tau - psi) + w * correction
+  psi <- mean(w_center * cate$tau) + mean(w_aug * correction)  # one-step estimate
+  phi_manual <- w_center * (cate$tau - psi) + w_aug * correction
 
   expect_equal(res$phi, phi_manual, tolerance = 1e-10)
   expect_equal(res$estimate, psi, tolerance = 1e-12)
 })
 
 
-test_that("DiD collapse certificate: target = source reduces to DR-DiD/AIPW-on-changes EIF", {
+test_that("DiD ATE collapse certificate: target = full source reduces to DR-DiD EIF", {
   cate <- make_cate_input(n = 400, d = 1, design = "did", seed = 20260708)
 
-  # Target = full source sample => w == 1, r == 0.
+  # Target = full source sample => both weights are identically 1, r == 0. As in the
+  # unconfoundedness case, averaging over EVERY unit makes this the ATE functional.
   res <- integrate_cate(cate, design = "did", target = seq_len(400))
 
   # DR-DiD correction = AIPW on the change dY with m1 = m0_dY + tau.
@@ -137,16 +200,23 @@ test_that("DiD one-step matches its own EIF with misspecified nuisances", {
   idx <- which(cate$A == 1)
   res <- integrate_cate(cate, design = "did", target = idx)
 
-  n <- 2000; w <- numeric(n); w[idx] <- n / length(idx)
+  # Updated: the DR-DiD correction now carries the smooth membership propensity e/pihat, so
+  # the comparison group's outcome-change data is retained. Under the hard indicator the
+  # entire (1 - A) branch vanished -- discarding exactly the comparison-group information the
+  # DiD identification strategy rests on.
+  n <- 2000
+  w_center <- numeric(n); w_center[idx] <- n / length(idx)
+  w_aug <- cate$e * (n / length(idx))
   m1 <- cate$m0_dY + cate$tau
   correction <- cate$A * (cate$dY - m1) / cate$e -
     (1 - cate$A) * (cate$dY - cate$m0_dY) / (1 - cate$e)
-  onestep <- mean(w * cate$tau) + mean(w * correction)
+  onestep <- mean(w_center * cate$tau) + mean(w_aug * correction)
   plugin  <- mean(cate$tau[idx])
 
   expect_equal(res$estimate, onestep, tolerance = 1e-10)
   expect_true(abs(res$estimate - plugin) > 1e-3)   # genuinely differs from plug-in
   expect_equal(mean(res$phi), 0, tolerance = 1e-10) # EIF centered on its own estimand
+  expect_true(any(res$phi[cate$A == 0] != 0))       # comparison group contributes
 })
 
 
@@ -268,10 +338,13 @@ test_that("one-step estimate matches its own EIF with estimated (biased) nuisanc
   idx <- which(cate$A == 1)
   res <- integrate_cate(cate, design = "unconfoundedness", target = idx)
 
-  w <- numeric(2000); w[idx] <- 2000 / length(idx)
+  # Updated: the correction is weighted by e/pihat, not by the hard indicator.
+  n <- 2000
+  w_center <- numeric(n); w_center[idx] <- n / length(idx)
+  w_aug <- cate$e * (n / length(idx))
   correction <- cate$A * (cate$Y - cate$mu1) / cate$e -
     (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
-  onestep <- mean(w * cate$tau) + mean(w * correction)
+  onestep <- mean(w_center * cate$tau) + mean(w_aug * correction)
   plugin  <- mean(cate$tau[idx])
 
   expect_equal(res$estimate, onestep, tolerance = 1e-10)
@@ -306,9 +379,17 @@ test_that("all-zero and non-integer targets error", {
 
 test_that("single-unit target warns", {
   cate <- make_cate_input(n = 100, d = 1, seed = 141)
+  # target_score must be supplied: a one-row target is neither the full source nor the
+  # treated set, so its membership propensity has no exact default.
+  # A one-row target also trips the effective-sample-size diagnostic, so both warnings are
+  # asserted rather than left to leak into the test report.
   expect_warning(
-    integrate_cate(cate, design = "unconfoundedness", target = 1L),
-    "single source row"
+    expect_warning(
+      integrate_cate(cate, design = "unconfoundedness", target = 1L,
+                     target_score = cate$e),
+      "single source row"
+    ),
+    "effective sample size"
   )
 })
 
@@ -417,9 +498,15 @@ test_that("trunc = 'auto' selects a cap satisfying the bias/SE budget", {
 
 test_that("trunc must be >= 1", {
   cate <- make_cate_input(n = 100, d = 1, seed = 33)
+  # The argument's own validation runs before the regime gate, so a malformed cap reports
+  # its own problem rather than the (also-applicable) internal-target restriction.
   expect_error(
     integrate_cate(cate, design = "unconfoundedness", target = which(cate$A == 1),
                    trunc = 0.5),
+    ">= 1"
+  )
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", weights = rep(1, 100), trunc = 0.5),
     ">= 1"
   )
 })
@@ -438,81 +525,143 @@ test_that("trunc errors when weight-mass loss exceeds 50%", {
 })
 
 
-# --- Two-sample variance correction (Task 1: genuinely external target sample) --------
+# --- External target samples: `n_target` is out of scope -------------------------------
+# Updated: these tests previously asserted an additive variance addendum rho*Var_Q(tau)/n
+# on top of the source-EIF variance. That decomposition does not describe inference for a
+# genuinely external target sample (the correct bound replaces the source centering term
+# with Var_target(tau)/n*, and needs per-target-unit CATE values the contract does not
+# accept), so `n_target` now errors rather than returning a number its SE misdescribes.
 
-test_that("n_target adds the two-sample variance addendum with the right magnitude", {
+test_that("n_target errors for Form B (external-target inference is out of scope)", {
   n <- 400
   cate <- make_cate_input(n = n, d = 1, seed = 606)
-  w <- rep(1, n)  # no covariate shift, Form B
-
-  res_no_ts <- integrate_cate(cate, design = "unconfoundedness", weights = w)
-  res_ts    <- integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = 200)
-
-  rho_hat <- n / 200
-  q_mean_tau <- sum(w * cate$tau) / sum(w)
-  var_q_tau <- sum(w * (cate$tau - q_mean_tau)^2) / sum(w)
-
-  expect_equal(res_ts$two_sample$n_target, 200)
-  expect_equal(res_ts$two_sample$rho_hat, rho_hat, tolerance = 1e-12)
-  expect_equal(res_ts$two_sample$var_q_tau, var_q_tau, tolerance = 1e-8)
-  expect_equal(res_ts$var, res_no_ts$var + rho_hat * var_q_tau / n, tolerance = 1e-8)
-  expect_true(res_ts$se > res_no_ts$se)
-  # Point estimate is untouched by the addendum -- only the variance changes.
-  expect_equal(res_ts$estimate, res_no_ts$estimate, tolerance = 1e-12)
-})
-
-
-test_that("n_target is ignored (with a warning) for Form A", {
-  cate <- make_cate_input(n = 200, d = 1, seed = 707)
-  expect_warning(
-    res <- integrate_cate(cate, design = "unconfoundedness", target = which(cate$A == 1),
-                          n_target = 100),
-    "ignored for Form A"
-  )
-  expect_null(res$two_sample)
-})
-
-
-test_that("n_target must be a positive number", {
-  cate <- make_cate_input(n = 200, d = 1, seed = 808)
-  w <- rep(1, 200)
-  expect_error(
-    integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = -5),
-    "positive"
-  )
-})
-
-
-test_that("two-sample addendum is zero when tau is constant (Var_Q(tau) = 0)", {
-  n <- 300
-  cate <- make_cate_input(n = n, d = 1, seed = 909)
-  cate$tau <- rep(1.5, n)
-  cate$mu1 <- cate$mu0 + cate$tau
   w <- rep(1, n)
 
-  res <- integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = 150)
-  expect_equal(res$two_sample$var_q_tau, 0, tolerance = 1e-10)
-  expect_equal(res$two_sample$addendum, 0, tolerance = 1e-10)
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = 200),
+    "`n_target` is not supported"
+  )
 })
 
 
-test_that("truncation and the two-sample addendum compose on the final weights", {
-  n <- 500
-  set.seed(1010)
-  cate <- make_cate_input(n = n, d = 1, seed = 1010)
-  w_raw <- exp(rnorm(n, mean = 0, sd = 1.0))
-  w <- w_raw / mean(w_raw)
-  C <- unname(stats::quantile(w, 0.90))
+test_that("n_target errors for Form A too", {
+  cate <- make_cate_input(n = 200, d = 1, seed = 707)
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = which(cate$A == 1),
+                   n_target = 100),
+    "not supported"
+  )
+})
 
-  res <- suppressWarnings(integrate_cate(cate, design = "unconfoundedness", weights = w,
-                                         trunc = C, n_target = 250))
-  expect_true(is.finite(res$trunc))
-  expect_false(is.null(res$two_sample))
-  # Var_Q(tau) in the addendum must use the FINAL (truncated) weights, not the untruncated
-  # ones, and is centered at the plug-in weighted mean of tau (see .weighted_var_q()'s
-  # roxygen) -- truncation changes the estimand, and the addendum applies to whichever
-  # estimand is actually being reported.
-  q_mean_manual <- sum(res$w * cate$tau) / sum(res$w)
-  var_q_manual <- sum(res$w * (cate$tau - q_mean_manual)^2) / sum(res$w)
-  expect_equal(res$two_sample$var_q_tau, var_q_manual, tolerance = 1e-8)
+
+test_that("n_target errors regardless of its value", {
+  cate <- make_cate_input(n = 200, d = 1, seed = 808)
+  w <- rep(1, 200)
+  # Previously -5 was rejected as non-positive; the argument is now rejected outright, so
+  # no value of it reaches the variance computation.
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = -5),
+    "not supported"
+  )
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = 250),
+    "not supported"
+  )
+})
+
+
+test_that("two_sample is always NULL in the supported regimes", {
+  cate <- make_cate_input(n = 300, d = 1, seed = 909)
+  res_a <- integrate_cate(cate, design = "unconfoundedness", target = which(cate$A == 1))
+  res_b <- integrate_cate(cate, design = "unconfoundedness", weights = rep(1, 300))
+  expect_null(res_a$two_sample)
+  expect_null(res_b$two_sample)
+})
+
+
+# --- Regime (i): target_score contract -------------------------------------------------
+
+test_that("target_score is required for a target that is neither full source nor treated", {
+  cate <- make_cate_input(n = 300, d = 1, seed = 1212)
+  idx <- which(cate$A == 1)[1:20]        # an arbitrary subset of the treated
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = idx),
+    "`target_score` is required"
+  )
+})
+
+
+test_that("target_score = cate$e reproduces the treated-set default", {
+  cate <- make_cate_input(n = 300, d = 1, seed = 1313)
+  idx <- which(cate$A == 1)
+  res_default  <- integrate_cate(cate, design = "unconfoundedness", target = idx)
+  res_explicit <- integrate_cate(cate, design = "unconfoundedness", target = idx,
+                                 target_score = cate$e)
+  expect_equal(res_default$estimate, res_explicit$estimate, tolerance = 1e-12)
+  expect_equal(res_default$phi, res_explicit$phi, tolerance = 1e-12)
+})
+
+
+test_that("a custom target_score enters as q / P(i in target)", {
+  cate <- make_cate_input(n = 300, d = 1, seed = 1414)
+  n <- 300
+  idx <- which(cate$X$x1 > 0)
+  q <- plogis(2 * cate$X$x1)             # arbitrary but valid membership propensity
+  res <- integrate_cate(cate, design = "unconfoundedness", target = idx, target_score = q)
+
+  w_center <- numeric(n); w_center[idx] <- n / length(idx)
+  w_aug <- q * (n / length(idx))
+  expect_equal(res$w, w_center, tolerance = 1e-12)
+  expect_equal(res$w_aug, w_aug, tolerance = 1e-12)
+
+  correction <- cate$A * (cate$Y - cate$mu1) / cate$e -
+    (1 - cate$A) * (cate$Y - cate$mu0) / (1 - cate$e)
+  psi <- mean(w_center * cate$tau) + mean(w_aug * correction)
+  expect_equal(res$estimate, psi, tolerance = 1e-12)
+  expect_equal(res$phi, w_center * (cate$tau - psi) + w_aug * correction, tolerance = 1e-10)
+})
+
+
+test_that("target_score validation: length, sign, and Form B conflict", {
+  cate <- make_cate_input(n = 200, d = 1, seed = 1515)
+  idx <- which(cate$A == 1)
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = idx,
+                   target_score = rep(0.5, 50)),
+    "length 50 but n = 200"
+  )
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = idx,
+                   target_score = rep(-0.1, 200)),
+    "non-negative"
+  )
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = idx,
+                   target_score = rep(0, 200)),
+    "all zero"
+  )
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", weights = rep(1, 200),
+                   target_score = rep(0.5, 200)),
+    "applies to Form A"
+  )
+})
+
+
+# --- Truncation scope: Regime (iii) only -----------------------------------------------
+
+test_that("a finite trunc is rejected for an internal target", {
+  cate <- make_cate_input(n = 200, d = 1, seed = 1616)
+  idx <- which(cate$A == 1)
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = idx, trunc = 2),
+    "applies to `weights`"
+  )
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = idx, trunc = "auto"),
+    "applies to `weights`"
+  )
+  # trunc = Inf (the default) remains a no-op there.
+  res <- integrate_cate(cate, design = "unconfoundedness", target = idx, trunc = Inf)
+  expect_true(is.infinite(res$trunc))
 })

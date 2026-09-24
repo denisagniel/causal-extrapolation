@@ -9,6 +9,7 @@ integrate_cate(
   design = c("unconfoundedness", "did"),
   target = NULL,
   weights = NULL,
+  target_score = NULL,
   n_target = NULL,
   trunc = Inf,
   trunc_gamma = 0.25,
@@ -28,20 +29,25 @@ no-shift case, and the DiD point estimate is cross-checked against \code{DRDID::
 (see tests). Ignored if \code{cate} carries a \code{design} attribute from \code{\link[=as_cate]{as_cate()}} (the
 attribute wins, with a warning on conflict).}
 
-\item{target}{Form A: integer/logical index into the source rows selecting the target
-subpopulation. Mutually exclusive with \code{weights}.}
+\item{target}{Form A (Regime (i)): integer/logical index into the source rows selecting
+the target subpopulation. Mutually exclusive with \code{weights}.}
 
-\item{weights}{Form B: length-n density-ratio weights \eqn{w(X_i)}. Mutually exclusive
-with \code{target}.}
+\item{weights}{Form B (Regime (iii)): length-n density-ratio weights \eqn{w(X_i)}.
+Mutually exclusive with \code{target}.}
 
-\item{n_target}{Optional. Size \eqn{n^*} of the genuinely external target covariate
-sample used to construct \code{weights} (Form B only). When supplied, adds the two-sample
-variance correction described above; ignored (with a warning) for Form A, where the
-target is a fixed subsample of the source. Default \code{NULL} (weights treated as fixed).}
+\item{target_score}{Form A only: length-n vector of target-membership propensities
+\eqn{q(X_i) = \mathbb{P}(i \in \mathrm{target} \mid X_i)}, used (renormalized) as the
+weight on the orthogonal correction. Has an exact default when \code{target} is the full
+source (\eqn{q \equiv 1}) or exactly the treated set (\eqn{q = } \code{cate$e}, which
+recovers the efficient ATT influence function); required for any other \code{target}.}
 
-\item{trunc}{Truncation cap for weak overlap: \code{Inf} (default, no truncation), a numeric
-\eqn{C \ge 1}, or \code{"auto"} to select \eqn{C} from \code{trunc_grid} via the bias/SE budget
-\code{trunc_gamma}. See Details.}
+\item{n_target}{Not supported: supplying this is an error. Inference for a genuinely
+external finite target sample needs per-target-unit CATE values, which this function's
+contract does not accept. See the scope section above.}
+
+\item{trunc}{Truncation cap for weak overlap, applicable to Form B (Regime (iii)) only:
+\code{Inf} (default, no truncation), a numeric \eqn{C \ge 1}, or \code{"auto"} to select \eqn{C}
+from \code{trunc_grid} via the bias/SE budget \code{trunc_gamma}. See Details.}
 
 \item{trunc_gamma}{Bias budget for \code{trunc = "auto"}, as a multiple of the standard error
 (default 0.25). Ignored unless \code{trunc = "auto"}.}
@@ -60,18 +66,20 @@ An object of class \code{cate_integration} (a list) with:
 \item{estimate}{Scalar FATT estimate \eqn{\hat\theta} (of the \eqn{C}-capped estimand
 when truncation is active).}
 \item{phi}{Length-n transport EIF vector (consumable by \code{\link[=compute_variance]{compute_variance()}}).}
-\item{se}{Standard error (includes the two-sample addendum when \code{n_target} is given).}
+\item{se}{Standard error.}
 \item{ci}{Confidence interval (length-2 numeric).}
 \item{level}{Confidence level.}
-\item{w}{Length-n transport weights actually used (post-truncation if applicable).}
+\item{w}{Length-n centering weights actually used (post-truncation if applicable).}
+\item{w_aug}{Length-n weights applied to the orthogonal correction.}
 \item{design}{The design used.}
 \item{form}{\code{"target_index"} or \code{"density_ratio"}.}
-\item{n, n_eff}{Sample size and effective sample size \eqn{(\sum w)^2 / \sum w^2}.}
+\item{regime}{\code{"internal_target"} or \code{"known_ratio"}.}
+\item{n, n_eff}{Sample size and effective sample size \eqn{(\sum w)^2 / \sum w^2} of
+the centering weights.}
 \item{trunc}{The truncation cap actually used (\code{Inf} if none).}
 \item{trunc_diag}{List with \code{delta_trunc}, \code{q_exceed}, \code{var_q_tau}, \code{bias_bound},
 \code{se_bias_aware} (\eqn{z\cdot\mathrm{se} + \mathrm{bias\_bound}} half-width ingredient).}
-\item{two_sample}{\code{NULL}, or a list with \code{n_target}, \code{rho_hat}, \code{var_q_tau},
-\code{addendum}, \code{se_source_only} when \code{n_target} was supplied.}
+\item{two_sample}{Always \code{NULL} (Regime (ii) is out of scope; see above).}
 }
 }
 \description{
@@ -110,51 +118,75 @@ treatment), \code{Y} (outcome), \code{X} (\eqn{n \times d} covariate frame).}
 }
 }
 
-\section{Target vs weights (Form A vs Form B)}{
+\section{Two weights, one score}{
 
-Supply \strong{exactly one} of:
-\itemize{
-\item \code{target} (Form A) — an integer or logical index into the \strong{source rows}
-selecting the target subpopulation (e.g. the treated units for the FATT). The point
-estimate is the mean of \eqn{\hat\tau} over the target, and the implied transport
-weight is \eqn{w_i = (n / n^*)\,\mathbf{1}\{i \in \mathrm{target}\}} (exactly 1 when
-the target is the full source sample — the no-shift case). The target here is a
-fixed subsample of \emph{this} source; there is no second sample, so \code{n_target} (below)
-does not apply.
-\item \code{weights} (Form B) — a length-\eqn{n} vector of density-ratio values
-\eqn{w(X_i)} that you have supplied or estimated externally, e.g. against a
-genuinely external target covariate sample.
+The transport influence function carries \strong{two} distinct weights, one on each of its
+two terms:
+\deqn{\phi_i = w^{\mathrm{ctr}}_i\,(\tau_i - \theta) \;+\;
+  w^{\mathrm{aug}}_i\,\mathrm{aug}_i \;+\; r_i,}
+with \eqn{\mathrm{aug}} the Neyman-orthogonal correction (AIPW, or DR-DiD on the outcome
+change). \eqn{w^{\mathrm{ctr}}} states \emph{which units the estimand averages over};
+\eqn{w^{\mathrm{aug}}} states \emph{how strongly each unit's outcome residual corrects the
+plug-in}. The two coincide only when target membership is itself a smooth function of
+\eqn{X} (Regime (iii) below). When the target is a hard subset of the source — a
+membership indicator — they necessarily differ: \eqn{w^{\mathrm{ctr}}} is that indicator
+while \eqn{w^{\mathrm{aug}}} is the \emph{membership propensity}
+\eqn{q(x) = \mathbb{P}(i \in \mathrm{target} \mid X = x)}, renormalized. This is what
+keeps both arms of \eqn{\mathrm{aug}} active and the score doubly robust: a hard
+indicator on \eqn{\mathrm{aug}} would zero out whichever arm the indicator excludes.
 }
-If you have an \strong{external} target covariate sample that is not a subset of the source,
-estimate the density ratio yourself and pass it as \code{weights}: to preserve the
+
+\section{Target vs weights (Form A vs Form B) and the three regimes}{
+
+Supply \strong{exactly one} of \code{target} (Form A) or \code{weights} (Form B). These map onto the
+regimes as follows.
+
+\strong{Regime (i) — internal target (Form A).} \code{target} is an integer or logical index into
+the \strong{source rows} selecting a target subpopulation of \emph{this} sample (e.g. the treated
+units, for the FATT). Then
+\deqn{w^{\mathrm{ctr}}_i = (n/n^*)\,\mathbf{1}\{i \in \mathrm{target}\}, \qquad
+  w^{\mathrm{aug}}_i = q(X_i) \,/\, \widehat{\mathbb{P}}(i \in \mathrm{target}),}
+where \eqn{q} is supplied via \code{target_score} and \eqn{\widehat{\mathbb{P}}(i \in
+\mathrm{target}) = n^*/n}. \code{target_score} has an exact default in the two cases where the
+index itself pins \eqn{q} down: the full source (\eqn{q \equiv 1}, the no-shift case) and
+the treated set (\eqn{q = e}, since membership there \emph{is} treatment status). The latter
+gives \eqn{w^{\mathrm{ctr}} = A/\hat\pi} and \eqn{w^{\mathrm{aug}} = \hat e/\hat\pi}: the
+efficient ATT influence function of Hahn (1998). For any other \code{target}, \code{target_score}
+is \strong{required} — the membership propensity is not recoverable from the index alone.
+
+\strong{Regime (iii) — known density ratio (Form B).} \code{weights} is a length-\eqn{n} vector of
+density-ratio values \eqn{w(X_i)} you supplied or estimated externally. Target
+membership is smooth in \eqn{X} by construction here, so the same weight applies to both
+terms: \eqn{w^{\mathrm{ctr}} = w^{\mathrm{aug}} = w}. The reported standard error treats
+\code{weights} as \strong{known/fixed}; if they were estimated, the SE is valid only when that
+estimation error is asymptotically negligible relative to \eqn{n^{-1/2}}, and
+anticonservative otherwise.
+
+\strong{Regime (ii) — external finite target sample.} Not currently supported. See
+\code{n_target} below.
+
+To target an \strong{external} covariate sample that is not a subset of the source, estimate
+the density ratio yourself and pass it as \code{weights}: to preserve the
 mapping-not-estimation contract, this function will not estimate a density ratio for
-you. The reported standard error treats \code{weights} as \strong{known/fixed} unless \code{n_target}
-is supplied (see below); if \code{weights} were estimated and \code{n_target} is not supplied, the
-SE is valid only when that estimation error is asymptotically negligible relative to
-\eqn{n^{-1/2}}, and anticonservative otherwise.
+you.
 }
 
-\section{Two-sample variance correction}{
-
-When the target covariate sample used to construct \code{weights} (Form B) is a genuinely
-\strong{external} sample of size \eqn{n^*}, independent of the source, the semiparametric
-efficiency bound for \eqn{\theta} picks up an additional term from the sampling
-variability of that second sample:
-\deqn{V = V_{\mathrm{src}} + \rho\,\mathrm{Var}_Q(\tau(\bX)), \qquad \rho = \lim n/n^*,}
-where \eqn{V_{\mathrm{src}}} is exactly the variance already computed from the transport
-EIF and \eqn{\mathrm{Var}_Q(\tau)} is the variance of the CATE under the target measure
-\eqn{Q} (\eqn{dQ = w\,dP_{\mathrm{src}}}). Supplying \code{n_target} \eqn{= n^*} adds this
-term with plug-in \eqn{\widehat\rho = n/n^*} and a weighted-variance estimate of
-\eqn{\mathrm{Var}_Q(\tau)}; the constant on the addendum is exactly 1 (not an order
-bound). This assumes the two samples are independent draws (no overlap); if the target
-is instead a fixed subsample of the source (Form A), do not supply \code{n_target} — there is
-no second sample and the addendum does not apply.
+\section{Scope}{
+ external target samples (\code{n_target}):
+Supplying \code{n_target} is an error. Inference for a genuinely \strong{external} finite target
+covariate sample of size \eqn{n^*} requires a variance decomposition of the form
+\eqn{\mathrm{Var}_{\mathrm{target}}(\tau)/n^* +
+\mathrm{Var}_{\mathrm{src}}(w^{\mathrm{aug}}\,\mathrm{aug})/n}, whose first term is a
+property of the target rows and therefore needs per-target-unit \eqn{\hat\tau} values
+that this function's contract does not accept. Use Regime (i) when the target is a
+subpopulation of the source, or Regime (iii) with a density ratio when it is not.
 }
 
 \section{Truncation for weak overlap}{
 
-When \eqn{w(\bX)} is heavy-tailed, a few source units can dominate the transport sum and
-inflate the variance. \code{trunc} caps \eqn{w} at a level \eqn{C} and re-normalizes
+\code{trunc} applies to Regime (iii) (Form B density-ratio weights) only. When \eqn{w(\bX)}
+is heavy-tailed, a few source units can dominate the transport sum and inflate the
+variance. \code{trunc} caps \eqn{w} at a level \eqn{C} and re-normalizes
 (Hájek), which strictly reduces variance but introduces a bias
 \deqn{|\tilde B(C)| \le \frac{\{Q(w>C)\}^{1/2}}{1-\delta_C}\,\{\mathrm{Var}_Q(\tau)\}^{1/2},}
 where \eqn{\delta_C = 1 - \mathbb{E}_{\mathrm{src}}[w \wedge C]} is the target weight-mass
@@ -170,14 +202,26 @@ alongside the point estimate as an explicit statement of the target covariate ma
 design cannot support. Normalization is mandatory when \code{trunc} is finite: unnormalized
 truncation carries a pure scale bias of order \eqn{\delta_C} even when \eqn{\tau} is
 constant, so this function always Hájek-normalizes internally.
+
+The bound above is derived for a weight that multiplies the \strong{whole} score, which is
+the Regime (iii) structure. In Regime (i) the centering weight is a fixed membership
+indicator with no tail to cap, and the two weights are not interchangeable, so a finite
+\code{trunc} (or \code{"auto"}) is rejected there rather than silently reinterpreted.
 }
 
-\section{Collapse property}{
+\section{Collapse properties}{
 
-When the target equals the source (\code{target = seq_len(n)}, or \code{weights = rep(1, n)}),
-\eqn{w \equiv 1} and the transport EIF reduces exactly to the ordinary AIPW/ATT
-efficient influence function. This is the correctness certificate for the method (and
-is unit-tested).
+Two no-shift certificates pin the assembly down, and they target \strong{different}
+functionals:
+\itemize{
+\item \code{target = seq_len(n)} (or \code{weights = rep(1, n)}) puts \eqn{w \equiv 1} on every
+unit, averaging \eqn{\tau} over the whole population: the score reduces exactly to
+the ordinary AIPW efficient influence function for the \strong{ATE}.
+\item \code{target = which(A == 1)} under \code{design = "unconfoundedness"} reduces exactly to
+the efficient influence function for the \strong{ATT} (Hahn, 1998),
+\eqn{(A/\pi)(\tau - \theta) + (e/\pi)\,\mathrm{aug}}.
+}
+Both are unit-tested, as is the DiD analog of the first.
 }
 
 \examples{
@@ -199,6 +243,11 @@ res <- integrate_cate(cate, design = "unconfoundedness", target = which(A == 1))
 res$estimate
 res$ci
 
+}
+\references{
+Hahn, J. (1998). On the role of the propensity score in efficient
+semiparametric estimation of average treatment effects. \emph{Econometrica}, 66(2),
+315-331.
 }
 \seealso{
 \code{\link[=as_cate]{as_cate()}} for adapters that build the contract from grf/DoubleML/rlearner

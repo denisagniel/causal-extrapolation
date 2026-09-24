@@ -470,19 +470,127 @@ The trade-off is as follows: Path~1 requires marginal temporal stability (strong
 
 \subsection{Semiparametric estimation and EIF}
 
-Estimation under Path~3 has two ingredients, both off-the-shelf: an estimator $\widehat{\tau}(\cdot)$ of the conditional ATT and a target covariate sample. The FATT estimator integrates the first over the second,
-\begin{align}
-    \widehat{\theta}_{p+1} = \frac{1}{n^*}\sum_{i=1}^{n^*} \widehat{\tau}(\bX_i^*), \label{eq:fatt-path3-est}
-\end{align}
-where $\{\bX_i^*\}_{i=1}^{n^*}$ is a sample from the target distribution $F_{\bX | A_{ip}=1}^{p+1}$ (the treated units' covariates at $p+1$; the study sample's treated units when covariates are time-invariant, or forecasted/simulated draws otherwise). In the parametric special case $\widehat{\tau}(x) = m(x;\widehat{\bbeta})$ this is $n^{*-1}\sum_i m(\bX_i^*;\widehat{\bbeta})$; with a nonparametric learner $\widehat{\tau}$ (e.g.\ a causal forest) it is the average of the predicted conditional effects over the target sample.
+Path~3 supports two distinct inferential regimes. They correspond to different information sets and therefore have different efficient influence functions.
 
-\paragraph{Path 3 EIF.} Because $\widehat{\tau}(\cdot)$ is in general not $\sqrt{n}$-consistent (with continuous $\bX$ it converges at a slower nonparametric rate), we do not propagate an influence function for $\widehat{\tau}$ itself. Instead, the scalar FATT $\theta_{p+1} = \E_{\mathrm{src}}[w(\bX)\tau(\bX)]$ is a pathwise-differentiable functional admitting a \emph{Neyman-orthogonal} estimating equation, and it is this functional that is $\sqrt{n}$-estimable. For the unconfoundedness design, with outcome regressions $\mu_a(x)$, propensity $e(x)$, and density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1}/dF_{\bX}^{\mathrm{src}}(x)$, the efficient influence function is the doubly-robust transport score
+\paragraph{Regime (i): an internally defined target.}
+Let $T_i \in \{0,1\}$ indicate membership in a target subpopulation observed within the source sample, let
+\[
+\rho = \P(T_i=1),
+\qquad
+q(x) = \P(T_i=1 \mid \bX_i=x),
+\]
+and define
+\[
+\operatorname{aug}(O_i;\mu_0,\mu_1,e)
+=
+\frac{A_i\{Y_i-\mu_1(\bX_i)\}}{e(\bX_i)}
+-
+\frac{(1-A_i)\{Y_i-\mu_0(\bX_i)\}}{1-e(\bX_i)}.
+\]
+Suppose that $T$ is constructed so that its observed law matches the transport target, $F_{\bX\mid T=1} = F_{\bX \mid A_{ip}=1}^{p+1}$, equivalently $q(x)/\rho = w(x)$ for the density ratio of Assumption~\ref{assump:target-dist}. The target parameter is then
+\[
+\theta_{p+1}
+=
+\E\{\tau(\bX_i)\mid T_i=1\},
+\qquad
+\tau(x)=\mu_1(x)-\mu_0(x).
+\]
+A cross-fitted one-step estimator is
 \begin{align}
-    \phi_{\psi_3}(O_i) = w(\bX_i)\big(\tau(\bX_i) - \theta_{p+1}\big) + w(\bX_i)\left[\frac{A_i\big(Y_i - \mu_1(\bX_i)\big)}{e(\bX_i)} - \frac{(1-A_i)\big(Y_i - \mu_0(\bX_i)\big)}{1-e(\bX_i)}\right], \label{eq:eif-path3}
+\widehat{\theta}_{p+1}^{\mathrm{int}}
+=
+\frac{
+\mathbb{P}_n\!\left[
+T_i\widehat{\tau}(\bX_i)
++
+\widehat q(\bX_i)
+\widehat{\operatorname{aug}}(O_i)
+\right]
+}{
+\mathbb{P}_n T_i
+}.
+\label{eq:fatt-path3-est}
 \end{align}
-plus a correction term when $w$ is itself estimated from a finite target sample; the conditional parallel-trends design replaces the bracketed augmentation with the corresponding doubly-robust difference-in-differences score, reweighted by $w$. The derivation is in Appendix~\ref{app:eif3}. Because the score in \eqref{eq:eif-path3} is orthogonal to the nuisances $(\mu_a, e, w)$, plugging in cross-fitted nonparametric or machine-learning estimates of these nuisances at the usual $o_\P(n^{-1/4})$ rate yields an asymptotically linear, $\sqrt{n}$-consistent $\widehat{\theta}_{p+1}$ with influence function \eqref{eq:eif-path3} \citep{chernozhukovDoubleDebiasedMachine2018}.
+Because $T$ is observed, the model over $(T,\bX,A,Y)$ is nonparametric and the target distribution is not itself part of the observed-data law, so this functional's gradient is unique and equals the efficient influence function,
+\[
+\phi_{\mathrm{int}}(O_i)
+=
+\frac{T_i}{\rho}
+\{\tau(\bX_i)-\theta_{p+1}\}
++
+\frac{q(\bX_i)}{\rho}
+\operatorname{aug}(O_i;\mu_0,\mu_1,e),
+\]
+which is also the influence function of \eqref{eq:fatt-path3-est}.
 
-This is the same machinery used for Paths~1 and~2, with one structural difference: there the first-stage \emph{object} $\widehat{\theta}_{gt}$ is itself $\sqrt{n}$ and the map to $\theta_{p+1}$ is a finite-dimensional delta method, whereas here the first-stage \emph{function} $\widehat{\tau}$ is estimated slowly and $\sqrt{n}$ inference for the scalar $\theta_{p+1}$ is recovered through orthogonality. We note this so that the asymmetry is not mistaken for an inconsistency. If the conditional model is misspecified (e.g.\ a parametric $m$ that omits relevant heterogeneity), $\widehat{\theta}_{p+1}$ converges to a pseudo-true value rather than the FATT; researchers should assess conditional-model fit and the plausibility of the overlap condition (bounded $w$), discussed next.
+For the FATT under time-invariant covariates, the internally defined target is the treated set: $T_i=A_i$, $\rho=\pi:=\P(A_i=1)$, and $q(x)=e(x)$; the matching condition above then holds automatically, since $F_{\bX|A_{ip}=1}^{p+1}$ equals the observed treated covariate distribution when covariates do not change over time. In this case Path~3 is degenerate---$\widehat\theta_{p+1}^{\mathrm{int}}$ coincides with the backward-looking ATT, and Lemma~\ref{lem:path3-collapse} confirms $\phi_{\mathrm{int}}$ reduces to its efficient influence function---so Regime~(i) earns its keep for the FATT only through the general covariate-integration argument of the identification result above, not through this estimation regime. The regime is non-degenerate for the FATU and FATE, whose target is the untreated or full population rather than a set fixed by the study's own treatment assignment. Hence
+\begin{align}
+\phi_{\psi_3}^{\mathrm{ATT}}(O_i)
+&=
+\frac{A_i}{\pi}
+\{\tau(\bX_i)-\theta_{p+1}\}
++
+\frac{e(\bX_i)}{\pi}
+\operatorname{aug}(O_i;\mu_0,\mu_1,e)
+\notag\\
+&=
+\frac{A_i}{\pi}
+\{\tau(\bX_i)-\theta_{p+1}\}
++
+\frac{A_i}{\pi}\{Y_i-\mu_1(\bX_i)\}
+-
+\frac{e(\bX_i)(1-A_i)}
+{\pi\{1-e(\bX_i)\}}
+\{Y_i-\mu_0(\bX_i)\}.
+\label{eq:eif-path3}
+\end{align}
+Thus the centering term is weighted by the observed target indicator $A_i/\pi$, whereas the outcome augmentation uses the smooth propensity weight $e(\bX_i)/\pi$. Assumptions~\ref{RC8}--\ref{RC10} state the corresponding rate, overlap, and information conditions.
+
+\paragraph{Regime (iii): a known or fixed density ratio.}
+Suppose instead that
+\[
+w(x)
+=
+\frac{dF_{\bX\mid A_{ip}=1}^{p+1}}
+     {dF_{\bX}^{\mathrm{src}}}(x)
+\]
+is known, or is supplied externally and treated as fixed for inference. This is a different informational assumption from Regime~(i), not a limiting case of it. Define
+\begin{align}
+\widehat{\theta}_{p+1}^{\mathrm{fix}}
+=
+\frac{
+\mathbb{P}_n\!\left[
+w(\bX_i)
+\left\{
+\widehat{\tau}(\bX_i)
++
+\widehat{\operatorname{aug}}(O_i)
+\right\}
+\right]
+}{
+\mathbb{P}_n w(\bX_i)
+}.
+\label{eq:fatt-path3-fixed}
+\end{align}
+Here the target distribution plays no role in the observed-data law: it enters only through the externally supplied $w$, so the model over the source sample remains nonparametric and this functional's gradient is unique and equals the efficient influence function below,
+\begin{align}
+\phi_{\psi_3}^{\mathrm{fix}}(O_i)
+=
+w(\bX_i)\{\tau(\bX_i)-\theta_{p+1}\}
++
+w(\bX_i)
+\operatorname{aug}(O_i;\mu_0,\mu_1,e),
+\label{eq:eif-path3-fixed}
+\end{align}
+which is also the influence function of \eqref{eq:fatt-path3-fixed}. The common weight on both terms is appropriate precisely because uncertainty from estimating the target density ratio is excluded from this regime.
+
+This centering is exact only when the supplied ratio is the true one. If instead an externally estimated ratio $\widetilde w \neq w$ is treated as fixed, $\widehat{\theta}_{p+1}^{\mathrm{fix}}$ converges not to $\theta_{p+1}$ but to $\theta(\widetilde w) := \E_{\mathrm{src}}[\widetilde w(\bX)\tau(\bX)]/\E_{\mathrm{src}}[\widetilde w(\bX)]$, and \eqref{eq:eif-path3-fixed} with $\widetilde w$ in place of $w$ is the influence function of $\widehat{\theta}_{p+1}^{\mathrm{fix}}$ around $\theta(\widetilde w)$, conditional on $\widetilde w$---not around $\theta_{p+1}$ unless $\widetilde w = w$ $F_{\bX}^{\mathrm{src}}$-almost everywhere. The resulting inference is conditional on the external estimate and does not account for its estimation error or for the resulting bias $\theta(\widetilde w) - \theta_{p+1}$.
+
+The conditional parallel-trends versions replace the outcome augmentation by the corresponding doubly robust difference-in-differences augmentation. Appendix~\ref{app:eif3} gives both derivations and relates the internally targeted score to the two-weight ATT construction of \citet{santannaDoublyRobustDifferenceindifferences2020}. Neither estimator above represents inference from an independent finite target sample; that setting requires a separate two-sample analysis, discussed as an open extension in Section~\ref{sec:discussion}.
+
+This is the same orthogonal-estimation principle used elsewhere in the paper, but the first-stage object is now the function $\tau(\cdot)$ rather than a finite-dimensional vector of group-time effects. The function $\widehat{\tau}$ need not be $\sqrt n$-consistent. Under Assumption~\ref{RC8}, products of nuisance-estimation errors are $o_{\P}(n^{-1/2})$; individual $o_{\P}(n^{-1/4})$ rates are a sufficient, but not necessary, way to satisfy that condition.
+
+This is the same machinery used for Paths~1 and~2, with one structural difference: there the first-stage \emph{object} $\widehat{\theta}_{gt}$ is itself $\sqrt{n}$ and the map to $\theta_{p+1}$ is a finite-dimensional delta method, whereas here the first-stage \emph{function} $\widehat{\tau}$ is estimated slowly and $\sqrt{n}$ inference for the scalar $\theta_{p+1}$ is recovered through orthogonality. We note this so that the asymmetry is not mistaken for an inconsistency. If the conditional model is misspecified (e.g.\ a parametric $m$ that omits relevant heterogeneity), $\widehat{\theta}_{p+1}$ converges to a pseudo-true value rather than the FATT; researchers should assess conditional-model fit and the plausibility of the overlap condition (Regime (iii)'s bounded $w$, or Regime (i)'s overlap in $e$), discussed next.
 
 \paragraph{When to use Path~3.} Path~3 is most compelling when: (i)~substantial treatment effect heterogeneity is driven by observable covariates; (ii)~temporal stability (Path~1) is implausible due to composition changes or regime shifts; (iii)~extrapolating temporal trends (Path~2) is dubious because the policy environment is changing; (iv)~the key drivers of heterogeneity are observed and well-measured, so that $\tau(x)$ is likely regime-invariant. Path~3 is less appealing when heterogeneity is driven by unobserved factors, when the functional form $m(x;\bbeta)$ is uncertain, or when the target covariate distribution $F_{\bX}^{p+1}$ is poorly known.
 
@@ -507,7 +615,19 @@ where $\phi_{\omega_g}$ is the influence function of the estimator of $\omega_g$
 with the obvious vectorization over $(g,t)$ and, if $\omega_g$ is estimated, an additional term $\sum_g f(g,p+1;\bgamma) \phi_{\omega_g}$. The Jacobian $\frac{\partial \Psi}{\partial \theta}$ is the row vector with entries $\frac{\partial \Psi}{\partial \theta_{gt}} = \frac{\partial \Psi}{\partial \bgamma}^\top \frac{\partial \bgamma}{\partial \theta_{gt}}$, where $\frac{\partial \Psi}{\partial \bgamma} = \sum_g \omega_g \frac{\partial f(g,p+1;\bgamma)}{\partial \bgamma}$; thus stacking the $\phi_{gt}$ and multiplying by this row gives the contribution from the first-stage. Within the model that restricts $\theta_{gt} = f(g,t;\bgamma)$, this $\phi$ is the efficient influence function for $\theta_{p+1}$.
 
 \begin{proposition}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]\label{prop:asymp}
-Under the assumptions of Path 1, Path 2, or Path 3 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$, or $\widehat{\bbeta}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$, $\phi_{\psi_2}$, or $\phi_{\psi_3}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.
+Under the identifying assumptions of the applicable path and Assumptions~\ref{RC1}--\ref{RC10} relevant to that path, suppose the stated influence functions have finite, positive variance.
+
+For Paths~1 and~2, let $\widehat{\theta}_{p+1}$ be the corresponding asymptotically linear aggregation or extrapolation estimator. For Path~3, let $\widehat{\theta}_{p+1}$ be either the internally targeted estimator \eqref{eq:fatt-path3-est} or the known/fixed-density-ratio estimator \eqref{eq:fatt-path3-fixed}. Then
+\[
+\sqrt n\{\widehat{\theta}_{p+1}-\theta_{p+1}\}
+=
+\frac{1}{\sqrt n}\sum_{i=1}^n\phi_i+o_{\P}(1)
+\leadsto
+N(0,\sigma^2),
+\qquad
+\sigma^2=\E(\phi_i^2),
+\]
+where $\phi_i$ is the influence function corresponding to the selected path and, for Path~3, to the selected information regime. The result does not cover inference based on an independent finite target sample.
 \end{proposition}
 
 \begin{proof}
@@ -607,11 +727,23 @@ Taken together, the simulations reinforce the paper's message: the target of est
 
 \input{section9_application}
 
-\section{Discussion}
+\section{Discussion}\label{sec:discussion}
 
 We have argued that policy analysis with panel data faces a tension: methods that allow dynamic, group-time effects address important identification concerns but produce backward-looking estimands that do not directly answer whether to maintain or adopt a policy now or next period. We resolve this by defining future causal effects (FATT, FATU, FATE, FATS) and offering three identification paths. \textbf{Path~1 (time homogeneity):} Under strict within-group time homogeneity and limited between-state heterogeneity, the FATT is identified by the backward-looking ATT or by a convex combination of group-specific ATTs; the researcher can use standard group-time or ATT estimators and aggregate. \textbf{Path~2 (temporal extrapolation):} When effects are allowed to vary with event time (or calendar time), the FATT is identified by fitting a parametric model $f(g,t;\bgamma)$ to the identified group-time ATTs and extrapolating to $p+1$. \textbf{Path~3 (covariate integration):} When treatment effects are driven by observable structural covariates, the FATT is identified by estimating the conditional effect $\tau(x)$ and integrating over the future covariate distribution. The choice between paths is substantive: Path~1 is appropriate when temporal stability is plausible; Path~2 when the researcher is willing to model temporal dynamics and accept sensitivity to the choice of $f$; Path~3 when covariate-driven heterogeneity is well-documented and the researcher believes $\tau(x)$ is regime-invariant.
 
 Several limitations deserve emphasis. Identification of the FATT in all paths relies on the distribution $\P_{p+1}$ (and, for Paths~2 and~3, on the extrapolation or conditional model holding at $p+1$), which is not directly observable. We have focused on a single future period ($k=1$); extension to multiple horizons $k>1$ is conceptually straightforward but adds assumptions on how far the model can be projected. Inference uses the propagated efficient influence function, which is valid under correct specification of the first-stage and, for Paths~2 and~3, of the model ($f$ or $m$); misspecification can bias the extrapolated estimate and distort inference.
+
+A fully rigorous treatment of Path~3 with a genuinely external, independently sampled target covariate distribution is left to future work. If the source and target sample sizes are $n$ and $n^*$, respectively, the first-order variance has the two-sample decomposition
+\[
+V
+=
+\frac{\Var_{\mathrm{target}}\{\tau(\bX)\}}{n^*}
++
+\frac{\Var_{\mathrm{source}}\!\left[
+w(\bX)\operatorname{aug}(O)
+\right]}{n}.
+\]
+Inference in that regime must account for both terms; it is not covered by the internally targeted or known/fixed-density-ratio results presented in Section~\ref{sec:path3}.
 
 For Path~2, we address the model selection problem in Section~\ref{sec:model-selection} by proposing a time-series cross-validation framework that directly tests extrapolation performance. Rather than relying on in-sample fit criteria (AIC, BIC), researchers can withhold late-period observations, fit candidate models on earlier data, and evaluate prediction error on held-out future periods. This approach provides empirical guidance for selecting among functional forms and identifying when extrapolation is model-dependent. The simulations in Section~\ref{sec:cv-simulation} demonstrate that CV successfully identifies the correct model when it is in the candidate set and selects reasonable approximations when it is not. Natural next steps include extending the CV framework to Path~3 (e.g., selecting covariate sets or functional forms for $\tau(x)$); sensitivity analysis for violations of time homogeneity or structural stability; formal post-selection inference that accounts for the randomness introduced by model choice; and applications that compare all three paths on the same data.
 
@@ -714,23 +846,94 @@ For all $g,t$: $\E[\phi_{gt,i}^4] < \infty$ (finite fourth moments for central l
 \end{assumption}
 
 \begin{assumption}[Donsker or rate conditions for cross-fitting]\label{RC7}
-If using flexible or machine-learning first-stage with cross-fitting, the class of functions $\{\phi_{gt,i}(\cdot)\}$ either satisfies Donsker conditions, or the product of convergence rates satisfies $\|\widehat{\theta}_{gt} - \theta_{gt}\| \cdot \|\widehat{\bgamma} - \bgamma\| = o_{\P}(n^{-1/4})$ uniformly over $(g,t)$.
+When flexible first-stage estimators are used, either the relevant score classes satisfy conditions ensuring stochastic equicontinuity, or estimation is cross-fitted and every second-order product appearing in the expansion is $o_{\P}(n^{-1/2})$, uniformly over the finitely many $(g,t)$ cells. In particular,
+\[
+\|\widehat{\theta}_{gt}-\theta_{gt}\|
+\,
+\|\widehat{\bgamma}-\bgamma\|
+=
+o_{\P}(n^{-1/2})
+\]
+whenever this product enters the remainder. Individual $o_{\P}(n^{-1/4})$ rates are sufficient for such product-rate conditions.
 \end{assumption}
 
 \begin{assumption}[Nuisance estimation rates (Path 3)]\label{RC8}
-For Path 3, the nuisance functions---the conditional outcome means $\mu_a(x)$ and propensity $e(x)$ (unconfoundedness design), or their difference-in-differences analogs, together with the density ratio $w(x)$---are estimated by cross-fitting, with $L_2$ convergence rates whose products are $o_{\P}(n^{-1/4})$. The conditional effect $\widehat{\tau}(\cdot)$ need not be $\sqrt{n}$-consistent.
+All Path~3 nuisance estimators are constructed by cross-fitting, and the following conditions hold in $L_2(P)$.
+
+For Regime~(i), let $q(x)=\P(T=1\mid\bX=x)$. Under unconfoundedness,
+\[
+\max_{a\in\{0,1\}}
+\|\widehat\mu_a-\mu_a\|_2
+\left(
+\|\widehat e-e\|_2+\|\widehat q-q\|_2
+\right)
+=
+o_{\P}(n^{-1/2}).
+\]
+For the FATT, $T=A$ and $q=e$, so this reduces to
+\[
+\max_{a\in\{0,1\}}
+\|\widehat\mu_a-\mu_a\|_2
+\,
+\|\widehat e-e\|_2
+=
+o_{\P}(n^{-1/2}).
+\]
+Under conditional parallel trends, the analogous requirement is
+\[
+\|\widehat m_0-m_0\|_2
+\left(
+\|\widehat e-e\|_2+\|\widehat q-q\|_2
+\right)
+=
+o_{\P}(n^{-1/2});
+\]
+for the FATT, this becomes
+$\|\widehat m_0-m_0\|_2\|\widehat e-e\|_2
+=o_{\P}(n^{-1/2})$.
+
+For Regime~(iii), $w$ is known or is conditioned upon as an externally supplied fixed function. It therefore has no sampling-rate requirement. The remaining outcome and propensity nuisances satisfy
+\[
+\max_{a\in\{0,1\}}
+\|\widehat\mu_a-\mu_a\|_2
+\,
+\|\widehat e-e\|_2
+=
+o_{\P}(n^{-1/2}),
+\]
+or the corresponding
+$\|\widehat m_0-m_0\|_2\|\widehat e-e\|_2
+=o_{\P}(n^{-1/2})$
+condition under conditional parallel trends.
 \end{assumption}
 
 \begin{assumption}[Overlap for transport (Path 3)]\label{RC9}
-The density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1}/dF_{\bX}^{\mathrm{src}}(x)$ exists and is bounded, $\|w\|_\infty < \infty$ (or at least $\E_{\mathrm{src}}[w(\bX)^2] < \infty$); equivalently, the future target covariate support is contained in the support of the source distribution on which $\tau$ is estimated.
+There exist constants $\eta>0$ and $\rho_{\min}>0$ such that
+\[
+\P\{\eta\leq e(\bX)\leq1-\eta\}=1
+\qquad\text{and}\qquad
+\rho=\P(T=1)\geq\rho_{\min}.
+\]
+For a general internally defined target, the conditional outcome variances satisfy $\sup_x\E[(Y-\mu_a(x))^2\mid\bX=x,A=a]<\infty$ for $a=0,1$, which together with strict overlap bounds the second moment of $\operatorname{aug}(O;\mu_0,\mu_1,e)$ (the ratios $q(\bX)/e(\bX)$ and $q(\bX)/\{1-e(\bX)\}$ are themselves already bounded by $1/\eta$ under strict overlap, since $q\leq1$). For the FATT, where $q=e$, strict treatment overlap is sufficient.
+
+In Regime~(iii), the fixed density ratio satisfies
+$\E_{\mathrm{src}}\{w(\bX)^2\}<\infty$; boundedness,
+$\|w\|_\infty<\infty$, is a sufficient stronger condition. Any truncation of the common weight $w$ pertains only to Regime~(iii) and generally changes the target functional. It does not apply to Regime~(i)'s observed centering indicator $T/\rho$.
 \end{assumption}
 
-\begin{assumption}[Target distribution access (Path 3)]\label{RC10}
-Either (a) the target sample $\{\bX_i^*\}_{i=1}^{n^*}$ is representative of $F_{\bX | A_{ip}=1}^{p+1}$ (e.g., drawn i.i.d. from the target distribution), or (b) a sampler faithfully generates draws from it. When the target is the study's treated units under time-invariant covariates, this holds by construction.
+\begin{assumption}[Target information for Path 3]\label{RC10}
+Path~3 inference uses one of the following information regimes.
+
+\begin{enumerate}
+\item[(i)] The target is an observed subpopulation of the source sample: $T_i$ is observed for every sampled unit, $\rho=\P(T_i=1)>0$, and $q(x)=\P(T_i=1\mid\bX_i=x)$ is estimable, with $q(x)/\rho$ equal to the density ratio $w(x)$ of Assumption~\ref{assump:target-dist} (that is, $F_{\bX\mid T=1}=F_{\bX\mid A_{ip}=1}^{p+1}$). For the FATT under time-invariant covariates, $T_i=A_i$ and $q=e$, and this equality holds automatically.
+\item[(iii)] The density ratio $w$ is either known exactly, or is externally supplied and treated as fixed conditional information. In the latter case the reported estimator is asymptotically linear for $\theta(\widetilde w)$, the functional evaluated at the supplied $\widetilde w$, rather than for $\theta_{p+1}$ unless $\widetilde w=w$; the stated variance additionally excludes uncertainty from estimating $\widetilde w$.
+\end{enumerate}
+
+These conditions do not cover a genuinely independent finite target sample whose empirical covariate distribution contributes sampling variability.
 \end{assumption}
 
 \begin{remark}
-Assumptions \ref{RC1}--\ref{RC3} and \ref{RC6} are standard for semiparametric inference with first-stage estimation. Assumptions \ref{RC4}--\ref{RC5} are specific to Path~2 (parametric extrapolation). Assumptions \ref{RC8}--\ref{RC10} are specific to Path~3 (covariate transport): \ref{RC8} gives the doubly-robust product-rate conditions, \ref{RC9} the overlap/bounded-density-ratio condition required for transport, and \ref{RC10} access to the target covariate distribution. Assumption \ref{RC7} relaxes Donsker when using modern machine-learning methods via cross-fitting, following \citet{chernozhukovDoubleDebiasedMachine2018}.
+Assumptions~\ref{RC1}--\ref{RC3} and \ref{RC6} govern the asymptotically linear first stages used by Paths~1 and~2. Assumptions~\ref{RC4}--\ref{RC5} are specific to Path~2. Assumptions~\ref{RC8}--\ref{RC10} distinguish the two Path~3 information regimes: internally observed target membership and a known or conditionally fixed density ratio. Assumption~\ref{RC7} records the $o_{\P}(n^{-1/2})$ product-rate requirement used with cross-fitting, following \citet{chernozhukovDoubleDebiasedMachine2018}.
 \end{remark}
 
 \subsection{Proof of Proposition 1}\label{app:prop1}
@@ -918,48 +1121,447 @@ where $\phi_{\theta,i}$ stacks $(\phi_{gt,i})_{g \in \cG, t \leq p}$ and the Jac
 
 \subsubsection{Path 3 EIF}\label{app:eif3}
 
-\textit{Setup:} Under Path~3 the target is the transported conditional effect
+\paragraph{Assumptions and setup.}
+Let $O=(S_{\mathrm{src}},S_{\mathrm{tar}},\bX,A,Y)$ be distributed according to $P$, where $S_{\mathrm{src}}$ and $S_{\mathrm{tar}}$ indicate the source and target components of a stacked population. Write
 \[
-\theta_{p+1} = \E_{\mathrm{src}}\!\left[w(\bX)\,\tau(\bX)\right], \qquad w(x) = \frac{dF_{\bX | A_{ip}=1}^{p+1}}{dF_{\bX}^{\mathrm{src}}}(x),
+\rho_{\mathrm{src}}=\P(S_{\mathrm{src}}=1),
+\qquad
+\rho_{\mathrm{tar}}=\P(S_{\mathrm{tar}}=1),
 \]
-where $\tau(x) = \mu_1(x) - \mu_0(x)$ under the unconfoundedness design, with $\mu_a(x) = \E[Y \mid \bX = x, A = a]$ and propensity $e(x) = \P(A=1 \mid \bX = x)$. Unlike Paths~1--2, $\theta_{p+1}$ is not a finite-dimensional smooth function of the marginal $\theta_{gt}$; it is a functional of the nuisances $(\mu_0, \mu_1, e, w)$, and the conditional effect $\tau$ is estimated nonparametrically. We therefore derive the influence function directly rather than by a delta method through $\bbeta$.
-
-\textit{Derivation.} The functional $\psi(P) = \E_P[w \tau]$ is pathwise differentiable; its efficient influence function combines (i) the variation of the covariate average of $\tau$ and (ii) the standard augmentation that makes the score orthogonal to the outcome and propensity nuisances. Taking a parametric submodel and differentiating, the term from averaging $\tau$ over the target gives $w(\bX)(\tau(\bX) - \psi)$, and the term from estimating $\tau = \mu_1 - \mu_0$ gives the inverse-propensity-weighted residual augmentation, also reweighted by $w$. Collecting,
+and let
 \[
-\phi_{\psi_3}(O) = w(\bX)\big(\tau(\bX) - \theta_{p+1}\big) + w(\bX)\left[\frac{A\big(Y - \mu_1(\bX)\big)}{e(\bX)} - \frac{(1-A)\big(Y - \mu_0(\bX)\big)}{1 - e(\bX)}\right] + r(O), \tag{$\ast$}
+w(x)
+=
+\frac{dP(\bX\in dx\mid S_{\mathrm{tar}}=1)}
+     {dP(\bX\in dx\mid S_{\mathrm{src}}=1)}.
 \]
-where $r(O)$ is the contribution from estimating the density ratio $w$ when the target distribution is itself estimated from a finite sample (and $r \equiv 0$ when the target covariates are treated as fixed/known).
-
-\textit{Difference-in-differences design.} Under conditional parallel trends the bracketed augmentation in $(\ast)$ is replaced by the conditional doubly-robust DiD score of \citet{santannaDoublyRobustDifferenceindifferences2020}, reweighted by $w$. The key observation is that \emph{conditional parallel trends is conditional unconfoundedness applied to the outcome change} $\Delta Y_i = Y_{i,\mathrm{post}} - Y_{i,\mathrm{pre}}$: parallel trends states $\E[\Delta Y_i(0) \mid \bX_i, A_i = 1] = \E[\Delta Y_i(0) \mid \bX_i, A_i = 0]$, i.e.\ the untreated potential change is mean-independent of treatment given $\bX_i$. The entire unconfoundedness derivation therefore transfers under the substitution
+Assume $\rho_{\mathrm{src}}>0$, $\rho_{\mathrm{tar}}>0$, the absolute-continuity and overlap conditions of Assumption~\ref{RC9}, and square integrability of all displayed scores. Under the unconfoundedness design,
 \[
-Y \;\longmapsto\; \Delta Y, \qquad \mu_a(x) \;\longmapsto\; m_a(x) := \E[\Delta Y \mid \bX = x, A = a],
+\tau(x)=\mu_1(x)-\mu_0(x),
+\qquad
+\mu_a(x)=\E(Y\mid\bX=x,A=a,S_{\mathrm{src}}=1),
 \]
-with the conditional ATT recovered as $\tau(x) = m_1(x) - m_0(x)$, equivalently the DR-DiD structural constraint $m_1(x) = m_0(x) + \tau(x)$. Substituting into the augmentation bracket of $(\ast)$ gives the DR-DiD transport influence function
+and $e(x)=\P(A=1\mid\bX=x,S_{\mathrm{src}}=1)$.
+
+\paragraph{Roadmap.}
+We differentiate the target average along an arbitrary regular parametric submodel. The quotient rule produces the target-distribution centering term. Differentiating the two conditional outcome regressions produces the source-sample augmentation term. We then specialize the resulting expression to an internally defined target and separately derive the score when $w$ is known and fixed.
+
+Let $\{P_\varepsilon:\varepsilon\in(-\delta,\delta)\}$ be any regular dominated parametric submodel through $P=P_0$, with score
 \[
-\phi_{\psi_3}^{\mathrm{DiD}}(O) = w(\bX)\big(\tau(\bX) - \theta_{p+1}\big) + w(\bX)\left[\frac{A\big(\Delta Y - m_1(\bX)\big)}{e(\bX)} - \frac{(1-A)\big(\Delta Y - m_0(\bX)\big)}{1 - e(\bX)}\right] + r(O), \tag{$\ast\ast$}
+s(O)
+=
+\left.
+\frac{\partial}{\partial\varepsilon}
+\log p_\varepsilon(O)
+\right|_{\varepsilon=0},
+\qquad
+\E\{s(O)\}=0,
+\qquad
+\E\{s(O)^2\}<\infty.
 \]
-where $m_1 = m_0 + \tau$, so $m_0$ is the only outcome-change nuisance that must be estimated (the treated-arm regression is pinned by the conditional effect $\tau$, which is supplied as the first-stage input). Because parallel trends removes the level confounding by first-differencing, no separate $\mu_a$ level regression is needed; the nuisances entering $(\ast\ast)$ are $(m_0, e, w)$, with $\tau$ treated as the fixed first-stage CATE. The bracket in $(\ast\ast)$ is exactly the correction implemented by \texttt{score\_drdid} in the companion package. Orthogonality (to $m_0$, $e$, and $w$, with $\tau$ held fixed) and the collapse property below are inherited from the unconfoundedness case via the $Y \mapsto \Delta Y$, $\mu_a \mapsto m_a$ substitution.
+Define
+\[
+\theta_\varepsilon
+=
+\frac{
+\E_\varepsilon[
+S_{\mathrm{tar}}\tau_\varepsilon(\bX)
+]
+}{
+\rho_{\mathrm{tar},\varepsilon}
+},
+\qquad
+\rho_{\mathrm{tar},\varepsilon}
+=
+\E_\varepsilon(S_{\mathrm{tar}}).
+\]
+The quotient rule gives
+\begin{align*}
+\dot\theta
+&=
+\frac{1}{\rho_{\mathrm{tar}}}
+\left.
+\frac{\partial}{\partial\varepsilon}
+\E_\varepsilon[
+S_{\mathrm{tar}}\tau_\varepsilon(\bX)
+]
+\right|_{\varepsilon=0}
+-
+\frac{\theta}{\rho_{\mathrm{tar}}}
+\left.
+\frac{\partial\rho_{\mathrm{tar},\varepsilon}}
+     {\partial\varepsilon}
+\right|_{\varepsilon=0}
+\\
+&=
+\frac{1}{\rho_{\mathrm{tar}}}
+\E[
+S_{\mathrm{tar}}\tau(\bX)s(O)
+]
++
+\frac{1}{\rho_{\mathrm{tar}}}
+\E[
+S_{\mathrm{tar}}\dot\tau(\bX)
+]
+-
+\frac{\theta}{\rho_{\mathrm{tar}}}
+\E[
+S_{\mathrm{tar}}s(O)
+]
+\\
+&=
+\E\!\left[
+\frac{S_{\mathrm{tar}}}{\rho_{\mathrm{tar}}}
+\{\tau(\bX)-\theta\}s(O)
+\right]
++
+\E\{\dot\tau(\bX)\mid S_{\mathrm{tar}}=1\}.
+\end{align*}
+By the definition of $w$,
+\[
+\E\{\dot\tau(\bX)\mid S_{\mathrm{tar}}=1\}
+=
+\E\{w(\bX)\dot\tau(\bX)\mid S_{\mathrm{src}}=1\}.
+\]
+For each $a\in\{0,1\}$, pathwise differentiation of the conditional mean gives
+\[
+\dot\mu_a(x)
+=
+\E\!\left[
+\{Y-\mu_a(x)\}s(O)
+\mid
+\bX=x,A=a,S_{\mathrm{src}}=1
+\right].
+\]
+Consequently,
+\begin{align*}
+\E\{w(\bX)\dot\mu_1(\bX)\mid S_{\mathrm{src}}=1\}
+&=
+\E\!\left[
+w(\bX)
+\frac{A\{Y-\mu_1(\bX)\}}{e(\bX)}
+s(O)
+\mid S_{\mathrm{src}}=1
+\right],\\
+\E\{w(\bX)\dot\mu_0(\bX)\mid S_{\mathrm{src}}=1\}
+&=
+\E\!\left[
+w(\bX)
+\frac{(1-A)\{Y-\mu_0(\bX)\}}{1-e(\bX)}
+s(O)
+\mid S_{\mathrm{src}}=1
+\right].
+\end{align*}
+Since $\dot\tau=\dot\mu_1-\dot\mu_0$, multiplying the preceding conditional expectations by
+$S_{\mathrm{src}}/\rho_{\mathrm{src}}$ yields
+\begin{align*}
+\dot\theta
+=
+\E\Bigg[
+\Bigg\{
+&
+\frac{S_{\mathrm{tar}}}{\rho_{\mathrm{tar}}}
+\{\tau(\bX)-\theta\}\\
+&+
+\frac{S_{\mathrm{src}}}{\rho_{\mathrm{src}}}
+w(\bX)
+\left[
+\frac{A\{Y-\mu_1(\bX)\}}{e(\bX)}
+-
+\frac{(1-A)\{Y-\mu_0(\bX)\}}{1-e(\bX)}
+\right]
+\Bigg\}
+s(O)
+\Bigg].
+\end{align*}
+Thus the gradient in the stacked model is
+\begin{align}
+\phi_{\mathrm{stack}}(O)
+=
+&
+\frac{S_{\mathrm{tar}}}{\rho_{\mathrm{tar}}}
+\{\tau(\bX)-\theta\}
+\notag\\
+&+
+\frac{S_{\mathrm{src}}}{\rho_{\mathrm{src}}}
+w(\bX)
+\left[
+\frac{A\{Y-\mu_1(\bX)\}}{e(\bX)}
+-
+\frac{(1-A)\{Y-\mu_0(\bX)\}}{1-e(\bX)}
+\right].
+\label{eq:eif-path3-stacked}
+\end{align}
 
-\textit{Overlap.} Both scores divide by $e(\bX)$ and $1 - e(\bX)$, so we require strict overlap: there is $\eta > 0$ with $e(\bX) \in (\eta, 1-\eta)$ almost surely. Together with the bounded density ratio of Assumption~\ref{assump:target-dist} ($\|w\|_\infty < \infty$), this keeps the score's variance finite. In practice weak overlap---$e$ near $0$ or $1$, or a large $w$---is the binding limitation: it inflates the variance and can make the effective sample size collapse, as we find in the application.
+\paragraph{Regime (i): internally defined target.}
+When every observation belongs to the source, $S_{\mathrm{src}}\equiv1$ and $\rho_{\mathrm{src}}=1$. If $T=S_{\mathrm{tar}}$ is an observed target indicator, then
+\[
+w(x)
+=
+\frac{dF_{\bX\mid T=1}}{dF_{\bX}}(x)
+=
+\frac{q(x)}{\rho},
+\qquad
+q(x)=\P(T=1\mid\bX=x),
+\qquad
+\rho=\P(T=1).
+\]
+Substitution into \eqref{eq:eif-path3-stacked} gives
+\[
+\phi_{\mathrm{int}}(O)
+=
+\frac{T}{\rho}\{\tau(\bX)-\theta\}
++
+\frac{q(\bX)}{\rho}
+\operatorname{aug}(O;\mu_0,\mu_1,e).
+\]
+For the FATT, $T=A$, $\rho=\pi$, and $q=e$, so
+\[
+\phi_{\mathrm{int}}(O)
+=
+\frac{A}{\pi}\{\tau(\bX)-\theta\}
++
+\frac{e(\bX)}{\pi}
+\operatorname{aug}(O;\mu_0,\mu_1,e),
+\tag{$\ast$}
+\]
+which is \eqref{eq:eif-path3}.
 
-\textit{Orthogonality and rates.} The score $(\ast)$ is Neyman-orthogonal: its Gateaux derivative with respect to each of its nuisances---$(\mu_0, \mu_1, e, w)$ under unconfoundedness, or $(m_0, e, w)$ with $\tau$ fixed under the difference-in-differences form $(\ast\ast)$---vanishes at the truth. Consequently, estimating these nuisances by cross-fitted nonparametric or machine-learning methods at $L_2$ rate $o_\P(n^{-1/4})$ leaves the resulting product bias at $o_\P(n^{-1/2})$, so the one-step/estimating-equation estimator $\widehat\theta_{p+1}$ is asymptotically linear with influence function $(\ast)$ (or $(\ast\ast)$), and $\sqrt{n}(\widehat\theta_{p+1} - \theta_{p+1}) \leadsto N(0, \E[\phi_{\psi_3}^2])$ \citep{chernozhukovDoubleDebiasedMachine2018}. We do \emph{not} require $\widehat\tau(\cdot)$ to be $\sqrt{n}$-consistent; the $\sqrt{n}$ rate is recovered at the level of the scalar functional through orthogonality.
+The score is mean-zero. Indeed, by the definition of the target average and the law of iterated expectations,
+\[
+\E\!\left[
+\frac{T}{\rho}\{\tau(\bX)-\theta\}
+\right]
+=
+\E\{\tau(\bX)-\theta\mid T=1\}
+=
+0,
+\]
+and
+\[
+\E\{\operatorname{aug}(O;\mu_0,\mu_1,e)\mid\bX\}=0.
+\]
+Therefore $\E\{\phi_{\mathrm{int}}(O)\}=0$.
+
+The score is also Neyman-orthogonal. For measurable square-integrable perturbations
+$h_1$, $h_0$, and $h_e$, the derivatives with respect to the outcome regressions are
+\begin{align*}
+\partial_{\mu_1}
+\E\{\phi_{\mathrm{int}}(O)\}[h_1]
+&=
+\frac{1}{\rho}
+\E\!\left[
+T h_1(\bX)
+-
+q(\bX)\frac{A}{e(\bX)}h_1(\bX)
+\right]\\
+&=
+\frac{1}{\rho}
+\E\!\left[
+q(\bX)h_1(\bX)-q(\bX)h_1(\bX)
+\right]
+=0,
+\\
+\partial_{\mu_0}
+\E\{\phi_{\mathrm{int}}(O)\}[h_0]
+&=
+\frac{1}{\rho}
+\E\!\left[
+-T h_0(\bX)
++
+q(\bX)\frac{1-A}{1-e(\bX)}h_0(\bX)
+\right]\\
+&=
+\frac{1}{\rho}
+\E\!\left[
+-q(\bX)h_0(\bX)+q(\bX)h_0(\bX)
+\right]
+=0.
+\end{align*}
+For the FATT, $T=A$ and $q=e$. Holding the outcome regressions fixed at their true values, only the comparison residual depends nontrivially on a perturbation of $e$, and
+\begin{align*}
+\partial_e
+\E\{\phi_{\mathrm{int}}(O)\}[h_e]
+&=
+-\frac{1}{\pi}
+\E\!\left[
+\frac{(1-A)\{Y-\mu_0(\bX)\}}
+     {\{1-e(\bX)\}^2}
+h_e(\bX)
+\right]\\
+&=
+-\frac{1}{\pi}
+\E\!\left[
+\frac{h_e(\bX)}{\{1-e(\bX)\}^2}
+\E[
+(1-A)\{Y-\mu_0(\bX)\}\mid\bX
+]
+\right]
+=0.
+\end{align*}
+The final equality follows because
+$\E[Y-\mu_0(\bX)\mid\bX,A=0]=0$.
+For a target-membership score $q$ distinct from $e$,
+\[
+\partial_q
+\E\{\phi_{\mathrm{int}}(O)\}[h_q]
+=
+\frac{1}{\rho}
+\E[
+h_q(\bX)\operatorname{aug}(O;\mu_0,\mu_1,e)
+]
+=0
+\]
+by the conditional mean-zero property of the augmentation.
+
+\paragraph{Regime (iii): known or fixed density ratio.}
+This regime uses only the source sample and treats $w$ as fixed information. Write the target functional in normalized form,
+\[
+\theta(P)
+=
+\frac{\E_P\{w(\bX)\tau_P(\bX)\}}
+     {\E_P\{w(\bX)\}},
+\qquad
+\E_P\{w(\bX)\}=1
+\quad\text{at the true law}.
+\]
+Because $w$ itself is not differentiated, the quotient rule and the preceding conditional-mean calculation give
+\[
+\dot\theta
+=
+\E\!\left[
+w(\bX)\{\tau(\bX)-\theta\}s(O)
+\right]
++
+\E\!\left[
+w(\bX)\operatorname{aug}(O;\mu_0,\mu_1,e)s(O)
+\right].
+\]
+Hence
+\[
+\phi_{\mathrm{fix}}(O)
+=
+w(\bX)\{\tau(\bX)-\theta\}
++
+w(\bX)\operatorname{aug}(O;\mu_0,\mu_1,e).
+\tag{$\ast\ast$}
+\]
+The same weight appears on both terms because $w$ is known or conditioned upon as fixed. No derivative with respect to $w$ is part of this model.
+
+\paragraph{Difference-in-differences design.}
+Let $\Delta Y=Y_{\mathrm{post}}-Y_{\mathrm{pre}}$ and
+\[
+m_a(x)=\E(\Delta Y\mid\bX=x,A=a),
+\qquad
+\tau(x)=m_1(x)-m_0(x).
+\]
+Under conditional parallel trends, the internally targeted FATT score is
+\begin{align*}
+\phi_{\mathrm{int}}^{\mathrm{DiD}}(O)
+={}&
+\frac{A}{\pi}\{\tau(\bX)-\theta\}
++
+\frac{A}{\pi}\{\Delta Y-m_1(\bX)\}\\
+&-
+\frac{e(\bX)(1-A)}
+     {\pi\{1-e(\bX)\}}
+\{\Delta Y-m_0(\bX)\}.
+\end{align*}
+Equivalently,
+\[
+\phi_{\mathrm{int}}^{\mathrm{DiD}}(O)
+=
+\frac{A}{\pi}
+\{\Delta Y-m_0(\bX)-\theta\}
+-
+\frac{e(\bX)(1-A)}
+     {\pi\{1-e(\bX)\}}
+\{\Delta Y-m_0(\bX)\}.
+\]
+This is the two-weight ATT construction of
+\citet{santannaDoublyRobustDifferenceindifferences2020}: the treated component uses the hard weight $A/\E(A)$, while the comparison residual uses the smooth propensity-odds weight
+$e(\bX)(1-A)/[\E(A)\{1-e(\bX)\}]$.
+Under Regime~(iii), both the centering and residual augmentation are instead multiplied by the known common density ratio $w(\bX)$, as in $(\ast\ast)$.
+
+\paragraph{Overlap, rates, and scope.}
+Assumption~\ref{RC9} ensures that all denominators are bounded away from zero and that the displayed scores have finite variance. Under cross-fitting and the $o_{\P}(n^{-1/2})$ product-rate conditions of Assumption~\ref{RC8}, the second-order nuisance remainder is $o_{\P}(n^{-1/2})$. Individual $o_{\P}(n^{-1/4})$ nuisance rates are sufficient. Truncating the common density ratio is meaningful only in Regime~(iii); the observed target indicator in Regime~(i) is not a truncatable nuisance.
+
+\paragraph{Post-proof audit.}
+All assumptions used in the differentiation are stated above or in Assumptions~\ref{RC8}--\ref{RC10}. The quotient rule, conditional-mean derivative, change of measure, and law of iterated expectations were applied explicitly. The FATT specialization is exact after substituting $T=A$, $\rho=\pi$, and $q=e$. Weak overlap or failure of square integrability is the point at which the pathwise derivative may cease to have finite variance. The $o_{\P}(n^{-1/2})$ product-rate condition is the rate needed for the asymptotic-linear remainder; no $\sqrt n$ rate for the entire function $\widehat\tau$ is required.
 
 \begin{lemma}[Collapse to the ATT influence function]\label{lem:path3-collapse}
-If the target covariate distribution equals the source distribution, $F_{\bX | A_{ip}=1}^{p+1} = F_{\bX}^{\mathrm{src}}$, then $w \equiv 1$, $r \equiv 0$, and $(\ast)$ reduces to
+Suppose the internally defined target is the treated population, so
 \[
-\phi_{\psi_3}(O) = \big(\tau(\bX) - \theta_{p+1}\big) + \frac{A\big(Y - \mu_1(\bX)\big)}{e(\bX)} - \frac{(1-A)\big(Y - \mu_0(\bX)\big)}{1 - e(\bX)},
+T=A,
+\qquad
+\rho=\pi=\P(A=1),
+\qquad
+q(x)=\P(T=1\mid\bX=x)=e(x).
 \]
-which is exactly the efficient influence function of the (augmented inverse-propensity-weighted) average treatment effect. Thus Path~3 nests the no-covariate-shift case as the ordinary doubly-robust ATT estimator. The identical collapse holds for the difference-in-differences score $(\ast\ast)$ under the $Y \mapsto \Delta Y$, $\mu_a \mapsto m_a$ substitution: when $w \equiv 1$ and $r \equiv 0$ it reduces to the ordinary conditional DR-DiD efficient influence function \citep{santannaDoublyRobustDifferenceindifferences2020}.
+Then the internally targeted Path~3 influence function equals
+\[
+\phi_{\mathrm{ATT}}(O)
+=
+\frac{A}{\pi}\{\tau(\bX)-\theta\}
++
+\frac{A}{\pi}\{Y-\mu_1(\bX)\}
+-
+\frac{e(\bX)(1-A)}
+     {\pi\{1-e(\bX)\}}
+\{Y-\mu_0(\bX)\},
+\]
+the efficient influence function for the ATT.
 \end{lemma}
 
-Lemma~\ref{lem:path3-collapse} is a useful correctness check: when the target and source covariate distributions coincide, the Path~3 influence function reproduces the standard doubly-robust ATT (or DR-DiD) efficient influence function, and the companion package unit-tests exactly this collapse for both designs. One caveat on the DiD comparison: the transport estimand weights the treated target by the hard indicator $\mathbf{1}\{A_{ip}=1\}$, whereas \citet{santannaDoublyRobustDifferenceindifferences2020} weight their ATT by the smooth propensity odds $e/\E[A]$. The two agree in the point-identified estimand but not in their influence functions, so the collapse matches the DR-DiD \emph{point} EIF; standard errors need not equal those from the Sant'Anna--Zhao ATT estimator.
+\begin{proof}
+\textit{Roadmap:} Substitute the treated-target identities into the general internally targeted score and simplify its augmentation term.
+
+Starting from
+\[
+\phi_{\mathrm{int}}(O)
+=
+\frac{T}{\rho}\{\tau(\bX)-\theta\}
++
+\frac{q(\bX)}{\rho}
+\left[
+\frac{A\{Y-\mu_1(\bX)\}}{e(\bX)}
+-
+\frac{(1-A)\{Y-\mu_0(\bX)\}}{1-e(\bX)}
+\right],
+\]
+substitution of $T=A$, $\rho=\pi$, and $q=e$ gives
+\begin{align*}
+\phi_{\mathrm{int}}(O)
+&=
+\frac{A}{\pi}\{\tau(\bX)-\theta\}
++
+\frac{e(\bX)}{\pi}
+\frac{A\{Y-\mu_1(\bX)\}}{e(\bX)}\\
+&\quad-
+\frac{e(\bX)}{\pi}
+\frac{(1-A)\{Y-\mu_0(\bX)\}}{1-e(\bX)}
+\\
+&=
+\frac{A}{\pi}\{\tau(\bX)-\theta\}
++
+\frac{A}{\pi}\{Y-\mu_1(\bX)\}
+-
+\frac{e(\bX)(1-A)}
+     {\pi\{1-e(\bX)\}}
+\{Y-\mu_0(\bX)\}.
+\end{align*}
+Every equality is algebraic, so the collapse is exact.
+\end{proof}
+
+\paragraph{Post-proof audit.}
+The lemma uses only the identities $T=A$, $\rho=\pi$, and $q=e$ together with strict overlap. It does not set $w\equiv1$ under the full observed-data law. Setting a common weight equal to one in Regime~(iii) instead yields the ordinary ATE influence function and is a different statement. For conditional difference-in-differences, the exact Sant'Anna--Zhao ATT influence function additionally requires their smooth propensity-odds weighting of the comparison residual; replacing that comparison weight by a hard comparison indicator generally changes the influence function and its variance.
 
 \subsection{Proof of Asymptotic Distribution Proposition}\label{app:prop-asymp}
 
 We restate and prove Proposition~\ref{prop:asymp} from Section~\ref{sec:eif-derivation} (extended to cover all three paths).
 
 \begin{proposition*}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]
-Under the assumptions of Path~1, Path~2, or Path~3 above, suppose the first-stage estimators $\widehat{\theta}_{gt}$ (and, where relevant, $\widehat{\omega}_g$, $\widehat{\bgamma}$, or $\widehat{\bbeta}$) are asymptotically linear with the influence functions stated. Then the estimator $\widehat{\psi} = \widehat{\theta}_{p+1}$ constructed by plugging these into the corresponding $\phi_{\psi_1}$, $\phi_{\psi_2}$, or $\phi_{\psi_3}$ satisfies $\sqrt{n}(\widehat{\psi} - \psi) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$.
+Under the identifying assumptions of the applicable path and Assumptions~\ref{RC1}--\ref{RC10} relevant to that path, suppose the stated influence functions have finite, positive variance. For Paths~1 and~2, let $\widehat{\theta}_{p+1}$ be the corresponding asymptotically linear aggregation or extrapolation estimator. For Path~3, let $\widehat{\theta}_{p+1}$ be either the internally targeted estimator \eqref{eq:fatt-path3-est} or the known/fixed-density-ratio estimator \eqref{eq:fatt-path3-fixed}. Then $\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$, where $\phi$ is the influence function corresponding to the selected path and, for Path~3, to the selected information regime. The result does not cover inference based on an independent finite target sample.
 \end{proposition*}
 
 \begin{proof}
@@ -987,13 +1589,68 @@ Applying the delta method to $\Psi_2(\widehat{\theta}, \widehat{\omega})$,
 \]
 where $\phi_{\psi_2,i}$ is from Appendix \ref{app:eif2}.
 
-\textbf{Step 2 (Path 3):} Here the first-stage object is the conditional effect $\tau(\cdot)$ (not the finite-dimensional $\theta_{gt}$), and $\widehat{\tau}$ need not be $\sqrt{n}$-consistent. Instead $\widehat{\theta}_{p+1}$ solves the estimating equation built from the orthogonal score $(\ast)$ of Appendix~\ref{app:eif3}. By Neyman orthogonality of $(\ast)$ with respect to the nuisances $(\mu_0,\mu_1,e,w)$ and the product-rate condition of Assumption~\ref{RC8} ($o_\P(n^{-1/4})$ per nuisance, via cross-fitting), the plug-in bias from nuisance estimation is $o_\P(n^{-1/2})$, so
-\[
-\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) = n^{-1/2}\sum_i \phi_{\psi_3,i} + o_{\P}(1),
-\]
-with $\phi_{\psi_3,i}$ from Appendix~\ref{app:eif3}. Unlike Paths~1--2 this is not a finite-dimensional delta method; $\sqrt{n}$ inference for the scalar $\theta_{p+1}$ is recovered at the functional level through orthogonality.
+\textbf{Step 2 (Path 3):}
+There are two covered regimes.
 
-\textbf{Step 3:} By the central limit theorem (using Assumption \ref{RC6} for finite variance),
+For Regime~(i), write $\widehat\rho=\mathbb{P}_n T$. The estimator \eqref{eq:fatt-path3-est} solves $\mathbb{P}_n[\widehat\phi_{\mathrm{int}}(\theta)]=0$ for the empirical score $\widehat\phi_{\mathrm{int}}(\theta) = \widehat\rho^{-1}\{T(\widehat\tau-\theta)+\widehat q\,\widehat{\operatorname{aug}}\}$: solving gives $\theta\,\widehat\rho/\widehat\rho = \mathbb{P}_n[T\widehat\tau+\widehat q\,\widehat{\operatorname{aug}}]/\widehat\rho$, which rearranges to exactly \eqref{eq:fatt-path3-est}. Consequently
+\[
+\widehat{\theta}_{p+1}^{\mathrm{int}}-\theta_{p+1}
+=
+\mathbb{P}_n\!\left[\frac{T}{\rho}\{\widehat\tau(\bX)-\theta_{p+1}\}+\frac{\widehat q(\bX)}{\rho}\widehat{\operatorname{aug}}(O)\right]
++
+o_{\P}(n^{-1/2}),
+\]
+using $\widehat\rho\to_\P\rho>0$ (Assumption~\ref{RC9}). Writing $\delta_a=\widehat\mu_a-\mu_a$, $\delta_e=\widehat e-e$, $\delta_q=\widehat q-q$, replacing the estimated nuisances in this display by their true values leaves a remainder that is, by the mean-zero and orthogonality calculations of Appendix~\ref{app:eif3},
+\[
+\rho\cdot\mathrm{Rem}
+=
+\E\!\left[\delta_1\!\left(-\delta_q+\frac{\widehat q}{\widehat e}\delta_e\right)\right]
+-
+\E\!\left[\delta_0\!\left(-\delta_q-\frac{\widehat q}{1-\widehat e}\delta_e\right)\right],
+\]
+a sum of $\delta_a\times\delta_q$ and $\delta_a\times\delta_e$ cross-products, each bounded by Cauchy--Schwarz. Assumption~\ref{RC8} makes every such product $o_{\P}(n^{-1/2})$. Cross-fitting removes the need for Donsker control of the estimated nuisance classes. Therefore
+\[
+\sqrt n
+\{\widehat{\theta}_{p+1}^{\mathrm{int}}-\theta_{p+1}\}
+=
+\frac{1}{\sqrt n}
+\sum_{i=1}^n
+\phi_{\mathrm{int}}(O_i)
++
+o_{\P}(1),
+\]
+with $\phi_{\mathrm{int}}$ as displayed in Section~\ref{sec:path3}; for the FATT, $T=A$, $\rho=\pi$, $q=e$ gives \eqref{eq:eif-path3}, and the two remainder terms above coincide ($\delta_q=\delta_e$), so only $\|\widehat\mu_0-\mu_0\|_2\|\widehat e-e\|_2=o_{\P}(n^{-1/2})$ is needed in that case.
+
+For Regime~(iii), $w$ is known or is conditioned upon as fixed. The same ratio-estimator argument applied to \eqref{eq:fatt-path3-fixed}, using $\mathbb{P}_n w\to_\P 1$, gives
+\[
+\widehat{\theta}_{p+1}^{\mathrm{fix}}-\theta_{p+1}
+=
+\mathbb{P}_n\!\left[w(\bX)\{\widehat\tau(\bX)-\theta_{p+1}\}+w(\bX)\widehat{\operatorname{aug}}(O)\right]
++
+o_{\P}(n^{-1/2}),
+\]
+with score
+\[
+\phi_{\mathrm{fix}}(O)
+=
+w(\bX)\{\tau(\bX)-\theta_{p+1}\}
++
+w(\bX)\operatorname{aug}(O;\mu_0,\mu_1,e).
+\]
+Because $w$ is not estimated in this information regime, no $w$-estimation remainder arises. The outcome-regression and propensity-score remainder is $o_{\P}(n^{-1/2})$ under Assumption~\ref{RC8}, and hence
+\[
+\sqrt n
+\{\widehat{\theta}_{p+1}^{\mathrm{fix}}-\theta_{p+1}\}
+=
+\frac{1}{\sqrt n}
+\sum_{i=1}^n
+\phi_{\mathrm{fix}}(O_i)
++
+o_{\P}(1).
+\]
+Neither expansion includes sampling variability from an independent finite target sample. As shown in Appendix~\ref{app:eif3}, $\theta(\widetilde w)=\theta_{p+1}$ only when the supplied $\widetilde w$ equals the true $w$; if an externally supplied ratio is used, this step establishes asymptotic linearity around $\theta(\widetilde w)$ rather than $\theta_{p+1}$.
+
+\textbf{Step 3:} By the central limit theorem (using Assumptions \ref{RC6} and, for Path~3, \ref{RC9} for finite variance),
 \[
 n^{-1/2}\sum_i \phi_i \leadsto N(0, \E[\phi_i^2]).
 \]
@@ -1010,9 +1667,11 @@ where $\sigma^2 = \E[\phi_i^2]$.
 \[
 \widehat{\sigma}^2/n \quad \text{where} \quad \widehat{\sigma}^2 = n^{-1}\sum_i \widehat{\phi}_i^2
 \]
-and $\widehat{\phi}_i$ is the plug-in influence function using $\widehat{\theta}_{gt}$, $\widehat{\omega}_g$, $\widehat{\bgamma}$.
+and $\widehat{\phi}_i$ is the plug-in influence function using $\widehat{\theta}_{gt}$, $\widehat{\omega}_g$, $\widehat{\bgamma}$ (Paths~1--2), or $\widehat\tau$, $\widehat\mu_a$, $\widehat e$, $\widehat q$ (or $w$), and $\widehat\rho$ (Path~3).
 
-\textit{Cross-fitting (Assumption \ref{RC7}):} If using flexible/machine-learning first-stage, $K$-fold cross-fitting ensures that $\|\widehat{\theta}_{gt} - \theta_{gt}\| \cdot \|\widehat{\bgamma} - \bgamma\| = o_{\P}(n^{-1/4})$, which preserves asymptotic linearity even without Donsker conditions. This follows the debiased machine learning framework of \citet{chernozhukovDoubleDebiasedMachine2018}.
+\textit{Cross-fitting (Assumptions \ref{RC7}--\ref{RC8}):}
+With flexible nuisance estimators, $K$-fold cross-fitting and
+$o_{\P}(n^{-1/2})$ second-order product rates---Assumption~\ref{RC7} for Paths~1--2, Assumption~\ref{RC8} for Path~3---preserve asymptotic linearity without requiring Donsker conditions. Individual $o_{\P}(n^{-1/4})$ nuisance rates are sufficient for these product conditions. This follows the debiased machine-learning framework of \citet{chernozhukovDoubleDebiasedMachine2018}.
 \end{remark}
 
 \subsection{Technical Lemmas}\label{app:lemmas}
