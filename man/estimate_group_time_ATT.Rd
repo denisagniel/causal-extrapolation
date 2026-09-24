@@ -4,13 +4,32 @@
 \alias{estimate_group_time_ATT}
 \title{Estimate group-time ATTs and EIFs using did}
 \usage{
-estimate_group_time_ATT(data, y, g, t, x = NULL, cluster = NULL, ...)
+estimate_group_time_ATT(
+  data,
+  y,
+  g,
+  t,
+  id = NULL,
+  x = NULL,
+  cluster = NULL,
+  ...
+)
 }
 \arguments{
 \item{data}{A data.frame or tibble with at least columns for outcome \code{Y},
 group \code{G}, time \code{t}, treatment timing (as required by \code{did}), and optional covariates \code{X}.}
 
 \item{y, g, t}{Bare column names (or strings) for outcome, group, and time.}
+
+\item{id}{Bare column name (or string) for the unit identifier. Strongly
+recommended: passing \code{id} lets \code{did::att_gt()} align each unit's EIF
+contribution consistently across group-time cells, which downstream
+aggregation (Path 1) and extrapolation (Path 2) EIF propagation assumes
+(see Appendix, Regularity Condition RC2). If omitted, \code{did::att_gt()} is
+called with \code{idname = NULL}; the returned EIF vectors are then only
+correct if \code{did} orders rows identically across every group-time cell
+given the same panel, which is not guaranteed by \code{did}'s own contract and
+should not be relied on. A warning is issued in this case.}
 
 \item{x}{Optional character vector of covariate names to carry along.}
 

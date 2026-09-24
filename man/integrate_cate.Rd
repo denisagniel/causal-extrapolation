@@ -9,6 +9,10 @@ integrate_cate(
   design = c("unconfoundedness", "did"),
   target = NULL,
   weights = NULL,
+  n_target = NULL,
+  trunc = Inf,
+  trunc_gamma = 0.25,
+  trunc_grid = NULL,
   level = 0.95,
   validate = TRUE
 )
@@ -30,6 +34,22 @@ subpopulation. Mutually exclusive with \code{weights}.}
 \item{weights}{Form B: length-n density-ratio weights \eqn{w(X_i)}. Mutually exclusive
 with \code{target}.}
 
+\item{n_target}{Optional. Size \eqn{n^*} of the genuinely external target covariate
+sample used to construct \code{weights} (Form B only). When supplied, adds the two-sample
+variance correction described above; ignored (with a warning) for Form A, where the
+target is a fixed subsample of the source. Default \code{NULL} (weights treated as fixed).}
+
+\item{trunc}{Truncation cap for weak overlap: \code{Inf} (default, no truncation), a numeric
+\eqn{C \ge 1}, or \code{"auto"} to select \eqn{C} from \code{trunc_grid} via the bias/SE budget
+\code{trunc_gamma}. See Details.}
+
+\item{trunc_gamma}{Bias budget for \code{trunc = "auto"}, as a multiple of the standard error
+(default 0.25). Ignored unless \code{trunc = "auto"}.}
+
+\item{trunc_grid}{Candidate caps for \code{trunc = "auto"}. Default \code{NULL} uses
+\eqn{\{q_{0.90}, q_{0.95}, q_{0.99}, q_{0.995}\}} of the resolved weights (plus \code{Inf},
+always appended as the "no truncation" fallback).}
+
 \item{level}{Confidence level for the interval (default 0.95).}
 
 \item{validate}{Whether to validate the CATE contract (default TRUE).}
@@ -37,15 +57,21 @@ with \code{target}.}
 \value{
 An object of class \code{cate_integration} (a list) with:
 \describe{
-\item{estimate}{Scalar FATT estimate \eqn{\hat\theta}.}
+\item{estimate}{Scalar FATT estimate \eqn{\hat\theta} (of the \eqn{C}-capped estimand
+when truncation is active).}
 \item{phi}{Length-n transport EIF vector (consumable by \code{\link[=compute_variance]{compute_variance()}}).}
-\item{se}{Standard error.}
+\item{se}{Standard error (includes the two-sample addendum when \code{n_target} is given).}
 \item{ci}{Confidence interval (length-2 numeric).}
 \item{level}{Confidence level.}
-\item{w}{Length-n transport weights used.}
+\item{w}{Length-n transport weights actually used (post-truncation if applicable).}
 \item{design}{The design used.}
 \item{form}{\code{"target_index"} or \code{"density_ratio"}.}
 \item{n, n_eff}{Sample size and effective sample size \eqn{(\sum w)^2 / \sum w^2}.}
+\item{trunc}{The truncation cap actually used (\code{Inf} if none).}
+\item{trunc_diag}{List with \code{delta_trunc}, \code{q_exceed}, \code{var_q_tau}, \code{bias_bound},
+\code{se_bias_aware} (\eqn{z\cdot\mathrm{se} + \mathrm{bias\_bound}} half-width ingredient).}
+\item{two_sample}{\code{NULL}, or a list with \code{n_target}, \code{rho_hat}, \code{var_q_tau},
+\code{addendum}, \code{se_source_only} when \code{n_target} was supplied.}
 }
 }
 \description{
@@ -92,17 +118,58 @@ Supply \strong{exactly one} of:
 selecting the target subpopulation (e.g. the treated units for the FATT). The point
 estimate is the mean of \eqn{\hat\tau} over the target, and the implied transport
 weight is \eqn{w_i = (n / n^*)\,\mathbf{1}\{i \in \mathrm{target}\}} (exactly 1 when
-the target is the full source sample — the no-shift case).
+the target is the full source sample — the no-shift case). The target here is a
+fixed subsample of \emph{this} source; there is no second sample, so \code{n_target} (below)
+does not apply.
 \item \code{weights} (Form B) — a length-\eqn{n} vector of density-ratio values
-\eqn{w(X_i)} that you have supplied or estimated externally.
+\eqn{w(X_i)} that you have supplied or estimated externally, e.g. against a
+genuinely external target covariate sample.
 }
 If you have an \strong{external} target covariate sample that is not a subset of the source,
 estimate the density ratio yourself and pass it as \code{weights}: to preserve the
 mapping-not-estimation contract, this function will not estimate a density ratio for
-you. Note that the reported standard error treats \code{weights} as \strong{known/fixed} (the
-target-sampling correction \eqn{r_i} is zero). If \code{weights} were themselves estimated,
-the SE is valid only when that estimation error is asymptotically negligible relative to
-\eqn{n^{-1/2}}; otherwise it is anticonservative.
+you. The reported standard error treats \code{weights} as \strong{known/fixed} unless \code{n_target}
+is supplied (see below); if \code{weights} were estimated and \code{n_target} is not supplied, the
+SE is valid only when that estimation error is asymptotically negligible relative to
+\eqn{n^{-1/2}}, and anticonservative otherwise.
+}
+
+\section{Two-sample variance correction}{
+
+When the target covariate sample used to construct \code{weights} (Form B) is a genuinely
+\strong{external} sample of size \eqn{n^*}, independent of the source, the semiparametric
+efficiency bound for \eqn{\theta} picks up an additional term from the sampling
+variability of that second sample:
+\deqn{V = V_{\mathrm{src}} + \rho\,\mathrm{Var}_Q(\tau(\bX)), \qquad \rho = \lim n/n^*,}
+where \eqn{V_{\mathrm{src}}} is exactly the variance already computed from the transport
+EIF and \eqn{\mathrm{Var}_Q(\tau)} is the variance of the CATE under the target measure
+\eqn{Q} (\eqn{dQ = w\,dP_{\mathrm{src}}}). Supplying \code{n_target} \eqn{= n^*} adds this
+term with plug-in \eqn{\widehat\rho = n/n^*} and a weighted-variance estimate of
+\eqn{\mathrm{Var}_Q(\tau)}; the constant on the addendum is exactly 1 (not an order
+bound). This assumes the two samples are independent draws (no overlap); if the target
+is instead a fixed subsample of the source (Form A), do not supply \code{n_target} — there is
+no second sample and the addendum does not apply.
+}
+
+\section{Truncation for weak overlap}{
+
+When \eqn{w(\bX)} is heavy-tailed, a few source units can dominate the transport sum and
+inflate the variance. \code{trunc} caps \eqn{w} at a level \eqn{C} and re-normalizes
+(Hájek), which strictly reduces variance but introduces a bias
+\deqn{|\tilde B(C)| \le \frac{\{Q(w>C)\}^{1/2}}{1-\delta_C}\,\{\mathrm{Var}_Q(\tau)\}^{1/2},}
+where \eqn{\delta_C = 1 - \mathbb{E}_{\mathrm{src}}[w \wedge C]} is the target weight-mass
+discarded by the cap. This bound is \strong{exactly zero when \eqn{\tau} is constant on the
+target region}, i.e. truncation is free of first-order bias whenever the conditional
+effect does not itself vary in the region that is being truncated away. \code{trunc = "auto"}
+selects the smallest cap on \code{trunc_grid} whose worst-case bias is at most
+\code{trunc_gamma} times the standard error (default 1/4, costing under one percentage point
+of nominal coverage at the 95\% level); \code{trunc = C} (numeric, \eqn{\ge 1}) fixes the cap.
+Truncation always changes the estimand to the \eqn{C}-capped target
+\eqn{\theta(C) = \mathbb{E}_{\mathrm{src}}[\tilde w_C\,\tau]}; report \code{delta_trunc}
+alongside the point estimate as an explicit statement of the target covariate mass the
+design cannot support. Normalization is mandatory when \code{trunc} is finite: unnormalized
+truncation carries a pure scale bias of order \eqn{\delta_C} even when \eqn{\tau} is
+constant, so this function always Hájek-normalizes internally.
 }
 
 \section{Collapse property}{

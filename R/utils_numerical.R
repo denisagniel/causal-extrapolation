@@ -1,15 +1,19 @@
 #' Safe Matrix Inversion with Singularity Check
 #'
-#' Computes the inverse of X'X with condition number checking to prevent
-#' crashes from singular or near-singular matrices.
+#' Computes the inverse of X'X (or the weighted Gram matrix X'WX) with
+#' condition number checking to prevent crashes from singular or
+#' near-singular matrices.
 #'
 #' @param X Numeric matrix (n x p).
 #' @param tol Tolerance for condition number (default 1e-8). If kappa(X'X) > 1/tol,
 #'   an error is raised.
+#' @param weights Optional numeric vector of length `nrow(X)`, strictly
+#'   positive. If supplied, inverts the weighted Gram matrix `t(X) %*% (weights * X)`
+#'   instead of the unweighted `X'X`.
 #'
-#' @return The inverse of X'X.
+#' @return The inverse of X'X (or X'WX, if `weights` is supplied).
 #' @keywords internal
-safe_matrix_inverse <- function(X, tol = 1e-8) {
+safe_matrix_inverse <- function(X, tol = 1e-8, weights = NULL) {
   if (!is.matrix(X) && !is.numeric(X)) {
     stop("X must be a numeric matrix")
   }
@@ -28,7 +32,19 @@ safe_matrix_inverse <- function(X, tol = 1e-8) {
     ))
   }
 
-  XtX <- crossprod(X)
+  if (is.null(weights)) {
+    XtX <- crossprod(X)
+  } else {
+    if (length(weights) != n) {
+      stop(stringr::str_glue(
+        "weights must have length {n} (nrow(X)), got {length(weights)}."
+      ))
+    }
+    if (any(weights <= 0)) {
+      stop("weights must all be strictly positive.")
+    }
+    XtX <- crossprod(X, weights * X)
+  }
 
   # Check condition number for near-singularity
   cond_num <- kappa(XtX, exact = TRUE)

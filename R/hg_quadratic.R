@@ -6,6 +6,10 @@
 #'
 #' @param times Numeric vector of observed event times (length p >= 3).
 #' @param future_time Single numeric future event time (e.g. k* = p+1 - g).
+#' @param weights Optional numeric vector of length `length(times)`, the
+#'   weighted-least-squares weights \eqn{\lambda_t}. If `NULL` (default), an
+#'   equal-weighted (ordinary least squares) fit is used, matching prior
+#'   behavior. See [hg_linear()] for the efficiency rationale.
 #'
 #' @details
 #' Requires at least p >= 3 observations (intercept + linear + quadratic terms).
@@ -44,18 +48,19 @@
 #' print(dh_weights)
 #'
 #' @export
-hg_quadratic <- function(times, future_time) {
+hg_quadratic <- function(times, future_time, weights = NULL) {
   force(times)
   force(future_time)
+  force(weights)
   function(tau_g) {
-    w <- dh_quadratic(times, future_time)
+    w <- dh_quadratic(times, future_time, weights)
     as.numeric(sum(w * tau_g))
   }
 }
 
 #' @rdname hg_quadratic
 #' @export
-dh_quadratic <- function(times, future_time) {
+dh_quadratic <- function(times, future_time, weights = NULL) {
   # Validate minimum observations
   p <- length(times)
   if (p < 3) {
@@ -65,10 +70,16 @@ dh_quadratic <- function(times, future_time) {
   X <- cbind(1, times, times^2)
   xstar <- c(1, future_time, future_time^2)
 
-  # Safe matrix inversion with singularity checking
-  XtX_inv <- safe_matrix_inverse(X)
-
-  # Compute projection weights: x*' (X'X)^{-1} X'
-  w <- as.numeric(t(xstar) %*% XtX_inv %*% t(X))
+  if (is.null(weights)) {
+    w <- as.numeric(t(xstar) %*% safe_matrix_inverse(X) %*% t(X))
+  } else {
+    if (length(weights) != p) {
+      stop(stringr::str_glue(
+        "weights must have length {p} (one per observed time), got {length(weights)}."
+      ), call. = FALSE)
+    }
+    XtWX_inv <- safe_matrix_inverse(X, weights = weights)
+    w <- as.numeric(t(xstar) %*% XtWX_inv %*% t(X * weights))
+  }
   w
 }

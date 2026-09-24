@@ -17,6 +17,16 @@
 #'   are constructed over calendar times `t` or event times `k = t - g`.
 #' @param omega Optional numeric vector of group weights ω_g for aggregation.
 #' @param per_group If TRUE, return per-group results. If FALSE, aggregate with ω_g.
+#' @param weight_scheme One of `"equal"` (default) or `"gls"`. Controls the
+#'   within-group weighted-least-squares weights \eqn{\lambda_{gt}} passed to
+#'   `h_fun`/`dh_fun` via their `weights` argument (see [hg_linear()]).
+#'   `"equal"` uses ordinary least squares (\eqn{\lambda_{gt}=1}), valid for
+#'   any asymptotically linear first-stage. `"gls"` computes, separately for
+#'   each group, the inverse-variance weights from that group's supplied EIF
+#'   vectors via [gls_weights()], and attains the semiparametric efficiency
+#'   bound within the parametric model (RC5) when the first-stage EIFs are
+#'   themselves efficient. Ignored if `h_fun`/`dh_fun` do not accept a
+#'   `weights` argument (e.g. a fully custom model supplied by the caller).
 #' @param ... Additional arguments passed to h_fun/dh_fun.
 #'
 #' @section Custom temporal models:
@@ -113,7 +123,8 @@
 #' print(result_agg$tau_future)
 #'
 #' @export
-extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL, future_value = NULL, omega = NULL, per_group = TRUE, time_scale = c("calendar", "event"), ...) {
+extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL, future_value = NULL, omega = NULL, per_group = TRUE, time_scale = c("calendar", "event"), weight_scheme = c("equal", "gls"), ...) {
+  weight_scheme <- match.arg(weight_scheme)
   # Input validation
   validate_gt_object(gt_object, name = "gt_object")
   time_scale <- match.arg(time_scale)
@@ -178,14 +189,52 @@ extrapolate_ATT <- function(gt_object, h_fun, dh_fun = NULL, future_time = NULL,
     # Use fast_cbind_list for efficient matrix construction
     phi_mat <- fast_cbind_list(phi_ord[idx])
 
-    # Derivative weights and extrapolation per group
-    h_factory <- h_fun(times_vec, future_value, ...)
-    dh_vec <- if (!is.null(dh_fun)) dh_fun(times_vec, future_value, ...) else NULL
+    # Within-group weighted-least-squares weights, computed per group from
+    # that group's own EIF vectors (equal weighting -- the prior, always-valid
+    # default -- passes no extra argument at all, so custom h_fun/dh_fun
+    # written against the pre-existing (times, future_time, ...) interface
+    # are unaffected).
+    extra_args <- if (weight_scheme == "gls") {
+      list(weights = gls_weights(phi_ord[idx]))
+    } else {
+      list()
+    }
+
+    # Derivative weights and extrapolation per group. h_fun/dh_fun most
+    # commonly fail on the cohort with the fewest observed periods -- by
+    # construction the most-recently-treated one, which also has the
+    # longest extrapolation horizon -- so errors are re-thrown with the
+    # group and remediation options attached rather than left generic.
+    .enrich_group_error <- function(e) {
+      stop(stringr::str_glue(
+        "extrapolate_ATT() failed for group {gk} ({length(times_vec)} observed period(s), ",
+        "times = {stringr::str_c(times_vec, collapse = ', ')}): {conditionMessage(e)}\n",
+        "This is commonly the most-recently-treated cohort, which by construction has the ",
+        "fewest observed periods and the longest extrapolation horizon. If the model requires ",
+        "more periods per group than this cohort has, consider: pooling the temporal parameter ",
+        "across cohorts (a single shared slope/curve rather than one per group), modeling in ",
+        "event time alone so every cohort contributes to one shared curve, or restricting the ",
+        "extrapolation to cohorts with sufficient observed periods (which changes the estimand ",
+        "to the FATT for that subpopulation, with weights renormalized accordingly)."
+      ), call. = FALSE)
+    }
+    h_factory <- tryCatch(
+      do.call(h_fun, c(list(times_vec, future_value), extra_args, list(...))),
+      error = .enrich_group_error
+    )
+    dh_vec <- if (!is.null(dh_fun)) {
+      tryCatch(
+        do.call(dh_fun, c(list(times_vec, future_value), extra_args, list(...))),
+        error = .enrich_group_error
+      )
+    } else {
+      NULL
+    }
     if (is.null(dh_vec)) {
       if (!requireNamespace("numDeriv", quietly = TRUE)) stop("numDeriv required for numerical Jacobian.")
       base <- tau_vec * 0
       # compute gradient wrt each component around current tau_vec
-      dh_vec <- as.numeric(numDeriv::grad(function(z) h_fun(times_vec, future_value, ...)(z), x = tau_vec))
+      dh_vec <- as.numeric(numDeriv::grad(function(z) do.call(h_fun, c(list(times_vec, future_value), extra_args, list(...)))(z), x = tau_vec))
     }
 
     list(

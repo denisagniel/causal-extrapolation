@@ -1,0 +1,545 @@
+% theory.tex --- Consolidated theory appendix for "Should We Keep the Policy?
+% Forward-Looking Estimands and Identification for Panel Data" (extrapolateATT project)
+%
+% STATUS: Evaluation draft (2026-08-21). Consolidates and corrects the appendix
+% that existed in inst/paper/main.tex (pre-"lean" restructuring) against the
+% notation and proposition statements currently in inst/paper/main-lean.tex.
+% Intended to be evaluated first, then merged back into main-lean.tex as its
+% Appendix A (Sections 4-5, 7 below) and Appendix B (Section 6 below).
+%
+% Key corrections relative to the old main.tex appendix (Oracle-reviewed,
+% session ses_fdba1277affeW6c4AOOtw62TJ9):
+%   1. The old proofs of Propositions 1-2 invoked a "between-state
+%      heterogeneity" assumption (swapping the conditioning event from
+%      A_ip=1 to A_{i,p+m}=1) that does not exist in main-lean.tex and is
+%      NOT needed for the FATT (which conditions on A_ip=1 throughout, by
+%      definition). That assumption targeted a different estimand (the ATT
+%      among units treated at p+m). Dropping it is not a simplification of
+%      convenience; the old assumption is vacuous for tau_FATT(p+m) as
+%      currently defined.
+%   2. Fixed: theta_{gt} was described as defined only for t <= p in
+%      main-lean.tex:116 but used at t = p+m throughout Sec. 4. We define it
+%      for all g <= t <= p+M here (Definition 1).
+%   3. Fixed: Proposition 2 as stated in main-lean.tex uses gamma-hat in an
+%      identification statement; identification is a population-level claim
+%      and must use the true gamma. The hat belongs to the estimator (Sec. 5).
+%   4. Unified aggregation-weight notation to pi_g throughout (main-lean.tex
+%      uses pi_g in Sec. 3-4 and omega_g in Sec. 5 for the same object).
+%
+% REVISION 2 (2026-08-21): Incorporates a proof-audit (session
+% ses_fdb975857ffehJmyxsM0PRzeQP) that found the identification core (Lemma
+% 0/1, Props 1-2) sound but flagged Blocking errors in Path 3 and the
+% inference machinery. Fixed in this revision: (B-1) Prop 3's proof had
+% re-introduced, in its own "assumption-free" Step 1, exactly the
+% conditioning-event swap eliminated from Props 1-2 -- tau_t(x) is now
+% defined against the FATT's own A_ip=1 conditioning event, not a moving
+% A_it=1 population. (B-5) the Path 2 EIF's implicit-function-theorem step
+% needed a rank condition (RC5', H_0 nonsingular), not injectivity, which
+% does not imply it. (B-2) RC8's product-rate condition was off by a factor
+% n^{1/4} (must be per-nuisance o_P(n^{-1/4}), giving product o_P(n^{-1/2})).
+% (B-3/B-4) the Path 3 score is not Neyman-orthogonal in the density ratio
+% w; scope is restricted to known/fixed target covariates (RC10(b)) so that
+% r(O) = 0 by construction, with the estimated-w case flagged as an open
+% item in Section 8. Also fixed: two false/self-contradictory efficiency
+% and homogeneity claims, missing unconfoundedness/no-anticipation/
+% positivity assumptions, an undefined index set, and a notation collision
+% between the LS weights and the density ratio. See Section 8 for what
+% remains open.
+%
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage{color, xcolor}
+\usepackage{setspace}
+\usepackage{natbib}
+\usepackage{booktabs}
+
+% Common definitions (shared with main-lean.tex); typography-preamble.tex loads hyperref
+\input{common-defs}
+\input{typography-preamble}
+
+% Redefine \P as blackboard-bold P (safe: default \P is the pilcrow, unused in math)
+\renewcommand{\P}{\bboardP}
+
+% Theorem environments: theorem/lemma/proposition/corollary/definition/remark/example
+% are defined in common-defs.tex, numbered together under \theorem, [section]-scoped.
+% assumption gets its own counter, matching main-lean.tex.
+\newtheorem{assumption}{Assumption}
+% \argmin already defined in common-defs.tex
+
+\setlength{\topmargin}{-.25in}
+\setlength{\oddsidemargin}{-0.4in}
+\setlength{\textwidth}{7.2in}
+\setlength{\textheight}{9.0in}
+\parindent 16pt
+
+\title{Theory Appendix: Notation, Assumptions, and Proofs \\ \large for ``Should We Keep the Policy? Forward-Looking Estimands \\ and Identification for Panel Data''}
+\author{[Authors] --- Companion theory document to \texttt{inst/paper/main-lean.tex}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document consolidates, corrects, and completes the formal theory underlying the three identification paths and the semiparametric inference result stated in the main text (\texttt{main-lean.tex}). It is organized to be evaluated on its own and, once approved, merged back into the paper as Appendix~A (Sections~\ref{sec:setup}--\ref{sec:identification}, \ref{sec:regularity}, \ref{sec:asymptotics} below) and Appendix~B (Section~\ref{sec:eif}). Section~\ref{sec:codealign} cross-checks every formal claim against the \texttt{extrapolateATT} R package implementation and flags the two places where they currently diverge.
+\end{abstract}
+
+\tableofcontents
+
+\section{Setup: A Single Joint Law Through the Horizon}
+\label{sec:setup}
+
+The main text states the panel framework informally (Section~2 of \texttt{main-lean.tex}). We restate it here with the minimal additional structure needed to make the forward-looking estimands and their identification proofs well-defined, following a joint-law formulation that resolves an ambiguity in the informal statement (see Remark~\ref{rem:joint-law}).
+
+\begin{definition}[Data-generating process]
+\label{def:dgp}
+Fix a horizon $M \geq 1$. Let $\{(\bX_{it}, Y_{it}(0), Y_{it}(1), A_{it})\}_{t=1}^{p+M}$ be a stochastic process defined for each unit $i$ under a single joint law $\P$, with no interference across units, so that unit $i$'s potential outcomes depend only on unit $i$'s own treatment path. Write $\P_t$ for the marginal law of $(\bX_{it}, Y_{it}(0), Y_{it}(1), A_{it})$ under $\P$. The observed data $\cO = \{\bX_i, \bY_i, \bA_i\}_{i=1,\ldots,n}$ ($\bY_i = (Y_{i1},\ldots,Y_{ip})$ the \emph{realized} outcomes, related to the potential outcomes by Assumption~\ref{assump:consistency} below) are $n$ i.i.d.\ draws of the restriction of this process to $t = 1, \ldots, p$; $\P_{p+m}$ for $1 \leq m \leq M$ is the ($p{+}m$)-marginal of the \emph{same} process and is not observed. $G_i = \min\{t : A_{it}=1\}$ (with $G_i = \infty$ if never treated on $[1,p+M]$) is a $\P$-measurable, time-invariant characteristic of unit $i$: it is a functional of the whole path $\bA_i$, not of any single $\P_t$, so its meaning does not change with $t$. Throughout, $p$, $M$, and $|\cG|$ (defined below) are fixed as $n\to\infty$.
+\end{definition}
+
+\begin{remark}[Why the joint law matters]
+\label{rem:joint-law}
+The main text (\texttt{main-lean.tex:100}) describes $\P_{p+m}$ as ``the distribution ... in the same superpopulation $m$ periods ahead,'' which is suggestive but not a formal statement: if $\P_{p+m}$ is defined only as the marginal law of the single tuple $(\bX_{i,p+m}, Y_{i,p+m}(0), Y_{i,p+m}(1), A_{i,p+m})$, then $G_i$---a summary of the \emph{whole} path---is not even a measurable function of the variables $\P_{p+m}$ describes, and expressions like $\E_{\P_{p+m}}\{\cdot \mid G_i = g\}$ are not well-formed. Definition~\ref{def:dgp} repairs this by positing one joint law over the full horizon $[1,p+M]$, of which each $\P_t$ is a marginal. This is a definitional fix, not a substantive assumption: every subsequent result is stated conditional on this joint law existing.
+\end{remark}
+
+\begin{assumption}[Consistency]
+\label{assump:consistency}
+$Y_{it}(a) = Y_{it}$ whenever $A_{it} = a$, for all $i, t \in \{1,\ldots,p+M\}$.
+\end{assumption}
+
+\begin{assumption}[Absorbing (staggered) adoption]
+\label{assump:absorbing}
+$A_{it} = 1 \implies A_{is} = 1$ for all $s \in (t, p+M]$.
+\end{assumption}
+
+\begin{assumption}[Covariate exogeneity]
+\label{assump:cov-exog}
+The covariates $\bX_{it}$ used in identification are pre-treatment or otherwise externally determined: $\bX_{it}$ does not lie on a causal path from $A_{i\cdot}$ to $Y_{i\cdot}$.
+\end{assumption}
+
+Assumption~\ref{assump:absorbing} is stated in \texttt{main-lean.tex} only for the observed window; we assert it through the full horizon $p+M$, since Section~\ref{sec:identification} uses it at $t = p+m$. This is the same substantive content the paper already relies on (units that adopt a policy do not un-adopt it); we simply state its temporal scope explicitly. One consequence deserves an explicit statement, since the paper's title poses a keep/repeal decision: asserting Assumption~\ref{assump:absorbing} through $p+M$ means $\tau_{\mathrm{FATT}}(p+m)$ (Definition~\ref{def:estimands}) is the effect of \emph{continuing} the policy for the units that have already adopted it; a counterfactual in which some already-adopting units repeal on $(p,p+m]$ is not identified by the results below.
+
+\begin{lemma}[Cohort persistence]
+\label{lem:persistence}
+Under Assumption~\ref{assump:absorbing}, for every cohort $g \leq p+M$ and every $t \in [g, p+M]$,
+\[
+\{A_{it} = 1,\ G_i = g\} = \{G_i = g\}
+\]
+as events (not merely equal in probability). Consequently, for such $t$,
+\[
+\E_{\P_t}\{Y_{it}(1) - Y_{it}(0) \mid A_{it}=1, G_i=g\} = \E_{\P_t}\{Y_{it}(1) - Y_{it}(0) \mid G_i=g\}.
+\]
+\end{lemma}
+
+\begin{proof}
+If $G_i = g$ then $A_{ig}=1$ by definition of $G_i$ as the first period of treatment, and $t \geq g$, so $A_{it}=1$ by Assumption~\ref{assump:absorbing}. Hence $\{G_i=g\} \subseteq \{A_{it}=1, G_i=g\}$; the reverse inclusion is immediate. The two events being identical, the conditional expectations coincide.
+\end{proof}
+
+\begin{definition}[Group-time ATT, extended to the horizon]
+\label{def:gt-att}
+For $g \leq t \leq p+M$,
+\[
+\theta_{gt} := \E_{\P_t}\{Y_{it}(1) - Y_{it}(0) \mid A_{it}=1, G_i=g\} \overset{\text{Lem.~\ref{lem:persistence}}}{=} \E_{\P_t}\{Y_{it}(1) - Y_{it}(0) \mid G_i = g\}.
+\]
+\end{definition}
+
+This extends \texttt{main-lean.tex}'s eq.~(\texttt{eq:gt-att}), which states the same formula but only for $t \leq p$; Definition~\ref{def:gt-att} is the same object evaluated at any $t$ through the horizon, and the right-hand equality (via Lemma~\ref{lem:persistence}) is what licenses working with $\theta_{g,p+m}$ at all.
+
+\section{Estimands}
+\label{sec:estimands}
+
+\begin{definition}[Future ATT, ATU, ATE]
+\label{def:estimands}
+For horizon $m \in \{1,\ldots,M\}$,
+\begin{align}
+\tau_{\mathrm{FATT}}(p+m) &= \E_{\P_{p+m}}\{Y_{i,p+m}(1) - Y_{i,p+m}(0) \mid A_{ip}=1\}, \\
+\tau_{\mathrm{FATU}}(p+m) &= \E_{\P_{p+m}}\{Y_{i,p+m}(1) - Y_{i,p+m}(0) \mid A_{ip}=0\}, \\
+\tau_{\mathrm{FATE}}(p+m) &= \E_{\P_{p+m}}\{Y_{i,p+m}(1) - Y_{i,p+m}(0)\}.
+\end{align}
+\end{definition}
+
+The conditioning events $A_{ip}=1$, $A_{ip}=0$ are evaluated at the \emph{observed} period $p$, fixing the population whose future effect is targeted at the last period we can observe. This is the definitional choice that makes the FATT tractable without any assumption about future adoption (Remark~\ref{rem:fatu-scope}); Sections~\ref{sec:identification}--\ref{sec:eif} develop the FATT in full, since it is the estimand carried through Propositions~\ref{prop:path1}--\ref{prop:path3} and Theorem~\ref{thm:asymptotic} in the main text. The FATU and FATE are defined identically for completeness but are not separately re-derived here; see Remark~\ref{rem:fatu-scope}.
+
+\section{Identification}
+\label{sec:identification}
+
+\begin{lemma}[Exact aggregation]
+\label{lem:aggregation}
+Under Assumptions~\ref{assump:consistency}--\ref{assump:absorbing} (Definition~\ref{def:dgp}), for every horizon $m \in \{1,\ldots,M\}$,
+\[
+\tau_{\mathrm{FATT}}(p+m) = \sum_{g \in \cG} \pi_g\, \theta_{g,p+m}, \qquad \pi_g := \P(G_i = g \mid A_{ip}=1), \qquad \cG := \{g \leq p : \pi_g > 0\},
+\]
+with \emph{no} assumption beyond Assumptions~\ref{assump:consistency}--\ref{assump:absorbing}: this is a law-of-total-probability identity, not a result of the extrapolation assumptions introduced below. $\cG$ is finite (it has at most $p$ elements) and is used throughout Sections~\ref{sec:identification}--\ref{sec:eif} to index every sum over cohorts, so that no term conditions on the null event $\{G_i=g\}$ for $g\notin\cG$.
+\end{lemma}
+
+\begin{proof}
+\textit{Roadmap:} decompose over cohorts by the law of total probability; use absorbing adoption twice, once to restrict the sum to $g \leq p$ with $\pi_g>0$ and once to drop the now-redundant conditioning event via Lemma~\ref{lem:persistence}.
+
+Because $A_{ip}=1$ implies $G_i \leq p$ (by definition of $G_i$) and, conversely, $G_i\le p$ implies $A_{ip}=1$ (Assumption~\ref{assump:absorbing}), $\pi_g = 0$ for every $g > p$: for such $g$, $\{G_i=g\}\cap\{A_{ip}=1\}=\varnothing$ (an empty event, not merely a null-probability one), so the cohort partition restricted to positive weight is exactly $\cG=\{g\leq p:\pi_g>0\}$, a finite set. The law of total probability over $\cG$ then gives
+\[
+\tau_{\mathrm{FATT}}(p+m) = \sum_{g \in \cG} \E_{\P}\{Y_{i,p+m}(1) - Y_{i,p+m}(0) \mid A_{ip}=1, G_i=g\}\, \pi_g,
+\]
+with every term on the right well-defined (each $g\in\cG$ has $\pi_g>0$, so none of these conditional expectations conditions on a null event). Fix $g \in \cG$. Since $g \leq p$, $G_i = g$ implies $A_{ip}=1$ (Assumption~\ref{assump:absorbing}), so the event $\{A_{ip}=1, G_i=g\}$ equals $\{G_i=g\}$, and the inner conditional expectation equals $\E_{\P}\{Y_{i,p+m}(1) - Y_{i,p+m}(0) \mid G_i=g\} = \theta_{g,p+m}$ by Definition~\ref{def:gt-att} (applicable since $g \leq p < p+m$). Substituting gives the claim.
+\end{proof}
+
+\begin{remark}[Boundary case $m=0$]
+\label{rem:m0}
+Lemma~\ref{lem:aggregation}'s proof uses only $g\leq p\leq p+m$, so it is valid verbatim at the boundary $m=0$ (extending Definition~\ref{def:estimands} to $m=0$ in the natural way, $\tau_{\mathrm{FATT}}(p) := \E_\P\{Y_{ip}(1)-Y_{ip}(0)\mid A_{ip}=1\}$), giving $\tau_{\mathrm{FATT}}(p)=\sum_{g\in\cG}\pi_g\theta_{gp}=\theta_{\mathrm{ATT}}$ (the standard aggregated ATT of Remark~\ref{rem:aggregate-homogeneity} below). The forward-looking estimand is thus continuous with existing practice at the last observed period.
+\end{remark}
+
+\begin{remark}[What this replaces]
+\label{rem:old-lemma}
+This lemma subsumes the two-assumption ``convex combination under within-group homogeneity'' argument used in an earlier draft of the appendix, which invoked a separate ``between-state heterogeneity'' assumption to justify swapping the conditioning event from $A_{ip}=1$ to $A_{i,p+m}=1$. That swap is needed only if one targets the ATT among units treated \emph{by $p+m$} (weights $\P(G_i=g\mid A_{i,p+m}=1)$, which depend on the unobserved future adoption process on $(p, p+m]$ and require an assumption ruling out new adoption or repeal in that window). Definition~\ref{def:estimands} instead fixes the population at the last \emph{observed} period $p$, for which Lemma~\ref{lem:aggregation} requires nothing beyond absorbing adoption. The two-assumption argument is not wrong; it answers a different (and harder-to-identify) question than the one $\tau_{\mathrm{FATT}}(p+m)$ poses.
+\end{remark}
+
+\subsection{Path 1: Time Homogeneity}
+
+\begin{assumption}[Strict time homogeneity]
+\label{assump:strict-homogeneity}
+$\theta_{gt} = \theta_g$ for all cohorts $g$ and all $t \in [g, p+M]$.
+\end{assumption}
+
+\begin{proposition}[Identification under time homogeneity]
+\label{prop:path1}
+Under Assumptions~\ref{assump:consistency}--\ref{assump:absorbing} and \ref{assump:strict-homogeneity}, for every $m \in \{1,\ldots,M\}$,
+\[
+\tau_{\mathrm{FATT}}(p+m) = \sum_{g \in \cG} \pi_g\, \theta_g.
+\]
+\end{proposition}
+
+\begin{proof}
+By Lemma~\ref{lem:aggregation}, $\tau_{\mathrm{FATT}}(p+m) = \sum_{g \in \cG} \pi_g\, \theta_{g,p+m}$. By Assumption~\ref{assump:strict-homogeneity}, $\theta_{g,p+m} = \theta_g$ for every $g \in \cG$ (since $p+m \in [g,p+M]$). Substituting gives the claim.
+\end{proof}
+
+\begin{remark}[Aggregate time homogeneity]
+\label{rem:aggregate-homogeneity}
+A weaker sufficient condition, used informally in current practice, is that only the \emph{cohort-weighted average}
+\[
+\theta_{\mathrm{ATT}} := \sum_{g\in\cG}\pi_g\,\theta_{gp}
+\]
+(rather than every $\theta_{gt}$ individually) is constant across the horizon: $\sum_{g\in\cG}\pi_g\,\theta_{g,p+m} = \theta_{\mathrm{ATT}}$ for all $m$. Assumption~\ref{assump:strict-homogeneity} \emph{implies} this condition (substitute $\theta_{g,p+m}=\theta_{gp}=\theta_g$ for $g\in\cG$ into both sides), but the converse fails: group-level heterogeneity in $\theta_{gt}$ that averages out across cohorts satisfies this weaker condition without satisfying Assumption~\ref{assump:strict-homogeneity}. It is thus strictly weaker, and is all Proposition~\ref{prop:path1}'s conclusion requires, with $\theta_{\mathrm{ATT}}$ in place of $\sum_{g}\pi_g\theta_g$: under it, $\tau_{\mathrm{FATT}}(p+m) = \theta_{\mathrm{ATT}}$ directly by Lemma~\ref{lem:aggregation}, with no further proof needed.
+\end{remark}
+
+\subsection{Path 2: Parametric Temporal Models}
+
+\begin{assumption}[Parametric extrapolation]
+\label{assump:parametric}
+There is a known function $f$, twice continuously differentiable in its second argument $\bgamma$, and a parameter $\bgamma \in \Gamma$, such that $\theta_{gt} = f(g,t;\bgamma)$ for every cohort $g$ and every $t \in [g,p+M]$. Moreover, $\bgamma$ is the unique element of $\Gamma$ satisfying $f(g,t;\bgamma) = \theta_{gt}$ for all $g,t\leq p$ (identifiability from the observed window; see RC5, Section~\ref{sec:regularity}).
+\end{assumption}
+
+\begin{proposition}[Identification under parametric extrapolation]
+\label{prop:path2}
+Under Assumptions~\ref{assump:consistency}--\ref{assump:absorbing} and \ref{assump:parametric}, for every $m \in \{1,\ldots,M\}$,
+\[
+\tau_{\mathrm{FATT}}(p+m) = \sum_{g \in \cG} \pi_g\, f(g,p+m;\bgamma),
+\]
+with $\bgamma$ the (true, population) parameter identified from $\{\theta_{gt} : t \leq p\}$ as in Assumption~\ref{assump:parametric}. (The plug-in estimator uses $\widehat{\bgamma}$ in its place; see Section~\ref{sec:eif}. Identification is a statement about $\P$, so it is stated here with the true $\bgamma$, correcting the estimator notation that appeared in the corresponding statement in \texttt{main-lean.tex}.)
+\end{proposition}
+
+\begin{proof}
+By Lemma~\ref{lem:aggregation}, $\tau_{\mathrm{FATT}}(p+m) = \sum_{g\in\cG}\pi_g\,\theta_{g,p+m}$. By Assumption~\ref{assump:parametric} applied at $t = p+m \in [g, p+M]$, $\theta_{g,p+m} = f(g,p+m;\bgamma)$ for every $g \in \cG$, where $\bgamma$ is the parameter identified from the observed group-time ATTs. Substituting gives the claim.
+\end{proof}
+
+\subsection{Path 3: Covariate Transport}
+
+For $t \leq p$, let $\tau_t(x) = \E_\P\{Y_{it}(1)-Y_{it}(0) \mid \bX_i = x, A_{it}=1\}$ be the period-$t$ covariate-conditional ATT among units currently treated at $t$ (Assumption~\ref{assump:cond-ident} below identifies this from observed data). Separately, define the \emph{target} conditional effect
+\[
+\tau^{\dagger}_{p+m}(x) := \E_\P\{Y_{i,p+m}(1)-Y_{i,p+m}(0) \mid \bX_i=x, A_{ip}=1\},
+\]
+conditioning on the \emph{same} event $A_{ip}=1$ that defines the FATT (Definition~\ref{def:estimands}). This choice matters: $\tau_p(x)=\tau^\dagger_p(x)$ coincide trivially at $t=p$ (since $A_{it}=1$ and $A_{ip}=1$ are the same event there), but for $m>0$, $\tau^\dagger_{p+m}(x)$ is distinct from an object conditioning on $A_{i,p+m}=1$: under Assumption~\ref{assump:absorbing}, $\{A_{ip}=1\}\subsetneq\{A_{i,p+m}=1\}$ whenever any unit adopts in $(p,p+m]$, so the two events---and the conditional effects they define---need not agree. We use only $\tau^\dagger_{p+m}(x)$ below, since it is the object that makes Step~1 of Proposition~\ref{prop:path3}'s proof an identity.
+
+\begin{assumption}[First-stage conditional identification]
+\label{assump:cond-ident}
+For $t \leq p$, $\tau_t(x)$ is identified under the researcher's design and estimable, with cross-fitting, at standard nonparametric rates, via one of:
+\begin{itemize}
+\item \emph{Unconfoundedness design:} $\{Y_{it}(1),Y_{it}(0)\}\perp\!\!\!\perp A_{it}\mid \bX_i$ and $0<\P(A_{it}=1\mid \bX_i)<1$ a.s., so $\tau_t(x)=\mu_{1t}(x)-\mu_{0t}(x)$ with $\mu_{at}(x)=\E[Y_{it}\mid \bX_i=x,A_{it}=a]$ (using Assumption~\ref{assump:consistency}), estimated by a doubly-robust CATE learner.
+\item \emph{Conditional-parallel-trends design:} the doubly-robust conditional DiD estimator of \citet{santannaDoublyRobustDifferenceindifferences2020}, under conditional parallel trends and \textbf{no anticipation} ($Y_{it}(1)=Y_{it}(0)$ a.s.\ for $t<G_i$, so that a pre-adoption outcome is unaffected by future adoption).
+\end{itemize}
+\end{assumption}
+
+\begin{assumption}[Structural covariate stability]
+\label{assump:covariate-stability}
+There is a common function $\tau(\cdot)$ such that (a) $\tau_t(x) = \tau(x)$ for all $x$ and all $t \leq p$ (temporal and cross-cohort stability of the observed-period conditional effect, licensing estimation of $\tau(\cdot)$ by pooling across $t\le p$), and (b) $\tau^{\dagger}_{p+m}(x) = \tau(x)$ for all $x$ (the target conditional effect equals the same common function).
+\end{assumption}
+
+\begin{remark}[What (a) actually assumes]
+\label{rem:cross-cohort}
+Clause (a) is stronger than a purely temporal restriction: because $\tau_t(x)$ conditions on $A_{it}=1$, the population it describes at each $t$ is $\{G_i\leq t\}$---a different cohort mixture at every $t$. Clause (a) therefore also imposes \emph{cross-cohort} homogeneity (given $\bX=x$, every cohort has the same conditional effect at every $t\ge G_i$), which is what licenses pooling $\{\tau_t(x)\}_{t\le p}$ into a single estimated $\tau(\cdot)$. This is a testable restriction across the observed window (compare $\widehat\tau_t(\cdot)$ across $t\le p$, and across cohorts within a fixed $t$), unlike clause (b), which is untestable at $p+m$.
+\end{remark}
+
+\begin{assumption}[Target access and overlap]
+\label{assump:target}
+$F^{p+m}_{\bX\mid A_{ip}=1}$ is accessible, and $w(x) := dF^{p+m}_{\bX\mid A_{ip}=1}/dF^{\mathrm{src}}_{\bX}(x)$ is bounded (or at least $\E_{\mathrm{src}}[w(\bX)^2]<\infty$), where $F^{\mathrm{src}}_\bX$ is the covariate distribution on which $\tau(\cdot)$ is estimated.
+\end{assumption}
+
+\begin{proposition}[Identification via covariate transport]
+\label{prop:path3}
+Under Assumptions~\ref{assump:consistency}--\ref{assump:absorbing} and \ref{assump:cond-ident}--\ref{assump:target},
+\[
+\tau_{\mathrm{FATT}}(p+m) = \int \tau(x)\, dF^{p+m}_{\bX\mid A_{ip}=1}(x) = \E_{\mathrm{src}}\{w(\bX)\,\tau(\bX)\}.
+\]
+\end{proposition}
+
+\begin{proof}
+\textit{Roadmap:} (1) express the FATT as the target conditional effect integrated over the future treated covariate distribution, by iterated expectations, with both the outer and inner conditioning event equal to $A_{ip}=1$---an identity requiring no assumption; (2) substitute the (identified) common function $\tau(\cdot)$ for the target conditional effect, via structural stability; (3) rewrite the resulting integral as a reweighted source-distribution expectation, by change of measure.
+
+\emph{Step 1 (iterated expectations).} By Definition~\ref{def:estimands} and the law of iterated expectations over $\bX$, conditioning throughout on $A_{ip}=1$,
+\begin{align*}
+\tau_{\mathrm{FATT}}(p+m) &= \E_\P\{Y_{i,p+m}(1)-Y_{i,p+m}(0)\mid A_{ip}=1\} \\
+&= \int \E_\P\{Y_{i,p+m}(1)-Y_{i,p+m}(0)\mid \bX=x, A_{ip}=1\}\, dF^{p+m}_{\bX\mid A_{ip}=1}(x) \\
+&= \int \tau^{\dagger}_{p+m}(x)\, dF^{p+m}_{\bX\mid A_{ip}=1}(x),
+\end{align*}
+which is exact because the outer conditioning event ($A_{ip}=1$) and the event in the inner conditional expectation ($\bX=x, A_{ip}=1$) coincide---no event has been swapped.
+
+\emph{Step 2 (structural stability).} By Assumption~\ref{assump:covariate-stability}(b), $\tau^{\dagger}_{p+m}(x) = \tau(x)$, and by Assumptions~\ref{assump:cond-ident} and~\ref{assump:covariate-stability}(a) the common conditional effect $\tau(x)$ is identified by pooling the observed periods $t\leq p$. Substituting,
+\[
+\tau_{\mathrm{FATT}}(p+m) = \int \tau(x)\, dF^{p+m}_{\bX\mid A_{ip}=1}(x).
+\]
+
+\emph{Step 3 (change of measure).} By Assumption~\ref{assump:target}, $w$ exists, so
+\[
+\int \tau(x)\, dF^{p+m}_{\bX\mid A_{ip}=1}(x) = \int \tau(x)\,w(x)\, dF^{\mathrm{src}}_{\bX}(x) = \E_{\mathrm{src}}\{w(\bX)\,\tau(\bX)\}. \qedhere
+\]
+\end{proof}
+
+\begin{remark}
+No injectivity condition analogous to Assumption~\ref{assump:parametric}'s is required here: Path~3 estimates $\tau(\cdot)$ directly from unit-level data and never inverts a finite collection of marginal group-time ATTs. Unlike Paths~1--2, Path~3's proof does not use Lemma~\ref{lem:aggregation}, but it \emph{does} use Assumption~\ref{assump:absorbing} through Definition~\ref{def:estimands} and the definition of $\tau^\dagger_{p+m}(x)$ itself---specifically, to guarantee that $A_{i,p+m}=1$ holds on the event $\{A_{ip}=1\}$ so that $Y_{i,p+m}(1)$ is the realized-treatment potential outcome for the target population. (An earlier version of this document claimed Path~3 uses absorbing adoption ``not at all''; that claim was an artifact of defining the target object via the wrong conditioning event, corrected above.)
+\end{remark}
+
+\begin{remark}[Scope: FATU and FATE, and why we do not extend Lemma~\ref{lem:aggregation} to them]
+\label{rem:fatu-scope}
+Lemma~\ref{lem:aggregation}'s cohort decomposition is specific to the FATT: it exploits that $A_{ip}=1$ already restricts to cohorts $g\leq p$ observed by construction. The FATU conditions on $A_{ip}=0$, i.e., $G_i > p$---a population that includes units who will adopt at some unobserved future $g' \in (p,p+m]$. There is no analogous free decomposition over $g'$, because $\pi_{g'} = \P(G_i=g'\mid A_{ip}=0)$ for $g' > p$ is not estimable from data through $p$ alone. Extending Propositions~\ref{prop:path1}--\ref{prop:path3} to the FATU or FATE therefore requires an explicit additional assumption of the kind the old appendix invoked for the FATT (e.g., no new adoption after $p$, or the cross-group transportability assumption already flagged in \texttt{main-lean.tex:460}). We do not develop this here; the confirmed scope of this document is the FATT (Propositions~\ref{prop:path1}--\ref{prop:path3} and Theorem~\ref{thm:asymptotic}).
+\end{remark}
+
+\section{Regularity Conditions for Inference}
+\label{sec:regularity}
+
+We enumerate the technical conditions needed for the asymptotic-normality result of Section~\ref{sec:asymptotics}. RC1--RC6 apply to Paths~1--2; RC8--RC11 are specific to Path~3.
+
+\begin{assumption}[RC1: Identification of the first stage]\label{RC1}
+$\theta_{gt}$ is identified under the researcher's design for all $g \in \cG$, $t \leq p$.
+\end{assumption}
+\begin{assumption}[RC2: Asymptotic linearity of the first stage]\label{RC2}
+$\sqrt{n}(\widehat\theta_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \varphi_{gt}(O_i) + o_\P(1)$ with $\E[\varphi_{gt}(O_i)] = 0$, $\E[\varphi_{gt}(O_i)^2]<\infty$, for all $g,t\leq p$.
+\end{assumption}
+\begin{assumption}[RC3: Weight identification]\label{RC3}
+$\pi_g = \P(G_i=g\mid A_{ip}=1)$ is known or consistently estimable with influence function $\varphi_{\pi_g}$ satisfying $\sqrt n(\widehat\pi_g - \pi_g) = n^{-1/2}\sum_i \varphi_{\pi_g}(O_i) + o_\P(1)$, $\E[\varphi_{\pi_g}]=0$, $\E[\varphi_{\pi_g}^2]<\infty$.
+\end{assumption}
+\begin{assumption}[RC4: Smoothness of $f$]\label{RC4}
+For Path~2, $f(g,t;\bgamma)$ is twice continuously differentiable in $\bgamma$ in a neighborhood of the true $\bgamma$ (restates Assumption~\ref{assump:parametric}'s smoothness clause; retained here as it is used directly in the EIF derivation of Section~\ref{sec:eif}).
+\end{assumption}
+\begin{assumption}[RC5: Identifiability and rank of $\bgamma$]\label{RC5}
+$\bgamma \mapsto (f(g,t;\bgamma))_{g\in\cG,t\leq p}$ is injective over $\Gamma$, \textbf{and}, at the true $\bgamma$, the Jacobian $J := [\partial_{\bgamma} f(g,t;\bgamma)]_{g\in\cG,t\leq p}$ has full column rank $\dim\bgamma$ (equivalently $H_0 := J^\top W J \succ 0$ for the weight matrix $W=\mathrm{diag}(\lambda_{gt})$ of Section~\ref{sec:eif2}). Injectivity alone does not imply this second clause: $f(g,t;\gamma)=\gamma^3 c_{gt}$ is injective in $\gamma$ but has $\partial_\gamma f\equiv0$ at $\gamma=0$, where $H_0=0$.
+\end{assumption}
+\begin{assumption}[RC6: Bounded fourth moments]\label{RC6}
+$\E[\varphi_{gt}(O_i)^4]<\infty$ for all $g,t\leq p$ (used only for the consistency of the variance estimator $\widehat V_k$ in the Remark after Theorem~\ref{thm:asymptotic}; the CLT itself needs only $\E[\varphi_{gt}^2]<\infty$, already asserted by RC2).
+\end{assumption}
+\begin{assumption}[RC8: Nuisance rates for Path~3]\label{RC8}
+Under RC10(a) (known/fixed target covariates, $w$ known), each nuisance in $(\mu_0,\mu_1,e)$ (unconfoundedness design) or $(m_0,e)$ (conditional-parallel-trends design) is estimated by $K$-fold cross-fitting at $L_2(\P)$ rate $o_\P(n^{-1/4})$, so that the pairwise products entering the second-order bias---$\|\widehat e-e\|_2\cdot\max_a\|\widehat\mu_a-\mu_a\|_2$ (resp.\ $\|\widehat e-e\|_2\cdot\|\widehat m_0-m_0\|_2$)---are $o_\P(n^{-1/2})$. $\widehat\tau(\cdot)$ itself need not be $\sqrt n$-consistent.
+\end{assumption}
+\begin{assumption}[RC9: Overlap for transport]\label{RC9}
+There is $\eta>0$ with $e(x) \in (\eta,1-\eta)$ almost surely, and $w$ satisfies Assumption~\ref{assump:target}.
+\end{assumption}
+\begin{assumption}[RC10: Target-distribution access]\label{RC10}
+(a) [\emph{Primary case, assumed below}] $F^{p+m}_{\bX\mid A_{ip}=1}$ is known, or a sample from it of size $n^*$ with $n^*/n\to\infty$ is available, so that $w$ is treated as known for asymptotic purposes ($r(O)\equiv0$ in Section~\ref{sec:eif}). (b) [\emph{Not developed here}] If instead $w$ must be estimated from a target sample of the same order as $n$ ($n^*/n\to\rho\in[0,\infty)$), the Path~3 EIF and variance of Section~\ref{sec:eif} require a two-sample correction not derived in this document; see Section~\ref{sec:limitations}.
+\end{assumption}
+\begin{assumption}[RC11: Bounded conditional outcome variance]\label{RC11}
+$\sup_x \sigma_a^2(x) < \infty$ for $a\in\{0,1\}$, where $\sigma_a^2(x) = \Var(Y\mid \bX=x, A=a)$ (resp.\ $\Var(\Delta Y\mid \bX=x,A=a)$ for the DiD design).
+\end{assumption}
+
+\begin{remark}
+RC1--RC3 and RC6 are standard for semiparametric inference with an estimated first stage; RC4--RC5 give the smoothness and rank conditions the implicit function theorem needs (Section~\ref{sec:eif2}); RC8--RC11 are Path~3-specific and give, respectively, the double-robustness product-rate condition, overlap, target-access (restricted here to the known/fixed-$w$ case), and bounded-variance conditions needed for the transport score of Section~\ref{sec:eif3}.
+\end{remark}
+
+\section{Efficient Influence Functions}
+\label{sec:eif}
+
+Throughout, $\varphi_{gt}(O_i)$ denotes the (given) influence function of the first-stage estimator $\widehat\theta_{gt}$ (RC2), and $O_i$ the full observed data for unit $i$.
+
+\subsection{Path 1}
+\label{sec:eif1}
+
+Write $\theta_{g\cdot} := |\cT_g|^{-1}\sum_{t\in\cT_g}\theta_{gt}$ for the within-group average of the observed group-time ATTs ($\cT_g = \{t\leq p : t\geq g\}$), used as the natural (variance-reducing) estimator of the common value $\theta_g$ under Assumption~\ref{assump:strict-homogeneity} (for which $\theta_{g\cdot}=\theta_g$ exactly). The Path~1 functional is $\Psi_1(\P) = \sum_g \pi_g(\P)\,\theta_{g\cdot}(\P)$.
+
+\begin{proposition}[Path 1 EIF]
+\label{prop:eif1}
+Suppose $\widehat\theta_{g\cdot}$ is asymptotically linear with influence function $\varphi_{\theta_{g\cdot}} = |\cT_g|^{-1}\sum_{t\in\cT_g}\varphi_{gt}$, and $\widehat\pi_g$ has influence function
+\[
+\varphi_{\pi_g}(O_i) = \frac{\mathbf{1}\{G_i=g, A_{ip}=1\} - \pi_g\,\mathbf{1}\{A_{ip}=1\}}{\P(A_{ip}=1)}
+\]
+(the standard influence function of a conditional-proportion estimator, itself an instance of Lemma~\ref{lem:persistence}: the numerator's first indicator is unambiguous because $\{G_i=g,A_{ip}=1\}$ is a single well-defined event for $g\leq p$). Then $\widehat\tau_{\mathrm{FATT}}(p+m) = \sum_g \widehat\pi_g\,\widehat\theta_{g\cdot}$ is asymptotically linear with influence function
+\[
+\varphi_{\psi_1}(O_i) = \sum_g \pi_g\,\varphi_{\theta_{g\cdot}}(O_i) + \sum_g \theta_{g\cdot}\,\varphi_{\pi_g}(O_i).
+\]
+\end{proposition}
+
+\begin{proof}
+This is the product-rule / functional delta method applied to the bilinear functional $\Psi_1 = \sum_g \pi_g\theta_{g\cdot}$: for asymptotically linear $\widehat\pi_g,\widehat\theta_{g\cdot}$,
+\[
+\widehat\pi_g\widehat\theta_{g\cdot} - \pi_g\theta_{g\cdot} = \pi_g(\widehat\theta_{g\cdot}-\theta_{g\cdot}) + \theta_{g\cdot}(\widehat\pi_g-\pi_g) + (\widehat\pi_g-\pi_g)(\widehat\theta_{g\cdot}-\theta_{g\cdot}),
+\]
+and the cross term is $o_\P(n^{-1/2})$ since both factors are $o_\P(1)$ with the first at $\sqrt n$-rate. Summing over $g$ and multiplying by $\sqrt n$ gives the stated influence function.
+\end{proof}
+
+\begin{remark}
+This is \emph{valid}---a consistent variance estimate---for \emph{any} asymptotically linear first-stage estimator, regardless of efficiency, since the derivation used only asymptotic linearity of $\widehat\theta_{g\cdot}$ and $\widehat\pi_g$. It attains the semiparametric efficiency bound only if, in addition, $\theta_{g\cdot}$ is estimated by the efficient (inverse-variance/GLS) combination of $\{\widehat\theta_{gt}\}_{t\in\cT_g}$ rather than the equal-weighted average used above, and $\varphi_{gt}$, $\varphi_{\pi_g}$ are themselves efficient; the equal-weighted $\theta_{g\cdot}$ of this section is a convenient, valid, but generally \emph{inefficient} choice.
+\end{remark}
+
+\subsection{Path 2}
+\label{sec:eif2}
+
+Under Assumption~\ref{assump:parametric}, $\bgamma$ is the (weighted) least-squares functional
+\[
+\bgamma(\P) = \argmin_{\tilde\bgamma} \sum_{g\in\cG,\,t\leq p} \lambda_{gt}\bigl[\theta_{gt}-f(g,t;\tilde\bgamma)\bigr]^2, \qquad \lambda_{gt} > 0 \text{ fixed},
+\]
+and $\Psi_2(\P) = \sum_g \pi_g(\P)\,f(g,p+m;\bgamma(\P))$. (We write $\lambda_{gt}$ for the least-squares weights to avoid collision with the Path~3 density ratio $w(x)$ of Section~\ref{sec:eif3}; main-lean.tex's own notation used $w_{gt}$ for this object.)
+
+\begin{proposition}[Path 2 EIF]
+\label{prop:eif2}
+Under RC2--RC5, the map $\theta \mapsto \bgamma \mapsto \Psi_2$ is continuously differentiable in a neighborhood of the truth, and $\widehat\tau_{\mathrm{FATT}}(p+m) = \sum_g\widehat\pi_g\,f(g,p+m;\widehat{\bgamma})$ is asymptotically linear with influence function
+\[
+\varphi_{\psi_2}(O_i) = \Bigl(\frac{\partial \Psi_2}{\partial \bgamma}\Bigr)^{\!\top} \Bigl(\frac{\partial \bgamma}{\partial \theta}\Bigr)\,\varphi_\theta(O_i) + \sum_g f(g,p+m;\bgamma)\,\varphi_{\pi_g}(O_i),
+\]
+where $\varphi_\theta(O_i)$ stacks $(\varphi_{gt}(O_i))_{g\in\cG,t\leq p}$, and, by the implicit function theorem applied to the first-order condition of the least-squares problem defining $\bgamma$,
+\[
+\frac{\partial \bgamma}{\partial \theta_{gt}} = H_0^{-1}\, \lambda_{gt}\,\partial_{\bgamma}f(g,t;\bgamma), \qquad H_0 := \sum_{g'\in\cG,t'\leq p} \lambda_{g't'}\,\partial_{\bgamma}f(g',t';\bgamma)\,\partial_{\bgamma}f(g',t';\bgamma)^\top, \qquad \frac{\partial \Psi_2}{\partial\bgamma} = \sum_g \pi_g\,\partial_{\bgamma} f(g,p+m;\bgamma).
+\]
+\end{proposition}
+
+\begin{proof}
+\emph{Step 1 (implicit function theorem).} $\bgamma$ solves the first-order condition $\sum_{g,t\leq p} \lambda_{gt}[\theta_{gt}-f(g,t;\bgamma)]\,\partial_{\bgamma} f(g,t;\bgamma) = 0$. Because Assumption~\ref{assump:parametric} makes the residual $\theta_{gt}-f(g,t;\bgamma)$ vanish at the true $\bgamma$, the Jacobian of this first-order-condition map with respect to $\bgamma$, evaluated at the truth, is exactly $-H_0$ (the residual-times-second-derivative term drops out). RC5's rank clause ($H_0\succ0$) and RC4 (twice differentiability, needed because the FOC map itself contains $\partial_{\bgamma} f$) let us apply the implicit function theorem, differentiating the first-order condition with respect to each $\theta_{gt}$ to obtain $\partial\bgamma/\partial\theta_{gt}=H_0^{-1}\lambda_{gt}\partial_{\bgamma} f(g,t;\bgamma)$ as stated. (RC5's injectivity clause alone would not suffice: $f(g,t;\gamma)=\gamma^3c_{gt}$ is injective but has $\partial_\gamma f\equiv0$, hence $H_0=0$, at $\gamma=0$---exactly the case of no dynamics to extrapolate, where the Path~2 EIF is undefined and RC5's rank clause fails by design.) \emph{Step 2 (chain rule).} $\partial\Psi_2/\partial\theta_{gt} = (\partial\Psi_2/\partial\bgamma)^\top(\partial\bgamma/\partial\theta_{gt})$, since $\Psi_2$ depends on $\theta$ only through $\bgamma$ (for the $\theta_{gt}$ term) and directly through $\pi_g$. \emph{Step 3 (functional delta method).} Given RC2--RC3 (asymptotic linearity of $\widehat\theta_{gt}$, $\widehat\pi_g$) and continuous differentiability of $\Psi_2$ (Steps 1--2), the delta method gives $\sqrt n(\widehat\Psi_2-\Psi_2) = n^{-1/2}\sum_i \varphi_{\psi_2}(O_i) + o_\P(1)$ with $\varphi_{\psi_2}$ the sum of the two terms above (chain-rule term through $\theta$, plus direct term through $\pi_g$ holding $\bgamma$ fixed, by the product rule as in Proposition~\ref{prop:eif1}).
+\end{proof}
+
+\begin{remark}
+As in Path~1, this is \emph{valid} for any first stage satisfying RC2--RC3; it attains the efficiency bound within the parametric model only if $\lambda_{gt}$ is chosen as the inverse-variance (GLS) weighting $\lambda_{gt}\propto \E[\varphi_{gt}^2]^{-1}$ and the first-stage influence functions are themselves efficient---the stated proof holds for any fixed $\lambda_{gt}>0$ satisfying RC5's rank clause, not only the efficient choice. Under misspecification of $f$, $\widehat{\bgamma}$ converges to a pseudo-true value $\bgamma^*$ solving the population first-order condition with a nonzero residual; at $\bgamma^*$ the Jacobian of the FOC map is $H^* = H_0 - \sum_{g,t}\lambda_{gt}[\theta_{gt}-f(g,t;\bgamma^*)]\,\partial^2_{\bgamma\bgamma}f(g,t;\bgamma^*) \neq H_0$ in general, so the variance formula above is valid for the (biased) estimator's own sampling distribution only after substituting $H^*$ for $H_0$ throughout; the variance formula is not a claim of unbiasedness.
+\end{remark}
+
+\subsection{Path 3}
+\label{sec:eif3}
+
+Under the unconfoundedness design, $\tau(x) = \mu_1(x)-\mu_0(x)$ with $\mu_a(x)=\E[Y\mid \bX=x,A=a]$ and propensity $e(x) = \P(A=1\mid \bX=x)$. We derive the transport EIF for the estimand as it is actually constructed by the companion package (\texttt{integrate\_cate.R}), which supports two forms of the target/weight specification and treats them with the \emph{same} formula---a fact that requires distinguishing what kind of object $w$ is in each case.
+
+\paragraph{Form A (target index): $w$ is an estimated membership weight, not a fixed density ratio.} When the target is a subpopulation defined by a random membership event (e.g.\ $\{A_{ip}=1\}$, giving the FATT), $\psi_3 = \E\{\tau(\bX)\mid \text{target}\}$ is a \emph{ratio} functional, $\psi_3 = \E[\mathbf{1}\{\text{target}\}\,\tau(\bX)]/\E[\mathbf{1}\{\text{target}\}]$, and $w_i = (n/n^*)\mathbf{1}\{i\in\text{target}\}$ (with $n^*=\sum_i\mathbf{1}\{i\in\text{target}\}$ random) is the sample analog of the inverse-probability-of-target weight $\mathbf{1}\{\text{target}\}/\P(\text{target})$. By the standard delta method for a ratio of means $\E[U]/\E[V]$ (influence function $(U-\psi_3 V)/\E[V]$, here $U=\mathbf{1}\{\text{target}\}\tau(\bX)$, $V=\mathbf{1}\{\text{target}\}$), the leading-order influence-function contribution from the target-membership weight and from $\tau$ is jointly $w(\bX)(\tau(\bX)-\psi_3)$---\emph{not} $w(\bX)\tau(\bX)-\psi_3$, because the denominator $\P(\text{target})$ is itself estimated by $n^*/n$ and its estimation error is exactly what the $w(\tau-\psi_3)$ form (rather than $w\tau-\psi_3$) absorbs. This is the standard influence function for the ATT-type ratio functional (as in the augmented-IPW ATT estimator); the case $\text{target}=\{A_{ip}=1\}$ (giving $w_i \propto A_{ip}$) recovers it as the familiar AIPW-ATT construction.
+
+\paragraph{Form B (external weights): valid only if $w$ is known or its estimation error is negligible.} When $w$ is instead a user-supplied reweighting not tied to a membership indicator in the sample (e.g.\ a forecast density ratio to a genuinely external target distribution), the ratio-functional argument above does not apply, and $w(\bX)(\tau(\bX)-\psi_3)$ is the correct leading term only if $w$ is treated as \emph{known} with $\E_{\mathrm{src}}[w(\bX)]=1$ exactly (so no denominator is being estimated). If $w$ is itself estimated with non-negligible sampling error, an additional term $r(O)$ (the influence function of that estimation step) is required and is \textbf{not derived in this document}; see Section~\ref{sec:limitations}.
+
+\begin{proposition}[Path 3 EIF]
+\label{prop:eif3}
+Under RC8--RC11, and under either Form A (target-membership weights) or Form B with $w$ known, the influence function of $\psi_3$ is
+\begin{equation}
+\varphi_{\psi_3}(O) = w(\bX)\bigl(\tau(\bX)-\psi_3\bigr) + w(\bX)\left[\frac{A(Y-\mu_1(\bX))}{e(\bX)} - \frac{(1-A)(Y-\mu_0(\bX))}{1-e(\bX)}\right] + r(O), \tag{$\ast$}
+\label{eq:eif3-unc}
+\end{equation}
+with $r(O)\equiv0$ under both supported forms (Form A: the target-membership weight's own estimation error is already absorbed into the $w(\tau-\psi_3)$ term, per the ratio-functional argument above; Form B with $w$ known: there is no estimation step to contribute a correction).
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+\emph{Form A.} This is the standard derivation of the efficient influence function for an augmented-IPW ratio functional $\E[\mathbf{1}\{\text{target}\}\tau(\bX)]/\E[\mathbf{1}\{\text{target}\}]$: combine the ratio-of-means delta method above with the usual AIPW augmentation for $\tau=\mu_1-\mu_0$ (the bracketed term), reweighted by the same $w(\bX)$ because the augmentation is itself an estimate of a mean conditional on $\bX$ and inherits the target reweighting. \emph{Form B (w known).} Take a regular parametric submodel $\P_\eta$ with score $S(O)$ and differentiate $\psi_3(\P_\eta)=\E_{\P_\eta}[w(\bX)\tau_\eta(\bX)]$ at $\eta=0$ holding $w$ fixed: the variation from $\bX$'s marginal law contributes $w(\bX)\tau(\bX)-\psi_3\cdot 1$ in general, which coincides with $w(\bX)(\tau(\bX)-\psi_3)$ exactly when $\E_{\mathrm{src}}[w(\bX)]=1$ (so $\E[w(\bX)\tau(\bX)-\psi_3]=\E[w(\bX)(\tau(\bX)-\psi_3)]$ trivially, and the two differ pointwise only by $(w(\bX)-1)\psi_3$, a mean-zero remainder under this normalization); the $\tau$-estimation variation contributes the bracketed AIPW term as before. In both forms, orthogonality of the bracketed term to $(\mu_0,\mu_1,e)$ at fixed $w$ is the standard AIPW/ATT orthogonality property, verified directly: for a perturbation $h_1$ of $\mu_1$, $\partial_s\E[w\{A(Y-\mu_{1,s})/e_s\}]|_0 = -\E[w(\bX)h_1(\bX)]$ (since $\E[A\mid\bX]/e(\bX)=1$), which exactly cancels the $-\E[w(\bX)h_1(\bX)]$ contributed by $\tau_s=\mu_{1,s}-\mu_0$ in the leading term; symmetrically for $\mu_0$; orthogonality in $e$ is the standard AIPW cross-term cancellation (the derivative of the bracket in $e$, evaluated at the truth, vanishes because $\E[A(Y-\mu_1)\mid\bX]=0=\E[(1-A)(Y-\mu_0)\mid\bX]$). A full tangent-space/semiparametric-efficiency argument beyond this orthogonality verification is not given here.
+\end{proof}
+
+\begin{proposition}[Path 3 EIF, difference-in-differences design]
+\label{prop:eif3-did}
+Under conditional parallel trends and no anticipation (Assumption~\ref{assump:cond-ident}), write $\Delta Y_i = Y_{i,\mathrm{post}}-Y_{i,\mathrm{pre}}$ for a single pre/post contrast and $m_a(x) = \E[\Delta Y\mid \bX=x,A=a]$, so that $\tau(x)=m_1(x)-m_0(x)$, equivalently $m_1=m_0+\tau$. (This matches the companion package's DiD contract, which carries a single \texttt{dY} and \texttt{m0\_dY} per unit rather than a $(g,t)$-indexed family; extending Path~3's DiD score to the fully staggered, $(g,t)$-indexed setting of Paths~1--2 is not developed here---see Section~\ref{sec:limitations}.) Conditional parallel trends is conditional unconfoundedness applied to $\Delta Y$: $\E[\Delta Y_i(0)\mid \bX_i,A_i=1] = \E[\Delta Y_i(0)\mid \bX_i,A_i=0]$. Substituting $Y\mapsto\Delta Y$, $\mu_a\mapsto m_a$ into \eqref{eq:eif3-unc} gives the DR-DiD transport influence function
+\begin{equation}
+\varphi_{\psi_3}^{\mathrm{DiD}}(O) = w(\bX)\bigl(\tau(\bX)-\psi_3\bigr) + w(\bX)\left[\frac{A(\Delta Y - m_1(\bX))}{e(\bX)} - \frac{(1-A)(\Delta Y - m_0(\bX))}{1-e(\bX)}\right] + r(O), \qquad m_1 = m_0+\tau. \tag{$\ast\ast$}
+\label{eq:eif3-did}
+\end{equation}
+Because $m_1=m_0+\tau$ with $\tau$ the fixed first-stage input, the only outcome-change nuisance to estimate is $m_0$; the bracketed term is orthogonal to $(m_0,e)$ by the same argument as Proposition~\ref{prop:eif3}.
+\end{proposition}
+
+\begin{proof}
+Immediate from the substitution described, applied term-by-term to \eqref{eq:eif3-unc}: level unconfoundedness for $Y$ becomes conditional parallel trends for $\Delta Y$ under the stated mean-independence restatement (using no anticipation to identify $\Delta Y(0)$ from the observed pre-period outcome), and the derivation of Proposition~\ref{prop:eif3} transfers verbatim under $Y\mapsto\Delta Y$, $\mu_a\mapsto m_a$.
+\end{proof}
+
+\begin{lemma}[Collapse to the ordinary ATT / DR-DiD influence function]
+\label{lem:collapse}
+If the target-membership event has full probability under the source measure ($F^{p+m}_{\bX\mid A_{ip}=1} = F^{\mathrm{src}}_\bX$, i.e.\ $w\equiv 1$ and $r\equiv 0$), \eqref{eq:eif3-unc} reduces to
+\[
+\varphi_{\psi_3}(O) = \bigl(\tau(\bX)-\psi_3\bigr) + \frac{A(Y-\mu_1(\bX))}{e(\bX)} - \frac{(1-A)(Y-\mu_0(\bX))}{1-e(\bX)},
+\]
+the efficient influence function of the augmented inverse-propensity-weighted ATT (source population $F^{\mathrm{src}}_\bX = F_{\bX\mid A_{ip}=1}$). The same collapse, under the identical substitution, takes \eqref{eq:eif3-did} to the conditional DR-DiD correction of \citet{santannaDoublyRobustDifferenceindifferences2020} applied per-$\bX$ (see the remark below for a caveat on their exact weighting scheme).
+\end{lemma}
+
+\begin{proof}
+Set $w\equiv1$, $r\equiv0$ in \eqref{eq:eif3-unc} (resp.\ \eqref{eq:eif3-did}) and simplify; every $w(\bX)(\cdot)$ term becomes $(\cdot)$. This substitution check confirms consistency with the known special case but---since $w(\tau-\psi_3)$ and $w\tau-\psi_3$ coincide identically at $w\equiv1$---does not by itself discriminate between the two forms discussed above away from $w\equiv1$; that discrimination is made by the ratio-functional argument (Form A) or the known-$w$ normalization (Form B), not by this lemma.
+\end{proof}
+
+\begin{remark}[Overlap, orthogonality, and what remains open]
+\label{rem:path3-overlap}
+Both scores divide by $e(\bX)$ and $1-e(\bX)$, so RC9's strict overlap keeps their variance finite together with RC11's bounded conditional outcome variance and the bounded density ratio of Assumption~\ref{assump:target}. The bracketed AIPW/DR-DiD term is Neyman-orthogonal to $(\mu_0,\mu_1,e)$ (resp.\ $(m_0,e)$), verified explicitly in the proof of Proposition~\ref{prop:eif3}; RC8's cross-fitted, per-nuisance $o_\P(n^{-1/4})$ rate then makes the product-rate bias term $o_\P(n^{-1/2})$, which is what Theorem~\ref{thm:asymptotic}'s Path-3 case invokes. \citet{santannaDoublyRobustDifferenceindifferences2020} weight their (unconditional) ATT by the smooth propensity odds $e/\E[A]$ rather than a hard target-membership indicator; Lemma~\ref{lem:collapse}'s DiD collapse is at the level of the \emph{conditional} (per-$\bX$) DR-DiD correction, which is common to both constructions, not a claim that the two unconditional ATT estimators coincide---a fuller reconciliation of the two aggregation schemes is not attempted here.
+\end{remark}
+
+\section{Asymptotic Normality}
+\label{sec:asymptotics}
+
+\begin{theorem}[Asymptotic normality of $\widehat\tau_{\mathrm{FATT}}(p+m)$]
+\label{thm:asymptotic}
+Fix a path $k\in\{1,2,3\}$ and suppose its identification assumptions (Section~\ref{sec:identification}) hold, together with: RC1--RC3 and RC6 (all paths); RC4--RC5 (Path~2 only); RC8--RC11 (Path~3 only, and only under Form A or known-$w$ Form B of Section~\ref{sec:eif3}); Section~\ref{sec:regularity}. Let $\varphi_k$ denote the corresponding influence function of Section~\ref{sec:eif} ($\varphi_{\psi_1}$, $\varphi_{\psi_2}$, or $\varphi_{\psi_3}$/$\varphi_{\psi_3}^{\mathrm{DiD}}$). Then
+\[
+\sqrt n\bigl(\widehat\tau_{\mathrm{FATT}}(p+m) - \tau_{\mathrm{FATT}}(p+m)\bigr) \overset{d}{\to} N(0, V_k), \qquad V_k = \E[\varphi_k(O)^2] > 0.
+\]
+\end{theorem}
+
+\begin{proof}
+\textit{Roadmap:} establish asymptotic linearity of $\widehat\tau_{\mathrm{FATT}}(p+m)$ for each path (already done in Propositions~\ref{prop:eif1}--\ref{prop:eif3-did} via the delta method for $k=1,2$ and Neyman orthogonality for $k=3$), then invoke the central limit theorem.
+
+\emph{Path 1.} By Proposition~\ref{prop:eif1}, $\sqrt n(\widehat\tau_{\mathrm{FATT}}(p+m)-\tau_{\mathrm{FATT}}(p+m)) = n^{-1/2}\sum_i \varphi_{\psi_1}(O_i) + o_\P(1)$.
+
+\emph{Path 2.} By Proposition~\ref{prop:eif2}, the same expansion holds with $\varphi_{\psi_2}$ in place of $\varphi_{\psi_1}$; RC4--RC5 licensed the implicit-function-theorem step, and the remainder is $o_\P(n^{-1/2})$ by RC2 together with the twice-differentiability of RC4 and the finiteness of $\cG$---no additional Donsker or cross-fitting condition on the first stage is needed given RC2 already posits its asymptotic linearity as a primitive.
+
+\emph{Path 3.} Here $\widehat\tau_{\mathrm{FATT}}(p+m)$ is the cross-fitted one-step estimator built from the orthogonal score \eqref{eq:eif3-unc} (or \eqref{eq:eif3-did}):
+\begin{align*}
+\widehat\tau_{\mathrm{FATT}}(p+m) = \frac{1}{K}\sum_{k=1}^K \frac{1}{|I_k|}\sum_{i\in I_k}\Bigl\{&\widehat w^{(-k)}(\bX_i)\widehat\tau^{(-k)}(\bX_i) \\
+&+ \widehat w^{(-k)}(\bX_i)\Bigl[\tfrac{A_i(Y_i-\widehat\mu_1^{(-k)}(\bX_i))}{\widehat e^{(-k)}(\bX_i)}-\tfrac{(1-A_i)(Y_i-\widehat\mu_0^{(-k)}(\bX_i))}{1-\widehat e^{(-k)}(\bX_i)}\Bigr]\Bigr\},
+\end{align*}
+with $\widehat\mu_a^{(-k)},\widehat e^{(-k)}$ fit on folds excluding $I_k$. By Neyman orthogonality of the bracketed term (Proposition~\ref{prop:eif3}'s proof) and RC8's per-nuisance $o_\P(n^{-1/4})$ rate, the second-order bias satisfies
+\[
+|\mathrm{Bias}_n|\lesssim \|\widehat e-e\|_2\cdot\max_a\|\widehat\mu_a-\mu_a\|_2 = o_\P(n^{-1/2})
+\]
+by Cauchy--Schwarz, so cross-fitting yields plug-in bias $o_\P(n^{-1/2})$ \citep{chernozhukovDoubleDebiasedMachine2018}, and
+\[
+\sqrt n\bigl(\widehat\tau_{\mathrm{FATT}}(p+m)-\tau_{\mathrm{FATT}}(p+m)\bigr) = n^{-1/2}\sum_i \varphi_{\psi_3}(O_i) + o_\P(1).
+\]
+Unlike Paths~1--2 this is not a finite-dimensional delta method: $\sqrt n$-consistency for the scalar functional is recovered through orthogonality even though $\widehat\tau(\cdot)$ itself need not be $\sqrt n$-consistent.
+
+\emph{All paths.} By RC2/RC3 (Paths~1--2) or RC9/RC11 together with the bounded density ratio of Assumption~\ref{assump:target} (Path~3), $\E[\varphi_k(O)^2]<\infty$, and the Lindeberg--L\'evy central limit theorem applied to the i.i.d.\ mean-zero terms $\varphi_k(O_i)$ gives
+\[
+n^{-1/2}\sum_i \varphi_k(O_i) \overset{d}{\to} N(0,V_k).
+\]
+Combining with the asymptotic-linearity expansion for the relevant path gives the claim.
+\end{proof}
+
+\begin{remark}[Variance estimation]
+$V_k$ is consistently estimated by $\widehat V_k = n^{-1}\sum_i \widehat\varphi_k(O_i)^2$, the plug-in influence function evaluated at the fitted nuisances; RC6 (fourth moments) controls the sampling variability of this plug-in second-moment estimator. $\widehat{\mathrm{se}} = \sqrt{\widehat V_k/n}$ and Wald intervals follow. This is exactly the construction in \texttt{compute\_variance.R} (Section~\ref{sec:codealign}).
+\end{remark}
+
+\section{Code Alignment}
+\label{sec:codealign}
+
+This section cross-checks Sections~\ref{sec:identification}--\ref{sec:asymptotics} against the \texttt{extrapolateATT} R package (\texttt{R/}), confirming agreement and flagging the points of divergence identified during consolidation.
+
+\paragraph{Agreement.} \texttt{compute\_variance.R} computes $\widehat V = \widehat{\mathrm{Var}}(\varphi)/n$ from a centered EIF vector and forms Wald intervals with a normal quantile, matching Theorem~\ref{thm:asymptotic}'s remark exactly. \texttt{extrapolate\_ATT.R} propagates EIFs through the temporal model $h_g$ via $\phi_{\text{future}} = \Phi_{\text{obs}}\,\partial h_g/\partial\theta$ (a numerical instance of the chain rule in Proposition~\ref{prop:eif2}'s proof, specialized to a plug-in $\bgamma$ rather than an implicit-function-theorem $\bgamma$ when $h_g$ is linear/quadratic in $t$, in which case $\partial\bgamma/\partial\theta$ is the closed-form OLS projection $(X^\top X)^{-1}X^\top$ and no implicit-function step is needed). \texttt{integrate\_cate.R} and \texttt{score\_builders.R} implement \eqref{eq:eif3-unc}--\eqref{eq:eif3-did} (functions \texttt{score\_aipw}, \texttt{score\_drdid}), and \texttt{test-integrate-cate.R} unit-tests the collapse property of Lemma~\ref{lem:collapse} directly.
+
+\paragraph{Divergence 1: unit-level EIF alignment.} \texttt{estimate\_group\_time\_ATT.R} calls \texttt{did::att\_gt()} with \texttt{idname = NULL}, which prevents aligning each $\varphi_{gt,i}$ to a specific unit $i$ across group-time cells. Propositions~\ref{prop:eif1}--\ref{prop:eif2} implicitly assume the influence-function vectors $(\varphi_{gt,i})_i$ across different $(g,t)$ are indexed consistently by the \emph{same} unit $i$ (so that, e.g., $\sum_g \pi_g\varphi_{\theta_{g\cdot},i}$ is a well-defined per-unit sum). This is currently a package limitation, not a theory gap: RC2 as stated already requires this alignment. We flag it as an implementation TODO rather than revise RC2.
+
+\paragraph{Divergence 2: first-stage estimators without an analytic EIF.} RC2 assumes $\widehat\theta_{gt}$ is asymptotically linear with a \emph{known, usable} $\varphi_{gt}$. The package's \texttt{from\_did2s.R}, \texttt{from\_didimputation.R}, \texttt{from\_didmultiplegt.R}, and (in the typical case) \texttt{from\_fixest.R} wrap first-stage estimators that do not expose an analytic influence function, and currently return \texttt{phi = NULL}, falling back to a delta-method standard-error approximation rather than exact EIF propagation. Theorem~\ref{thm:asymptotic} as proved here is therefore only exactly applicable, as implemented, to the \texttt{did::att\_gt()} first stage (\texttt{from\_did.R}). This should be stated as an explicit caveat in the main text wherever Paths~1--2 are applied with a non-\texttt{did} first stage.
+
+\paragraph{Divergence 3: per-cohort identifiability for Path 2 (flagged, package unverified beyond its documented interface).} RC5 states its rank condition on the \emph{pooled} Gram matrix $H_0=\sum_{g,t}\lambda_{gt}\partial_{\bgamma} f\partial_{\bgamma} f^\top$ over all $g\in\cG$. If, as \texttt{extrapolate\_ATT.R}'s per-group interface ($h_g(\cdot)$, README) suggests, the package fits a \emph{separate} $\bgamma_g$ per cohort rather than one pooled $\bgamma$, the relevant rank condition is instead per-cohort: $\mathrm{rank}[\partial_{\bgamma_g}f(g,t;\bgamma_g)]_{t\in\cT_g}=\dim\bgamma_g$, which fails whenever $|\cT_g|<\dim\bgamma_g$---in particular for the most recently treated cohort ($|\cT_p|=1$), the one whose extrapolation horizon is longest and most consequential. The pooled RC5 as stated does not detect this failure mode. We flag this as a theory/code alignment item to verify directly against \texttt{R/extrapolate\_ATT.R}, \texttt{R/hg\_linear.R}, and \texttt{R/hg\_quadratic.R} (not done in this consolidation pass), and recommend the package either enforce a minimum $|\cT_g|\geq\dim\bgamma_g$ per cohort or document the pooled-$\bgamma$ alternative explicitly if that is what is implemented.
+
+\section{Known Limitations and Open Items}
+\label{sec:limitations}
+
+This section records substantive gaps identified during a proof audit of this document (2026-08-21) that are not resolved above, either because resolving them requires a genuine research decision (not a writing fix) or because they require re-verification against the package source beyond what this consolidation pass covered. None of them affect the identification core of Section~\ref{sec:identification} (Lemma~\ref{lem:persistence}, Lemma~\ref{lem:aggregation}, Propositions~\ref{prop:path1}--\ref{prop:path3}), which the audit confirmed sound.
+
+\begin{itemize}
+\item \textbf{Path 3, Form B with estimated $w$ (two-sample regime).} Section~\ref{sec:eif3} covers Form A (target-membership weights) and Form B with $w$ known exactly. If a practitioner instead estimates $w$ from a genuinely external target sample of size $n^*$ with $n/n^*\to\rho\in(0,\infty)$, the correct influence function requires a two-sample correction term $r(O)\not\equiv0$ that is not derived here; the resulting variance likely has an additional component of order $\rho\cdot\Var_{F^{p+m}}(\tau(\bX^*))$. The companion package's own documentation (\texttt{integrate\_cate.R}) already states the resulting caveat precisely: the reported SE for user-supplied \texttt{weights} is valid only when the weights' own estimation error is $o_\P(n^{-1/2})$, and is anticonservative otherwise. Deriving the two-sample correction is future work.
+\item \textbf{Path 3 DiD score for staggered adoption.} Proposition~\ref{prop:eif3-did} is stated for a single pooled pre/post contrast, matching the package's current DiD contract. Extending it to a $(g,t)$-indexed family analogous to Paths~1--2's $\theta_{gt}$ (so that Path~3 can be applied cohort-by-cohort under staggered adoption with a DiD first stage) is not developed here.
+\item \textbf{Efficiency of Paths 1--2.} Propositions~\ref{prop:eif1}--\ref{prop:eif2} give \emph{valid} (consistent variance) influence functions for any fixed choice of averaging/least-squares weights; they attain the semiparametric efficiency bound only under the additional (and not currently implemented) inverse-variance/GLS weighting choice noted in the remarks after each proposition. Implementing and validating the GLS-efficient variant is future work.
+\item \textbf{Per-cohort identifiability for Path 2 (Divergence 3 above).} Requires direct verification against \texttt{R/extrapolate\_ATT.R} and the \texttt{hg\_*} model files, not completed in this pass.
+\item \textbf{Sensitivity to failure of the extrapolation assumptions.} Assumptions~\ref{assump:strict-homogeneity}, \ref{assump:parametric}, and \ref{assump:covariate-stability}(b) are each untestable at $p+m$ by construction. A one-line bias characterization is available directly from Lemma~\ref{lem:aggregation} and Proposition~\ref{prop:path3}'s Step~1---e.g.\ the Path~1 bias under a true $\theta_{g,p+m}^\dagger\neq\theta_g$ is $\sum_{g\in\cG}\pi_g(\theta_{g,p+m}^\dagger-\theta_g)$, and the Path~3 bias under a true $\tau^\dagger_{p+m}(\cdot)\neq\tau(\cdot)$ is $\int\{\tau^\dagger_{p+m}(x)-\tau(x)\}\,dF^{p+m}_{\bX\mid A_{ip}=1}(x)$---but a full sensitivity-bound apparatus (e.g.\ a breakdown value for the sign of the FATT) is not developed here.
+\item \textbf{Overlap diagnostics for Path 3.} Assumption~\ref{assump:target}'s existence of $w$ requires $F^{p+m}_{\bX\mid A_{ip}=1}\ll F^{\mathrm{src}}_\bX$, which is precisely the assumption most likely to degrade under genuine regime change (the application in the main text illustrates this: effective sample size falls to $8/43$ source states under heavy reweighting). The package computes an effective-sample-size diagnostic (\texttt{integrate\_cate.R}); a formal truncation-and-bias-bound result for $w_{\mathrm{trunc}}=w\wedge C$ is not derived here.
+\end{itemize}
+
+\bibliographystyle{plainnat}
+\bibliography{heterogeneous-policy-effects}
+
+\end{document}
