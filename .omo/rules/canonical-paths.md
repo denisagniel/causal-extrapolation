@@ -23,7 +23,7 @@ paths:
 | Paper (no package) | `manuscript/` | ❌ `latex/`, `paper/` |
 | Analysis scripts (no package) | `analysis/` | ❌ `scripts/`, `R/` |
 | Simulations (package project) | `simulations/` | ❌ `scripts/`, `inst/simulations/` |
-| Simulation study artifacts | share a `NN_short-name` stem (SHOULD) | ❌ unrelated names across spec/script/output |
+| Simulation study artifacts | spec stem cited from the study's `MANIFEST.md` (SHOULD) | ❌ unrelated names across spec/code/results |
 | Grant proposal | `proposal/` | ❌ `grant/` |
 | Session notes (single project) | `session_notes/` | ❌ None |
 | Session notes (multi-package) | `session_notes/` (root only) | ❌ Per-package session notes |
@@ -88,29 +88,38 @@ package-name/
 **Rules:**
 - ✅ Paper MUST be in `inst/paper/` (travels with package)
 - ✅ Simulations MUST be at root `simulations/` (separate from package code)
-- ✅ A simulation study SHOULD share a `NN_short-name` stem across its spec,
-  script, and output dir (see stem-pairing note below)
+- ✅ A simulation study SHOULD live at `simulations/<study-name>/` and cite its
+  spec stem from its `MANIFEST.md` (see stem-pairing note below)
 - ❌ NO `scripts/` for simulations (use `simulations/`)
 - ❌ NO `paper/` at root (use `inst/paper/`)
 
 **Exception:** If paper uses package + other packages (not tightly coupled), use separate repo pattern.
 
-**Stem-pairing (SHOULD):** For traceability, a simulation study's spec, script,
-and output directory SHOULD share one `NN_short-name` stem so the three are 1:1
-and greppable:
+**Stem-pairing (SHOULD):** For traceability, a simulation study's spec, code, and
+results SHOULD be linked by one declared join key. Corrected 2026-09-22: this block
+previously specified a `NN_short-name` stem with the implementation at
+`scripts/R/simulation-NN_short-name.R`, which contradicted this rule's own
+canonical-paths table — `simulations/` is canonical and `scripts/` is forbidden —
+and no project ever followed it. All studies use the `simulations/<study-name>/`
+layout the `setup-cluster-simulations` scaffold enforces.
 
 ```
-quality_reports/specs/NN_short-name.md      # design spec
-scripts/R/simulation-NN_short-name.R         # implementation
-output/NN_short-name/results.rds             # results + summaries
-output/NN_short-name/figures/                # figures
+quality_reports/specs/YYYY-MM-DD_short-description.md   # design spec
+simulations/<study-name>/                               # code + config (one subtree per study)
+simulations/<study-name>/results/                        # final combined results only
+simulations/<study-name>/MANIFEST.md                     # cites the spec stem
 ```
 
-`NN` is a zero-padded identifier (not an execution-order guarantee); `short-name`
-is a kebab slug. Grep the stem → all artifacts for that study surface at once.
+`<study-name>` is a kebab slug (`weak-iv`, `high-dim`). Note the join key is **not**
+a single shared string: the spec carries a dated
+`YYYY-MM-DD_short-description` stem (matching every other artifact in
+`quality_reports/`, per the generalised convention below), while the study
+directory carries a stable name that must survive re-specification. Declare the
+link in one direction — the study's `MANIFEST.md` names its spec stem — so grepping
+the spec stem still surfaces the study, without pretending two differently-shaped
+names are the same. Recommended, not required; one-off simulations may skip it.
 This is the mechanical backstop to the prose checks in
-`.claude/rules/code-paper-package-alignment.md`. Recommended, not required;
-one-off simulations may skip it.
+`.claude/rules/code-paper-package-alignment.md`.
 
 **Generalised stem-pairing (SHOULD), added 2026-09-01.** The same idea applies beyond
 simulations. Plans and specs already use a `YYYY-MM-DD_short-description` stem; make the
@@ -396,9 +405,9 @@ Script:
 
 **Rationale:** Simulations are separate from package code (not installed with package), but use the package.
 
-**Tip:** Give each simulation study a `NN_short-name` stem shared by its spec,
-script, and `output/NN_short-name/` dir (SHOULD) — see the stem-pairing note under
-Structure #2. Makes spec ↔ script ↔ results greppable in one step.
+**Tip:** Put each simulation study at `simulations/<study-name>/` and have its
+`MANIFEST.md` cite the spec stem (SHOULD) — see the stem-pairing note under
+Structure #2. Makes spec ↔ code ↔ results greppable in one step.
 
 ### Q: What about multi-package projects?
 

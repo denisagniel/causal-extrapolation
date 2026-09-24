@@ -34,7 +34,7 @@ document, did not survive checking.
 
 **Every rule in this file was measured against real published papers, and any rule added
 later must be too.** The instrument is
-`explorations/2026-09-04_paper-protocol-corpus-study/`: an 875-paper sampling frame
+`explorations/2026-09-04_paper-protocol-corpus-study/` (on the `archive/meta-development` branch): an 875-paper sampling frame
 (`frame.json`, arXiv `jr:` prefix, confirmed `journal_ref`) with 206 measured across seven
 venues (`rows.json`), reported by `summarize.py`.
 

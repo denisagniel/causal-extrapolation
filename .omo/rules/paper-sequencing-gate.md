@@ -34,6 +34,21 @@ of its own. Everything else in this file is ordering advice.
    plan is how two sections come to own the same idea, and re-sectioning later costs more than
    outlining now.
 
+   **For framing sections specifically (abstract, introduction, discussion), this gate adds a
+   `story.md` freshness precondition — the other section types are not gated on `story.md` at
+   all.** Before drafting or editing one of these three section types, confirm:
+   - `story.md` **exists**;
+   - it is **non-stub** (reuse the absent/stub/live three-state check both skills already
+     carry);
+   - its `Status` date is **no older than** `claims.md`'s `Last result added` date; and
+   - the reconciliation is **stated**, not just dated — the last time `story.md` was touched, it
+     must have said which `S`n changed (or "none changed"). A cosmetically bumped `Status` line
+     with no stated reconciliation does not satisfy this gate.
+
+   Theory/methods, simulation, and applied-analysis sections remain **ungated** on `story.md` —
+   these are how claims get established in the first place, so gating them on a locked story is
+   backwards, and drafting them may legitimately precede the story's existence.
+
 2. **HARD GATE — the registries are updated in the same turn as the prose.** A skill that
    introduces a symbol, an assumption, a claim, or a numbered result updates
    `manuscript/notation.md` and/or `manuscript/claims.md` before the turn ends. A registry
@@ -60,6 +75,11 @@ of its own. Everything else in this file is ordering advice.
 2. **Seed the registries** — create `manuscript/notation.md` and `manuscript/claims.md` from
    their templates. `notation.md` row 1 is the estimand, because Constitution invariant #12
    requires the estimand be stated before estimation.
+
+   **Seed `story.md`** here too, from `templates/paper-story.md` — framing, contribution, scope
+   boundary, and the labeled `S1`–`S7` major claims, before any framing section gets drafted.
+   This is the file the freshness gate above checks; seeding it now means gate 1 never blocks a
+   first draft for a reason that could have been handled up front.
 
 3. **Draft** — `/draft-paper-section`, one section at a time, each following the outline.
    Unlike the grant pipeline there is no fixed section order: draft methods before the
@@ -93,6 +113,7 @@ Entry point depends on what changed. In every path, gates 2 and 3 still apply.
 | A claim was overstated | Step 5, `claims.md` table 1 | Check the abstract; abstract inflation is the most common form |
 | Structure is wrong | Step 1, then re-enter at 3 | Do not edit prose before the outline is fixed |
 | Tightening for a length limit | Step 5 | Verify no claim lost its anchor in the cut |
+| A result changes what the paper's framing, contribution, or major claims can say | `story.md` reconciliation (name the `S`n, quote it, or record `none`), then step 2 (registries), then step 5 | Do not skip the reconciliation because the registries got updated — they answer a different question than `story.md` does |
 | Preparing to submit | Step 6, then 7 | `claims.md` §3 reconciliation; `templates/project-types/paper-done-checklist.md` |
 
 ---
