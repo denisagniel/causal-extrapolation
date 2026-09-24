@@ -340,3 +340,179 @@ test_that("print.cate_integration produces a readable summary", {
   expect_output(print(res), "Estimate:")
   expect_output(print(res), "unconfoundedness")
 })
+
+
+# --- Truncation (Task 3: bias-aware weight capping for weak overlap) ------------------
+
+test_that("trunc = Inf is a no-op (matches the untruncated default)", {
+  cate <- make_cate_input(n = 300, d = 1, seed = 555)
+  idx <- which(cate$A == 1)
+  res_default <- integrate_cate(cate, design = "unconfoundedness", target = idx)
+  res_inf <- integrate_cate(cate, design = "unconfoundedness", target = idx, trunc = Inf)
+
+  expect_equal(res_default$estimate, res_inf$estimate, tolerance = 1e-12)
+  expect_equal(res_default$se, res_inf$se, tolerance = 1e-12)
+  expect_true(is.infinite(res_inf$trunc))
+  expect_equal(res_inf$trunc_diag$delta_trunc, 0)
+  expect_equal(res_inf$trunc_diag$bias_bound, 0)
+  expect_null(res_inf$two_sample)
+})
+
+
+test_that("truncation strictly reduces SE under heavy-tailed weights", {
+  n <- 500
+  set.seed(2026)
+  cate <- make_cate_input(n = n, d = 1, seed = 2026)
+  # Moderate lognormal heavy tail (mean 1); capping at the 90th percentile discards
+  # ~16% of target weight mass -- well under the 50% guard -- while still stabilizing
+  # the handful of large weights in the tail.
+  w_raw <- exp(rnorm(n, mean = 0, sd = 1.0))
+  w <- w_raw / mean(w_raw)
+  C <- unname(stats::quantile(w, 0.90))
+
+  res_full  <- suppressWarnings(integrate_cate(cate, design = "unconfoundedness",
+                                               weights = w))
+  res_trunc <- suppressWarnings(integrate_cate(cate, design = "unconfoundedness",
+                                               weights = w, trunc = C))
+
+  expect_true(res_trunc$se < res_full$se)
+  expect_equal(res_trunc$trunc, C)
+  expect_true(res_trunc$trunc_diag$delta_trunc > 0)
+  expect_true(res_trunc$trunc_diag$delta_trunc < 0.5)
+  expect_true(res_trunc$trunc_diag$q_exceed >= 0)
+  expect_true(res_trunc$trunc_diag$bias_bound >= 0)
+  # w used for estimation is Hajek-renormalized: mean 1.
+  expect_equal(mean(res_trunc$w), 1, tolerance = 1e-10)
+})
+
+
+test_that("truncation bias bound is exactly zero when tau is constant on target", {
+  n <- 400
+  cate <- make_cate_input(n = n, d = 1, seed = 77)
+  cate$tau <- rep(2.5, n)  # constant CATE => Var_Q(tau) == 0 under ANY measure Q
+  cate$mu1 <- cate$mu0 + cate$tau
+  w_raw <- c(rep(0.5, n - 4), c(40, 50, 60, 70))
+  w <- w_raw / mean(w_raw)
+
+  res <- suppressWarnings(integrate_cate(cate, design = "unconfoundedness", weights = w,
+                                         trunc = 3))
+  expect_equal(res$trunc_diag$var_q_tau, 0, tolerance = 1e-10)
+  expect_equal(res$trunc_diag$bias_bound, 0, tolerance = 1e-10)
+})
+
+
+test_that("trunc = 'auto' selects a cap satisfying the bias/SE budget", {
+  n <- 500
+  set.seed(909)
+  cate <- make_cate_input(n = n, d = 1, seed = 909)
+  w_raw <- exp(rnorm(n, mean = 0, sd = 1.0))
+  w <- w_raw / mean(w_raw)
+
+  res <- suppressWarnings(integrate_cate(cate, design = "unconfoundedness", weights = w,
+                                         trunc = "auto", trunc_gamma = 0.25))
+  expect_true(is.numeric(res$trunc))
+  expect_true(res$trunc_diag$bias_bound <= 0.25 * res$se + 1e-8)
+})
+
+
+test_that("trunc must be >= 1", {
+  cate <- make_cate_input(n = 100, d = 1, seed = 33)
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", target = which(cate$A == 1),
+                   trunc = 0.5),
+    ">= 1"
+  )
+})
+
+
+test_that("trunc errors when weight-mass loss exceeds 50%", {
+  n <- 100
+  cate <- make_cate_input(n = n, d = 1, seed = 44)
+  # 90% of units carry negligible weight; 10% carry almost all the mass (mean 1 overall).
+  w_raw <- c(rep(0.05, 0.9 * n), rep(9.55, 0.1 * n))
+  w <- w_raw / mean(w_raw)
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", weights = w, trunc = 1),
+    "discards"
+  )
+})
+
+
+# --- Two-sample variance correction (Task 1: genuinely external target sample) --------
+
+test_that("n_target adds the two-sample variance addendum with the right magnitude", {
+  n <- 400
+  cate <- make_cate_input(n = n, d = 1, seed = 606)
+  w <- rep(1, n)  # no covariate shift, Form B
+
+  res_no_ts <- integrate_cate(cate, design = "unconfoundedness", weights = w)
+  res_ts    <- integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = 200)
+
+  rho_hat <- n / 200
+  q_mean_tau <- sum(w * cate$tau) / sum(w)
+  var_q_tau <- sum(w * (cate$tau - q_mean_tau)^2) / sum(w)
+
+  expect_equal(res_ts$two_sample$n_target, 200)
+  expect_equal(res_ts$two_sample$rho_hat, rho_hat, tolerance = 1e-12)
+  expect_equal(res_ts$two_sample$var_q_tau, var_q_tau, tolerance = 1e-8)
+  expect_equal(res_ts$var, res_no_ts$var + rho_hat * var_q_tau / n, tolerance = 1e-8)
+  expect_true(res_ts$se > res_no_ts$se)
+  # Point estimate is untouched by the addendum -- only the variance changes.
+  expect_equal(res_ts$estimate, res_no_ts$estimate, tolerance = 1e-12)
+})
+
+
+test_that("n_target is ignored (with a warning) for Form A", {
+  cate <- make_cate_input(n = 200, d = 1, seed = 707)
+  expect_warning(
+    res <- integrate_cate(cate, design = "unconfoundedness", target = which(cate$A == 1),
+                          n_target = 100),
+    "ignored for Form A"
+  )
+  expect_null(res$two_sample)
+})
+
+
+test_that("n_target must be a positive number", {
+  cate <- make_cate_input(n = 200, d = 1, seed = 808)
+  w <- rep(1, 200)
+  expect_error(
+    integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = -5),
+    "positive"
+  )
+})
+
+
+test_that("two-sample addendum is zero when tau is constant (Var_Q(tau) = 0)", {
+  n <- 300
+  cate <- make_cate_input(n = n, d = 1, seed = 909)
+  cate$tau <- rep(1.5, n)
+  cate$mu1 <- cate$mu0 + cate$tau
+  w <- rep(1, n)
+
+  res <- integrate_cate(cate, design = "unconfoundedness", weights = w, n_target = 150)
+  expect_equal(res$two_sample$var_q_tau, 0, tolerance = 1e-10)
+  expect_equal(res$two_sample$addendum, 0, tolerance = 1e-10)
+})
+
+
+test_that("truncation and the two-sample addendum compose on the final weights", {
+  n <- 500
+  set.seed(1010)
+  cate <- make_cate_input(n = n, d = 1, seed = 1010)
+  w_raw <- exp(rnorm(n, mean = 0, sd = 1.0))
+  w <- w_raw / mean(w_raw)
+  C <- unname(stats::quantile(w, 0.90))
+
+  res <- suppressWarnings(integrate_cate(cate, design = "unconfoundedness", weights = w,
+                                         trunc = C, n_target = 250))
+  expect_true(is.finite(res$trunc))
+  expect_false(is.null(res$two_sample))
+  # Var_Q(tau) in the addendum must use the FINAL (truncated) weights, not the untruncated
+  # ones, and is centered at the plug-in weighted mean of tau (see .weighted_var_q()'s
+  # roxygen) -- truncation changes the estimand, and the addendum applies to whichever
+  # estimand is actually being reported.
+  q_mean_manual <- sum(res$w * cate$tau) / sum(res$w)
+  var_q_manual <- sum(res$w * (cate$tau - q_mean_manual)^2) / sum(res$w)
+  expect_equal(res$two_sample$var_q_tau, var_q_manual, tolerance = 1e-8)
+})

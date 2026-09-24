@@ -4,7 +4,7 @@
 \alias{path1_aggregate}
 \title{Path 1: aggregate group-time ATTs assuming constant effect within group}
 \usage{
-path1_aggregate(gt_object, omega = NULL)
+path1_aggregate(gt_object, omega = NULL, weighting = c("equal", "gls"))
 }
 \arguments{
 \item{gt_object}{An object of class gt_object (data, phi, groups, n).}
@@ -12,6 +12,16 @@ path1_aggregate(gt_object, omega = NULL)
 \item{omega}{Numeric vector of group weights (length = number of groups). If NULL
 (default), equal weights \code{rep(1 / n_groups, n_groups)} are used. Weights are honored
 in both the point estimate and the propagated EIF.}
+
+\item{weighting}{Within-group weighting scheme for averaging \code{tau_hat} over
+the observed periods \code{t} in each group. \code{"equal"} (default) is the
+simple mean used previously; it is valid for any asymptotically linear
+first-stage. \code{"gls"} uses the inverse-variance (GLS) weights
+\eqn{\lambda_{gt} \propto 1/\mathrm{Var}(\phi_{gt})}, estimated from the
+sample variance of each cell's supplied EIF vector, and attains the
+semiparametric efficiency bound when the first-stage EIFs are themselves
+efficient. Both schemes are valid (correct variance); only the
+efficiency differs.}
 }
 \value{
 A list with tau_future (scalar), phi_future (length-n vector), and

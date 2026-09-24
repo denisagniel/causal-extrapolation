@@ -13,6 +13,7 @@ extrapolate_ATT(
   omega = NULL,
   per_group = TRUE,
   time_scale = c("calendar", "event"),
+  weight_scheme = c("equal", "gls"),
   ...
 )
 }
@@ -36,6 +37,17 @@ depending on \code{time_scale}.}
 
 \item{time_scale}{One of "calendar" or "event"; determines whether sequences
 are constructed over calendar times \code{t} or event times \code{k = t - g}.}
+
+\item{weight_scheme}{One of \code{"equal"} (default) or \code{"gls"}. Controls the
+within-group weighted-least-squares weights \eqn{\lambda_{gt}} passed to
+\code{h_fun}/\code{dh_fun} via their \code{weights} argument (see \code{\link[=hg_linear]{hg_linear()}}).
+\code{"equal"} uses ordinary least squares (\eqn{\lambda_{gt}=1}), valid for
+any asymptotically linear first-stage. \code{"gls"} computes, separately for
+each group, the inverse-variance weights from that group's supplied EIF
+vectors via \code{\link[=gls_weights]{gls_weights()}}, and attains the semiparametric efficiency
+bound within the parametric model (RC5) when the first-stage EIFs are
+themselves efficient. Ignored if \code{h_fun}/\code{dh_fun} do not accept a
+\code{weights} argument (e.g. a fully custom model supplied by the caller).}
 
 \item{...}{Additional arguments passed to h_fun/dh_fun.}
 }

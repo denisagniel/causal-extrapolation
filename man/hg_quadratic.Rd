@@ -5,14 +5,19 @@
 \alias{dh_quadratic}
 \title{Quadratic temporal extrapolation h_g and its Jacobian}
 \usage{
-hg_quadratic(times, future_time)
+hg_quadratic(times, future_time, weights = NULL)
 
-dh_quadratic(times, future_time)
+dh_quadratic(times, future_time, weights = NULL)
 }
 \arguments{
 \item{times}{Numeric vector of observed event times (length p >= 3).}
 
 \item{future_time}{Single numeric future event time (e.g. k* = p+1 - g).}
+
+\item{weights}{Optional numeric vector of length \code{length(times)}, the
+weighted-least-squares weights \eqn{\lambda_t}. If \code{NULL} (default), an
+equal-weighted (ordinary least squares) fit is used, matching prior
+behavior. See \code{\link[=hg_linear]{hg_linear()}} for the efficiency rationale.}
 }
 \value{
 \code{hg_quadratic()} returns a function that maps a vector of tau to the extrapolated value.

@@ -95,9 +95,33 @@ as_gt_object.fixest <- function(x, extract_eif = TRUE, ...) {
     ), call. = FALSE)
   }
 
-  # Check if sunab was used
-  # Look for cohort-time interaction terms in coefficient names
-  coef_names <- names(stats::coef(x))
+  # Check if sunab was used. fixest's default coef(x)/summary(x) view for a
+  # sunab() fit is already AGGREGATED across cohorts within each relative
+  # time (that is the point of the Sun & Abraham interaction-weighted
+  # estimator's default report: one coefficient per event time, e.g.
+  # "year::-4"). That aggregated view has no cohort index left to recover,
+  # so it cannot supply the (g,t)-indexed group-time ATTs a gt_object needs.
+  # The disaggregated per-cohort coefficients exist internally and are
+  # exposed via summary(x, agg = FALSE), named "<timevar>::<rel_time>:cohort::
+  # <cohort>" (e.g. "year::-4:cohort::2007") in fixest >= 0.11 or so. Try
+  # that first, together with the coef() extraction it exists to support:
+  # `agg` is a sunab-specific argument, and on a plain (non-sunab) or
+  # otherwise malformed fixest-classed object, fixest's own summary.fixest()
+  # does not always raise a clean error (some inputs make it return a
+  # malformed intermediate that only fails once something else -- here
+  # coef() -- is called on it). Wrapping the pair together, rather than the
+  # summary() call alone, is what makes the fallback to coef_source <- x
+  # actually trigger for those inputs, instead of surfacing that unrelated
+  # downstream failure.
+  coef_result <- tryCatch(
+    {
+      x_disagg <- summary(x, agg = FALSE)
+      list(source = x_disagg, names = names(stats::coef(x_disagg)))
+    },
+    error = function(e) NULL
+  )
+  coef_source <- if (!is.null(coef_result)) coef_result$source else x
+  coef_names <- if (!is.null(coef_result)) coef_result$names else names(stats::coef(coef_source))
 
   if (is.null(coef_names) || length(coef_names) == 0) {
     stop(
@@ -107,9 +131,12 @@ as_gt_object.fixest <- function(x, extract_eif = TRUE, ...) {
     )
   }
 
-  # Identify sunab coefficients
-  # Patterns: "cohort::...:time::..." or simple "g:t" format
-  sunab_pattern <- "cohort.*time|^\\d+:\\d+$|rel_time"
+  # Identify sunab coefficients. ":cohort::<digits>" at the end of the name
+  # is the disaggregated format actually produced by current fixest
+  # (verified against fixest::sunab()'s documented example); the remaining
+  # alternatives are kept for older/other fixest coefficient-naming
+  # conventions this converter has historically supported.
+  sunab_pattern <- ":cohort::\\d+$|cohort.*time|^\\d+:\\d+$|rel_time"
   sunab_idx <- grep(sunab_pattern, coef_names)
 
   if (length(sunab_idx) == 0) {
@@ -127,7 +154,7 @@ as_gt_object.fixest <- function(x, extract_eif = TRUE, ...) {
   }
 
   # Extract sunab coefficients
-  sunab_coefs <- stats::coef(x)[sunab_idx]
+  sunab_coefs <- stats::coef(coef_source)[sunab_idx]
   sunab_names <- names(sunab_coefs)
 
   # Parse names to get (g, t)
@@ -145,9 +172,9 @@ as_gt_object.fixest <- function(x, extract_eif = TRUE, ...) {
   se_vals <- tryCatch(
     {
       if (requireNamespace("fixest", quietly = TRUE)) {
-        fixest::se(x)[sunab_idx]
+        fixest::se(coef_source)[sunab_idx]
       } else {
-        sqrt(diag(stats::vcov(x)))[sunab_idx]
+        sqrt(diag(stats::vcov(coef_source)))[sunab_idx]
       }
     },
     error = function(e) NULL
@@ -209,6 +236,20 @@ parse_sunab_names <- function(coef_names) {
   for (i in seq_along(coef_names)) {
     name <- coef_names[i]
 
+    # Pattern 0: "<timevar>::<rel_time>:cohort::<cohort>" (current fixest
+    # disaggregated format, e.g. "year::-4:cohort::2007" from
+    # summary(x, agg = FALSE); the time-variable name is whatever the
+    # caller used in sunab(cohort_var, time_var), not a literal "time").
+    pattern0 <- "^\\w+::([-+]?\\d+):cohort::(\\d+)$"
+    match0 <- regmatches(name, regexec(pattern0, name))
+
+    if (length(match0[[1]]) >= 3) {
+      rel_time <- as.integer(match0[[1]][2])
+      g[i] <- as.integer(match0[[1]][3])
+      t[i] <- g[i] + rel_time
+      next
+    }
+
     # Pattern 1: "cohort::2010:time::2012" (standard format)
     pattern1 <- "cohort::(\\d+):time::(\\d+)"
     match1 <- regmatches(name, regexec(pattern1, name))
@@ -254,6 +295,7 @@ parse_sunab_names <- function(coef_names) {
     stop(stringr::str_glue(
       "Could not parse sunab coefficient name: '{name}'\n",
       "Expected formats:\n",
+      "  - '<timevar>::-4:cohort::2007' (current fixest, from summary(x, agg = FALSE))\n",
       "  - 'cohort::2010:time::2012'\n",
       "  - '2010:2012'\n",
       "  - 'cohort::2010:rel_time::2'\n\n",

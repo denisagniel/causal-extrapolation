@@ -4,19 +4,24 @@
 \alias{safe_matrix_inverse}
 \title{Safe Matrix Inversion with Singularity Check}
 \usage{
-safe_matrix_inverse(X, tol = 1e-08)
+safe_matrix_inverse(X, tol = 1e-08, weights = NULL)
 }
 \arguments{
 \item{X}{Numeric matrix (n x p).}
 
 \item{tol}{Tolerance for condition number (default 1e-8). If kappa(X'X) > 1/tol,
 an error is raised.}
+
+\item{weights}{Optional numeric vector of length \code{nrow(X)}, strictly
+positive. If supplied, inverts the weighted Gram matrix \code{t(X) \%*\% (weights * X)}
+instead of the unweighted \verb{X'X}.}
 }
 \value{
-The inverse of X'X.
+The inverse of X'X (or X'WX, if \code{weights} is supplied).
 }
 \description{
-Computes the inverse of X'X with condition number checking to prevent
-crashes from singular or near-singular matrices.
+Computes the inverse of X'X (or the weighted Gram matrix X'WX) with
+condition number checking to prevent crashes from singular or
+near-singular matrices.
 }
 \keyword{internal}

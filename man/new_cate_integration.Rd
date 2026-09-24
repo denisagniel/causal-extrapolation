@@ -4,16 +4,37 @@
 \alias{new_cate_integration}
 \title{Construct a cate_integration object}
 \usage{
-new_cate_integration(estimate, phi, inf, w, design, form, n, n_eff)
+new_cate_integration(
+  estimate,
+  phi,
+  se,
+  ci,
+  var,
+  level,
+  w,
+  design,
+  form,
+  n,
+  n_eff,
+  trunc,
+  trunc_diag,
+  two_sample
+)
 }
 \arguments{
 \item{estimate}{Scalar FATT estimate.}
 
 \item{phi}{Length-n transport EIF vector.}
 
-\item{inf}{Output of \code{\link[=compute_variance]{compute_variance()}} (list with var, se, ci, level).}
+\item{se}{Standard error.}
 
-\item{w}{Length-n transport weights.}
+\item{ci}{Confidence interval (length-2 numeric).}
+
+\item{var}{Variance of the estimator.}
+
+\item{level}{Confidence level.}
+
+\item{w}{Length-n transport weights (post-truncation if applicable).}
 
 \item{design}{Design string.}
 
@@ -22,6 +43,12 @@ new_cate_integration(estimate, phi, inf, w, design, form, n, n_eff)
 \item{n}{Source sample size.}
 
 \item{n_eff}{Effective sample size.}
+
+\item{trunc}{Truncation cap actually used (\code{Inf} if none).}
+
+\item{trunc_diag}{List of truncation diagnostics (see \code{\link[=integrate_cate]{integrate_cate()}}).}
+
+\item{two_sample}{List of two-sample correction diagnostics, or \code{NULL}.}
 }
 \value{
 Object of class \code{cate_integration}.

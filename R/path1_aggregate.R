@@ -8,6 +8,15 @@
 #' @param omega Numeric vector of group weights (length = number of groups). If NULL
 #'   (default), equal weights `rep(1 / n_groups, n_groups)` are used. Weights are honored
 #'   in both the point estimate and the propagated EIF.
+#' @param weighting Within-group weighting scheme for averaging `tau_hat` over
+#'   the observed periods `t` in each group. `"equal"` (default) is the
+#'   simple mean used previously; it is valid for any asymptotically linear
+#'   first-stage. `"gls"` uses the inverse-variance (GLS) weights
+#'   \eqn{\lambda_{gt} \propto 1/\mathrm{Var}(\phi_{gt})}, estimated from the
+#'   sample variance of each cell's supplied EIF vector, and attains the
+#'   semiparametric efficiency bound when the first-stage EIFs are themselves
+#'   efficient. Both schemes are valid (correct variance); only the
+#'   efficiency differs.
 #' @return A list with tau_future (scalar), phi_future (length-n vector), and
 #'   tau_g (per-group means) and phi_g (list of EIF vectors per group) for optional use.
 #'
@@ -41,7 +50,8 @@
 #' print(result$tau_future)  # Overall weighted average
 #'
 #' @export
-path1_aggregate <- function(gt_object, omega = NULL) {
+path1_aggregate <- function(gt_object, omega = NULL, weighting = c("equal", "gls")) {
+  weighting <- match.arg(weighting)
   validate_gt_object(gt_object, name = "gt_object")
   df <- gt_object$data
   phi_rows <- gt_object$phi
@@ -60,12 +70,20 @@ path1_aggregate <- function(gt_object, omega = NULL) {
   results <- purrr::map(seq_along(groups), \(i) {
     g <- groups[i]
     idx <- which(df$g == g)
-    tau_mean <- mean(df$tau_hat[idx])
-
-    # EIF for group mean = mean of EIFs over cells in that group (equal weight)
-    # Use fast_cbind_list for efficient matrix construction
     phi_mat <- fast_cbind_list(phi_rows[idx])
-    phi_mean <- as.numeric(rowMeans(phi_mat))
+
+    lambda <- if (weighting == "gls") {
+      gls_weights(phi_rows[idx])
+    } else {
+      rep(1 / length(idx), length(idx))
+    }
+
+    tau_mean <- sum(lambda * df$tau_hat[idx])
+    # EIF for the weighted group mean: same linear combination of the
+    # cell-level EIFs, with the same (fixed, data-independent-at-this-step)
+    # weights lambda -- valid for any lambda > 0 summing to 1, per the
+    # product-rule argument in Appendix, Path 1 EIF.
+    phi_mean <- as.numeric(phi_mat %*% lambda)
 
     list(tau = tau_mean, phi = phi_mean)
   })
@@ -81,4 +99,33 @@ path1_aggregate <- function(gt_object, omega = NULL) {
     tau_g = tau_g,
     phi_g = phi_g
   )
+}
+
+#' Inverse-variance (GLS) weights from a list of EIF vectors
+#'
+#' Computes normalized weights \eqn{\lambda_j \propto 1/\widehat{\mathrm{Var}}(\phi_j)}
+#' from the sample variance of each supplied influence-function vector, for use
+#' as the efficient (GLS) weighting in [path1_aggregate()] and the weighted
+#' least-squares step of [extrapolate_ATT()]. The overall scale of
+#' \eqn{\mathrm{Var}(\phi_j)} versus \eqn{\mathrm{Var}(\widehat\theta_j) =
+#' \mathrm{Var}(\phi_j)/n} is immaterial here: weighted averages and weighted
+#' least squares are invariant to a common positive rescaling of the weights,
+#' and `n` (the number of units backing every cell in a single `gt_object`)
+#' is common across cells.
+#'
+#' @param phi_list A list of numeric EIF vectors (one per cell), as stored in
+#'   `gt_object$phi[idx]`.
+#' @param floor A small positive lower bound on the estimated variance, to
+#'   avoid a near-zero-variance cell receiving unbounded weight from sampling
+#'   noise in the variance estimate itself. Default `1e-8`.
+#' @return A numeric vector of weights, same length as `phi_list`, summing to 1.
+#'
+#' @export
+gls_weights <- function(phi_list, floor = 1e-8) {
+  if (length(phi_list) == 0) {
+    stop("gls_weights() requires at least one EIF vector.", call. = FALSE)
+  }
+  v <- vapply(phi_list, function(phi) max(stats::var(phi), floor), numeric(1))
+  lambda <- 1 / v
+  lambda / sum(lambda)
 }

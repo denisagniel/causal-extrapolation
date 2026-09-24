@@ -23,6 +23,30 @@ test_that("estimate_group_time_ATT checks for required columns", {
   )
 })
 
+test_that("estimate_group_time_ATT requires the id column to exist when supplied", {
+  df <- data.frame(Y = 1:10, G = rep(1:2, each = 5), Time = rep(1:5, 2))  # No unit_id column
+
+  expect_error(
+    estimate_group_time_ATT(df, y = Y, g = G, t = Time, id = unit_id),
+    "data is missing required columns.*unit_id"
+  )
+})
+
+test_that("estimate_group_time_ATT warns when id is not supplied", {
+  df <- data.frame(Y = 1:10, G = rep(1:2, each = 5), Time = rep(1:5, 2))
+
+  # Fails downstream at did::att_gt() with this toy data (and did emits its own
+  # unrelated warning about no never-treated group after ours), but our
+  # missing-id warning fires first, before that call is ever attempted.
+  expect_warning(
+    tryCatch(
+      estimate_group_time_ATT(df, y = Y, g = G, t = Time),
+      error = function(e) NULL
+    ),
+    "called without `id`"
+  )
+})
+
 test_that("estimate_group_time_ATT warns about unused cluster argument", {
   df <- data.frame(
     Y = rnorm(20),

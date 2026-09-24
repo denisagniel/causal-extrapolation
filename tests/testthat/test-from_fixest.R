@@ -86,6 +86,55 @@ test_that("as_gt_object.fixest rejects non-sunab fixest objects", {
   )
 })
 
+test_that("as_gt_object.fixest works end-to-end on a real sunab() fit (the package's own documented example)", {
+  skip_if_not_installed("fixest")
+  skip_if_not_installed("sandwich")
+
+  mpdta <- did::mpdta
+  res <- fixest::feols(
+    lemp ~ sunab(first.treat, year) | countyreal + year,
+    data = mpdta
+  )
+
+  gt_obj <- as_gt_object(res)
+
+  # Disaggregated per-cohort cells, not the aggregated event-time-only view
+  # coef(res) returns by default -- there must be more than one cohort g
+  # represented, or the (g,t) structure this package needs was never
+  # actually recovered.
+  expect_gt(length(unique(gt_obj$data$g)), 1)
+  expect_equal(gt_obj$data$k, gt_obj$data$t - gt_obj$data$g)
+  expect_true(all(is.finite(gt_obj$data$tau_hat)))
+
+  # Real per-unit EIFs via the sandwich::estfun() fallback (fixest::influence()
+  # does not exist in currently supported fixest versions), one vector per
+  # (g,t) row, each of length n.
+  expect_false(is.null(gt_obj$phi))
+  expect_equal(length(gt_obj$phi), nrow(gt_obj$data))
+  expect_true(all(vapply(gt_obj$phi, length, integer(1)) == stats::nobs(res)))
+
+  expect_true(validate_gt_object(gt_obj))
+
+  # Full downstream pipeline: extrapolation and variance both run.
+  omega <- stats::setNames(rep(1 / length(unique(gt_obj$data$g)), length(unique(gt_obj$data$g))),
+                            as.character(sort(unique(gt_obj$data$g))))
+  ex <- extrapolate_ATT(gt_obj, h_fun = hg_linear, dh_fun = dh_linear,
+                        future_value = 1, time_scale = "event",
+                        omega = omega, per_group = FALSE)
+  expect_true(is.finite(ex$tau_future))
+  v <- compute_variance(ex$phi_future, estimate = ex$tau_future, level = 0.95)
+  expect_true(is.finite(v$se) && v$se > 0)
+})
+
+test_that("as_gt_object.fixest falls back to the aggregated view (and its own error) for a plain, non-sunab fit", {
+  skip_if_not_installed("fixest")
+
+  mpdta <- did::mpdta
+  res <- fixest::feols(lemp ~ treat, data = mpdta)
+
+  expect_error(as_gt_object(res), "does not appear to use sunab")
+})
+
 test_that("as_gt_object.fixest extracts basic structure", {
   # Create mock fixest object with sunab coefficients
   set.seed(123)

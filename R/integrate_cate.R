@@ -37,17 +37,54 @@
 #'     selecting the target subpopulation (e.g. the treated units for the FATT). The point
 #'     estimate is the mean of \eqn{\hat\tau} over the target, and the implied transport
 #'     weight is \eqn{w_i = (n / n^*)\,\mathbf{1}\{i \in \mathrm{target}\}} (exactly 1 when
-#'     the target is the full source sample — the no-shift case).
+#'     the target is the full source sample — the no-shift case). The target here is a
+#'     fixed subsample of *this* source; there is no second sample, so `n_target` (below)
+#'     does not apply.
 #'   \item `weights` (Form B) — a length-\eqn{n} vector of density-ratio values
-#'     \eqn{w(X_i)} that you have supplied or estimated externally.
+#'     \eqn{w(X_i)} that you have supplied or estimated externally, e.g. against a
+#'     genuinely external target covariate sample.
 #' }
 #' If you have an **external** target covariate sample that is not a subset of the source,
 #' estimate the density ratio yourself and pass it as `weights`: to preserve the
 #' mapping-not-estimation contract, this function will not estimate a density ratio for
-#' you. Note that the reported standard error treats `weights` as **known/fixed** (the
-#' target-sampling correction \eqn{r_i} is zero). If `weights` were themselves estimated,
-#' the SE is valid only when that estimation error is asymptotically negligible relative to
-#' \eqn{n^{-1/2}}; otherwise it is anticonservative.
+#' you. The reported standard error treats `weights` as **known/fixed** unless `n_target`
+#' is supplied (see below); if `weights` were estimated and `n_target` is not supplied, the
+#' SE is valid only when that estimation error is asymptotically negligible relative to
+#' \eqn{n^{-1/2}}, and anticonservative otherwise.
+#'
+#' @section Two-sample variance correction:
+#' When the target covariate sample used to construct `weights` (Form B) is a genuinely
+#' **external** sample of size \eqn{n^*}, independent of the source, the semiparametric
+#' efficiency bound for \eqn{\theta} picks up an additional term from the sampling
+#' variability of that second sample:
+#' \deqn{V = V_{\mathrm{src}} + \rho\,\mathrm{Var}_Q(\tau(\bX)), \qquad \rho = \lim n/n^*,}
+#' where \eqn{V_{\mathrm{src}}} is exactly the variance already computed from the transport
+#' EIF and \eqn{\mathrm{Var}_Q(\tau)} is the variance of the CATE under the target measure
+#' \eqn{Q} (\eqn{dQ = w\,dP_{\mathrm{src}}}). Supplying `n_target` \eqn{= n^*} adds this
+#' term with plug-in \eqn{\widehat\rho = n/n^*} and a weighted-variance estimate of
+#' \eqn{\mathrm{Var}_Q(\tau)}; the constant on the addendum is exactly 1 (not an order
+#' bound). This assumes the two samples are independent draws (no overlap); if the target
+#' is instead a fixed subsample of the source (Form A), do not supply `n_target` — there is
+#' no second sample and the addendum does not apply.
+#'
+#' @section Truncation for weak overlap:
+#' When \eqn{w(\bX)} is heavy-tailed, a few source units can dominate the transport sum and
+#' inflate the variance. `trunc` caps \eqn{w} at a level \eqn{C} and re-normalizes
+#' (Hájek), which strictly reduces variance but introduces a bias
+#' \deqn{|\tilde B(C)| \le \frac{\{Q(w>C)\}^{1/2}}{1-\delta_C}\,\{\mathrm{Var}_Q(\tau)\}^{1/2},}
+#' where \eqn{\delta_C = 1 - \mathbb{E}_{\mathrm{src}}[w \wedge C]} is the target weight-mass
+#' discarded by the cap. This bound is **exactly zero when \eqn{\tau} is constant on the
+#' target region**, i.e. truncation is free of first-order bias whenever the conditional
+#' effect does not itself vary in the region that is being truncated away. `trunc = "auto"`
+#' selects the smallest cap on `trunc_grid` whose worst-case bias is at most
+#' `trunc_gamma` times the standard error (default 1/4, costing under one percentage point
+#' of nominal coverage at the 95% level); `trunc = C` (numeric, \eqn{\ge 1}) fixes the cap.
+#' Truncation always changes the estimand to the \eqn{C}-capped target
+#' \eqn{\theta(C) = \mathbb{E}_{\mathrm{src}}[\tilde w_C\,\tau]}; report `delta_trunc`
+#' alongside the point estimate as an explicit statement of the target covariate mass the
+#' design cannot support. Normalization is mandatory when `trunc` is finite: unnormalized
+#' truncation carries a pure scale bias of order \eqn{\delta_C} even when \eqn{\tau} is
+#' constant, so this function always Hájek-normalizes internally.
 #'
 #' @section Collapse property:
 #' When the target equals the source (`target = seq_len(n)`, or `weights = rep(1, n)`),
@@ -67,20 +104,38 @@
 #'   subpopulation. Mutually exclusive with `weights`.
 #' @param weights Form B: length-n density-ratio weights \eqn{w(X_i)}. Mutually exclusive
 #'   with `target`.
+#' @param n_target Optional. Size \eqn{n^*} of the genuinely external target covariate
+#'   sample used to construct `weights` (Form B only). When supplied, adds the two-sample
+#'   variance correction described above; ignored (with a warning) for Form A, where the
+#'   target is a fixed subsample of the source. Default `NULL` (weights treated as fixed).
+#' @param trunc Truncation cap for weak overlap: `Inf` (default, no truncation), a numeric
+#'   \eqn{C \ge 1}, or `"auto"` to select \eqn{C} from `trunc_grid` via the bias/SE budget
+#'   `trunc_gamma`. See Details.
+#' @param trunc_gamma Bias budget for `trunc = "auto"`, as a multiple of the standard error
+#'   (default 0.25). Ignored unless `trunc = "auto"`.
+#' @param trunc_grid Candidate caps for `trunc = "auto"`. Default `NULL` uses
+#'   \eqn{\{q_{0.90}, q_{0.95}, q_{0.99}, q_{0.995}\}} of the resolved weights (plus `Inf`,
+#'   always appended as the "no truncation" fallback).
 #' @param level Confidence level for the interval (default 0.95).
 #' @param validate Whether to validate the CATE contract (default TRUE).
 #'
 #' @return An object of class `cate_integration` (a list) with:
 #' \describe{
-#'   \item{estimate}{Scalar FATT estimate \eqn{\hat\theta}.}
+#'   \item{estimate}{Scalar FATT estimate \eqn{\hat\theta} (of the \eqn{C}-capped estimand
+#'     when truncation is active).}
 #'   \item{phi}{Length-n transport EIF vector (consumable by [compute_variance()]).}
-#'   \item{se}{Standard error.}
+#'   \item{se}{Standard error (includes the two-sample addendum when `n_target` is given).}
 #'   \item{ci}{Confidence interval (length-2 numeric).}
 #'   \item{level}{Confidence level.}
-#'   \item{w}{Length-n transport weights used.}
+#'   \item{w}{Length-n transport weights actually used (post-truncation if applicable).}
 #'   \item{design}{The design used.}
 #'   \item{form}{`"target_index"` or `"density_ratio"`.}
 #'   \item{n, n_eff}{Sample size and effective sample size \eqn{(\sum w)^2 / \sum w^2}.}
+#'   \item{trunc}{The truncation cap actually used (`Inf` if none).}
+#'   \item{trunc_diag}{List with `delta_trunc`, `q_exceed`, `var_q_tau`, `bias_bound`,
+#'     `se_bias_aware` (\eqn{z\cdot\mathrm{se} + \mathrm{bias\_bound}} half-width ingredient).}
+#'   \item{two_sample}{`NULL`, or a list with `n_target`, `rho_hat`, `var_q_tau`,
+#'     `addendum`, `se_source_only` when `n_target` was supplied.}
 #' }
 #'
 #' @examples
@@ -109,6 +164,10 @@ integrate_cate <- function(cate,
                            design = c("unconfoundedness", "did"),
                            target = NULL,
                            weights = NULL,
+                           n_target = NULL,
+                           trunc = Inf,
+                           trunc_gamma = 0.25,
+                           trunc_grid = NULL,
                            level = 0.95,
                            validate = TRUE) {
   design <- match.arg(design)
@@ -143,7 +202,7 @@ integrate_cate <- function(cate,
 
   # Resolve transport weights and the target-sampling correction.
   wr <- resolve_transport_weights(cate, target = target, weights = weights, n = n)
-  w <- wr$w
+  w_full <- wr$w
   r <- wr$r
 
   # Neyman-orthogonal correction (per design), reweighted by w.
@@ -153,16 +212,69 @@ integrate_cate <- function(cate,
     did              = score_drdid(cate)
   )
 
+  # Resolve truncation (Inf = no-op) and compute the core DR estimate at the chosen cap.
+  # .resolve_truncation() internally evaluates the untruncated case too (as part of the
+  # grid, or directly when trunc = Inf), so there is no separate "core_full" to compute
+  # here -- Var_Q(tau) in the bias bound is a property of (tau, w_full) alone (see
+  # .weighted_var_q()), not of any DR point estimate.
+  trunc_info <- .resolve_truncation(
+    w_full = w_full, tau = cate$tau, correction = correction, r = r, n = n, level = level,
+    trunc = trunc, trunc_gamma = trunc_gamma, trunc_grid = trunc_grid
+  )
+  core <- trunc_info$core
+
+  # Two-sample variance addendum (only meaningful for Form B / an external target sample).
+  ts <- .apply_two_sample_variance(
+    core = core, tau = cate$tau, n = n, n_target = n_target, form = wr$form, level = level
+  )
+
+  new_cate_integration(
+    estimate = core$psi_hat,
+    phi = core$phi,
+    se = ts$se,
+    ci = ts$ci,
+    var = ts$var,
+    level = level,
+    w = core$w_used,
+    design = design,
+    form = wr$form,
+    n = n,
+    n_eff = core$n_eff,
+    trunc = trunc_info$trunc_used,
+    trunc_diag = trunc_info$diag,
+    two_sample = ts$diag
+  )
+}
+
+
+#' Core transport-EIF computation for a fixed weight vector
+#'
+#' Given a resolved (possibly truncated) weight vector, assembles the doubly-robust
+#' one-step estimate and transport EIF, checks finiteness, warns on poor overlap, and
+#' computes the raw (pre-two-sample-addendum) variance. Factored out of
+#' [integrate_cate()] so the truncation grid search in [.resolve_truncation()] can call it
+#' repeatedly without duplicating the estimation logic.
+#'
+#' @param w Length-n weight vector to use (either `w_full` or a truncated/renormalized
+#'   version of it).
+#' @param tau Length-n conditional ATT predictions.
+#' @param correction Length-n Neyman-orthogonal correction (`score_aipw()`/`score_drdid()`).
+#' @param r Length-n target-sampling correction (zero in the supported fixed-target modes).
+#' @param n Source sample size.
+#' @param level Confidence level.
+#' @return List with `psi_hat`, `phi`, `n_eff`, `var`, `se`, `ci`, `w_used`.
+#' @keywords internal
+.cate_core <- function(w, tau, correction, r, n, level) {
   # Doubly-robust one-step estimate: plug-in mean(w*tau) PLUS the mean orthogonal
   # correction. This is the estimand the transport EIF is the influence function OF, so
   # the point estimate and its EIF correspond to the same functional (and the sample mean
-  # of phi below is then exactly zero when E_hat[w] = 1, e.g. Form A). Using the bare
-  # plug-in mean(w*tau) would pair a plug-in estimate with a DR variance -- inconsistent,
-  # and biased whenever the nuisances are estimated (mean(w*correction) != 0).
-  psi_hat <- mean(w * cate$tau) + mean(w * correction) + mean(r)
+  # of phi below is then exactly zero when E_hat[w] = 1). Using the bare plug-in
+  # mean(w*tau) would pair a plug-in estimate with a DR variance -- inconsistent, and
+  # biased whenever the nuisances are estimated (mean(w*correction) != 0).
+  psi_hat <- mean(w * tau) + mean(w * correction) + mean(r)
 
   # Transport EIF (theory note eq. 2). r == 0 in the supported (fixed-target) modes.
-  phi <- w * (cate$tau - psi_hat) + w * correction + r
+  phi <- w * (tau - psi_hat) + w * correction + r
 
   # Guard non-finite EIF (reachable via validate = FALSE, or e near 0/1 slipping through):
   # compute_variance() warns on NA but not NaN/Inf, which would silently corrupt the SE.
@@ -186,15 +298,240 @@ integrate_cate <- function(cate,
 
   inf <- compute_variance(phi, estimate = psi_hat, level = level, center = TRUE)
 
-  new_cate_integration(
-    estimate = psi_hat,
-    phi = phi,
-    inf = inf,
-    w = w,
-    design = design,
-    form = wr$form,
-    n = n,
-    n_eff = n_eff
+  list(psi_hat = psi_hat, phi = phi, n_eff = n_eff, var = inf$var, se = inf$se,
+       ci = inf$ci, w_used = w)
+}
+
+
+#' Weighted variance of tau under the change-of-measure dQ = w dP_src
+#'
+#' Estimates \eqn{\mathrm{Var}_Q(\tau) = \mathbb{E}_Q[(\tau - \mathbb{E}_Q[\tau])^2]} as the
+#' \eqn{w}-weighted sample variance of `tau`, i.e. the second central moment of \eqn{\tau}
+#' under the measure \eqn{Q} defined by \eqn{dQ = w\,dP_{\mathrm{src}}}. This is centered
+#' at the **plug-in weighted mean of tau itself**, \eqn{\widehat{\mathbb{E}}_Q[\tau] =
+#' \sum w_i\tau_i / \sum w_i}, not at the doubly-robust one-step estimate of
+#' \eqn{\theta_{p+1}}: \eqn{\mathrm{Var}_Q(\tau)} is a property of \eqn{\tau} and \eqn{Q}
+#' alone (the truncation-bias and two-sample propositions in the theory note both define
+#' it via \eqn{\psi_3 =
+#' \mathbb{E}_Q[\tau]}), and centering at the DR estimate instead would contaminate it with
+#' the orthogonal correction term's own finite-sample noise -- and would not vanish exactly
+#' when \eqn{\tau} is literally constant, which is the whole point of the bound (the
+#' truncation bias is *exactly* zero under effect homogeneity; see tests).
+#'
+#' Shared by the truncation bias bound (evaluated at the untruncated weights) and the
+#' two-sample variance addendum (evaluated at the final, possibly-truncated weights).
+#'
+#' @param w Length-n weight vector.
+#' @param tau Length-n conditional ATT predictions.
+#' @return Scalar estimate of \eqn{\mathrm{Var}_Q(\tau)}.
+#' @keywords internal
+.weighted_var_q <- function(w, tau) {
+  sw <- sum(w)
+  if (!is.finite(sw) || sw <= 0) {
+    return(NA_real_)
+  }
+  m <- sum(w * tau) / sw
+  sum(w * (tau - m)^2) / sw
+}
+
+
+#' Truncate and Hájek-renormalize a weight vector at cap C
+#'
+#' @param w_full Length-n untruncated weight vector.
+#' @param C Truncation cap (may be `Inf`, meaning no truncation).
+#' @return List with `w` (renormalized truncated weights, mean 1), `delta_c`
+#'   (target weight-mass loss \eqn{\delta_C}), `norm_factor` (\eqn{1-\delta_C}).
+#' @keywords internal
+.truncate_weights <- function(w_full, C) {
+  if (!is.finite(C)) {
+    return(list(w = w_full, delta_c = 0, norm_factor = 1))
+  }
+  w_c_raw <- pmin(w_full, C)
+  norm_factor <- mean(w_c_raw)
+  if (!is.finite(norm_factor) || norm_factor <= 0) {
+    stop("`trunc` is too small: all truncated weights collapse to zero.", call. = FALSE)
+  }
+  list(w = w_c_raw / norm_factor, delta_c = 1 - norm_factor, norm_factor = norm_factor)
+}
+
+
+#' Truncation bias-bound diagnostics at cap C
+#'
+#' Computes the Cauchy--Schwarz truncation-bias bound
+#' \eqn{|\tilde B(C)| \le \{Q(w>C)\}^{1/2}\{\mathrm{Var}_Q(\tau)\}^{1/2}/(1-\delta_C)}
+#' (the truncation bias-bound proposition (theory note, Prop. truncbias, eq. biasCS)), with \eqn{\mathrm{Var}_Q(\tau)} estimated against
+#' the **untruncated** target measure (`w_full`) -- the bias is that of the capped
+#' estimand relative to the original, uncapped one.
+#'
+#' @param w_full Length-n untruncated weight vector.
+#' @param tau Length-n conditional ATT predictions.
+#' @param C Truncation cap.
+#' @param delta_c Target weight-mass loss at `C` (from `.truncate_weights()`).
+#' @return List with `q_exceed`, `var_q_tau`, `bias_bound`.
+#' @keywords internal
+.trunc_bias_bound <- function(w_full, tau, C, delta_c) {
+  var_q_tau <- .weighted_var_q(w_full, tau)
+  if (!is.finite(C)) {
+    return(list(q_exceed = 0, var_q_tau = var_q_tau, bias_bound = 0))
+  }
+  # Q(w > C) = E_src[w * 1{w > C}]; delta_C already reflects the same tail via (3.1).
+  q_exceed <- mean(w_full * (w_full > C))
+  bias_bound <- if (delta_c < 1) sqrt(q_exceed) * sqrt(var_q_tau) / (1 - delta_c) else Inf
+  list(q_exceed = q_exceed, var_q_tau = var_q_tau, bias_bound = bias_bound)
+}
+
+
+#' Resolve the `trunc` argument to a final weight vector and diagnostics
+#'
+#' Dispatches on `trunc`: `Inf`/`NULL` (no truncation), `"auto"` (grid search over
+#' `trunc_grid` for the smallest cap meeting the `trunc_gamma` bias/SE budget), or a fixed
+#' finite numeric cap `\ge 1`. See [integrate_cate()]'s Truncation section for the bound
+#' being budgeted.
+#'
+#' @inheritParams integrate_cate
+#' @param w_full Length-n untruncated weight vector.
+#' @param tau Length-n conditional ATT predictions.
+#' @param correction Length-n Neyman-orthogonal correction.
+#' @param r Length-n target-sampling correction.
+#' @param n Source sample size.
+#' @param level Confidence level.
+#' @return List with `core` (output of `.cate_core()` at the chosen cap), `trunc_used`,
+#'   `diag` (list with `delta_trunc`, `q_exceed`, `var_q_tau`, `bias_bound`,
+#'   `se_bias_aware`).
+#' @keywords internal
+.resolve_truncation <- function(w_full, tau, correction, r, n, level,
+                                trunc, trunc_gamma, trunc_grid) {
+  eval_at <- function(C) {
+    tw <- .truncate_weights(w_full, C)
+    if (tw$delta_c > 0.5) {
+      stop(stringr::str_glue(
+        "trunc = {round(C, 4)} discards {round(100 * tw$delta_c, 1)}% of target weight ",
+        "mass (delta_C > 0.5): the truncated estimand no longer refers to the intended ",
+        "target. Choose a larger `trunc`, or use `trunc = \"auto\"`."
+      ), call. = FALSE)
+    }
+    bb <- .trunc_bias_bound(w_full, tau, C, tw$delta_c)
+    core <- .cate_core(tw$w, tau, correction, r, n, level)
+    list(
+      core = core,
+      diag = list(
+        delta_trunc = tw$delta_c, q_exceed = bb$q_exceed, var_q_tau = bb$var_q_tau,
+        bias_bound = bb$bias_bound, se_bias_aware = core$se + bb$bias_bound
+      )
+    )
+  }
+
+  # No truncation: NULL or a numeric Inf.
+  if (is.null(trunc) || (is.numeric(trunc) && length(trunc) == 1 && is.infinite(trunc))) {
+    res <- eval_at(Inf)
+    return(list(core = res$core, trunc_used = Inf, diag = res$diag))
+  }
+
+  # trunc = "auto": grid search, smallest cap meeting the bias/SE budget.
+  if (is.character(trunc)) {
+    if (!identical(trunc, "auto")) {
+      stop("`trunc` must be `Inf`, a numeric cap >= 1, or the string \"auto\".",
+           call. = FALSE)
+    }
+    validate_scalar(trunc_gamma, name = "trunc_gamma")
+    if (trunc_gamma <= 0) {
+      stop("`trunc_gamma` must be positive.", call. = FALSE)
+    }
+    grid <- trunc_grid
+    if (is.null(grid)) {
+      grid <- unname(stats::quantile(w_full, probs = c(0.90, 0.95, 0.99, 0.995),
+                                     na.rm = TRUE))
+    }
+    grid <- sort(unique(c(grid[is.finite(grid) & grid >= 1], Inf)))
+
+    chosen <- NULL
+    for (C in grid) {
+      res <- eval_at(C)
+      if (res$diag$bias_bound <= trunc_gamma * res$core$se) {
+        chosen <- list(C = C, res = res)
+        break
+      }
+    }
+    if (is.null(chosen)) {
+      # Defensive fallback; Inf (bias_bound == 0) always satisfies the budget trivially,
+      # so this branch is unreachable in practice but kept for robustness.
+      chosen <- list(C = Inf, res = eval_at(Inf))
+    }
+    if (is.infinite(chosen$C)) {
+      warning(stringr::str_glue(
+        "trunc = 'auto': no cap in the grid keeps the truncation bias below ",
+        "{trunc_gamma} x SE; returning the untruncated estimate. This signals weak ",
+        "overlap; report delta_trunc/bias_bound as a sensitivity statement rather ",
+        "than relying on the point estimate alone."
+      ), call. = FALSE)
+    }
+    return(list(core = chosen$res$core, trunc_used = chosen$C, diag = chosen$res$diag))
+  }
+
+  # Fixed finite numeric cap.
+  if (!is.numeric(trunc) || length(trunc) != 1) {
+    stop("`trunc` must be `Inf`, a numeric cap >= 1, or the string \"auto\".", call. = FALSE)
+  }
+  validate_scalar(trunc, name = "trunc")
+  if (trunc < 1) {
+    stop("`trunc` must be >= 1: since E_src[w] = 1 under Assumption RC9, capping below 1 ",
+         "always discards target mass without any offsetting benefit.", call. = FALSE)
+  }
+  res <- eval_at(trunc)
+  list(core = res$core, trunc_used = trunc, diag = res$diag)
+}
+
+
+#' Add the two-sample variance correction when the target is an external sample
+#'
+#' Implements the additive variance correction of the two-sample transport proposition:
+#' \eqn{V = V_{\mathrm{src}} + \rho\,\mathrm{Var}_Q(\tau)}, with \eqn{\widehat\rho = n/n^*}
+#' and \eqn{\mathrm{Var}_Q(\tau)} the weighted variance of `tau` (via `.weighted_var_q()`)
+#' under the (possibly truncated) final weights. Only applies to Form B (`weights`); a
+#' no-op with a warning for Form A, where the target is a fixed subsample of the source
+#' and there is no second sample.
+#'
+#' @param core Output of `.cate_core()` at the final (possibly truncated) weights.
+#' @param tau Length-n conditional ATT predictions.
+#' @param n Source sample size.
+#' @param n_target Size of the external target sample, or `NULL`.
+#' @param form `"target_index"` or `"density_ratio"` (from [resolve_transport_weights()]).
+#' @param level Confidence level.
+#' @return List with `se`, `ci`, `var`, `diag` (`NULL` unless the addendum applies).
+#' @keywords internal
+.apply_two_sample_variance <- function(core, tau, n, n_target, form, level) {
+  if (is.null(n_target)) {
+    return(list(se = core$se, ci = core$ci, var = core$var, diag = NULL))
+  }
+  if (identical(form, "target_index")) {
+    warning(paste0(
+      "`n_target` is ignored for Form A (`target`): the target is a fixed subsample of ",
+      "this source sample, not an independent second sample, so there is no target- ",
+      "sampling variance to add. Use Form B (`weights`) with an externally-estimated ",
+      "density ratio to invoke the two-sample correction."
+    ), call. = FALSE)
+    return(list(se = core$se, ci = core$ci, var = core$var, diag = NULL))
+  }
+  validate_scalar(n_target, name = "n_target")
+  if (n_target <= 0) {
+    stop("`n_target` must be a positive number (the size of the external target sample).",
+         call. = FALSE)
+  }
+
+  rho_hat <- n / n_target
+  var_q_tau <- .weighted_var_q(core$w_used, tau)
+  addendum <- rho_hat * var_q_tau / n
+  var_new <- core$var + addendum
+  se_new <- sqrt(var_new)
+
+  alpha <- 1 - level
+  z <- stats::qnorm(1 - alpha / 2)
+  ci_new <- c(core$psi_hat - z * se_new, core$psi_hat + z * se_new)
+
+  list(
+    se = se_new, ci = ci_new, var = var_new,
+    diag = list(n_target = n_target, rho_hat = rho_hat, var_q_tau = var_q_tau,
+                addendum = addendum, se_source_only = core$se)
   )
 }
 
@@ -307,28 +644,38 @@ resolve_target_index <- function(target, n) {
 #'
 #' @param estimate Scalar FATT estimate.
 #' @param phi Length-n transport EIF vector.
-#' @param inf Output of [compute_variance()] (list with var, se, ci, level).
-#' @param w Length-n transport weights.
+#' @param se Standard error.
+#' @param ci Confidence interval (length-2 numeric).
+#' @param var Variance of the estimator.
+#' @param level Confidence level.
+#' @param w Length-n transport weights (post-truncation if applicable).
 #' @param design Design string.
 #' @param form `"target_index"` or `"density_ratio"`.
 #' @param n Source sample size.
 #' @param n_eff Effective sample size.
+#' @param trunc Truncation cap actually used (`Inf` if none).
+#' @param trunc_diag List of truncation diagnostics (see [integrate_cate()]).
+#' @param two_sample List of two-sample correction diagnostics, or `NULL`.
 #' @return Object of class `cate_integration`.
 #' @keywords internal
-new_cate_integration <- function(estimate, phi, inf, w, design, form, n, n_eff) {
+new_cate_integration <- function(estimate, phi, se, ci, var, level, w, design, form, n,
+                                 n_eff, trunc, trunc_diag, two_sample) {
   structure(
     list(
       estimate = estimate,
       phi = phi,
-      se = inf$se,
-      ci = inf$ci,
-      level = inf$level,
-      var = inf$var,
+      se = se,
+      ci = ci,
+      level = level,
+      var = var,
       w = w,
       design = design,
       form = form,
       n = n,
-      n_eff = n_eff
+      n_eff = n_eff,
+      trunc = trunc,
+      trunc_diag = trunc_diag,
+      two_sample = two_sample
     ),
     class = c("cate_integration", "extrapolateATT")
   )
@@ -352,5 +699,19 @@ print.cate_integration <- function(x, ...) {
   ci_hi <- format(x$ci[2], digits = 4, nsmall = 4)
   cat(stringr::str_glue("{ci_level}% CI:    [{ci_lo}, {ci_hi}]\n"))
   cat(stringr::str_glue("n:         {x$n} (effective {round(x$n_eff, 1)})\n"))
+  if (is.finite(x$trunc)) {
+    cat(stringr::str_glue(
+      "Trunc:     C = {format(x$trunc, digits = 4)}, ",
+      "delta = {format(x$trunc_diag$delta_trunc, digits = 3)}, ",
+      "bias_bound = {format(x$trunc_diag$bias_bound, digits = 3)}\n"
+    ))
+  }
+  if (!is.null(x$two_sample)) {
+    cat(stringr::str_glue(
+      "2-sample:  n* = {x$two_sample$n_target}, ",
+      "rho = {format(x$two_sample$rho_hat, digits = 3)}, ",
+      "addendum to Var = {format(x$two_sample$addendum, digits = 3)}\n"
+    ))
+  }
   invisible(x)
 }

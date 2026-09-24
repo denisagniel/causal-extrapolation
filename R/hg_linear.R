@@ -6,6 +6,13 @@
 #'
 #' @param times Numeric vector of observed times (length p >= 2).
 #' @param future_time Single numeric future time (p + m).
+#' @param weights Optional numeric vector of length `length(times)`, the
+#'   weighted-least-squares weights \eqn{\lambda_t}. If `NULL` (default), an
+#'   equal-weighted (ordinary least squares) fit is used, matching prior
+#'   behavior. Passing the inverse-variance weights from [gls_weights()]
+#'   attains the semiparametric efficiency bound for Path 2, per RC5 and the
+#'   Path 2 EIF derivation (Appendix); any other fixed, positive `weights`
+#'   remains a valid (if generally inefficient) choice.
 #'
 #' @details
 #' Requires at least p >= 2 observations (intercept + slope). Checks for
@@ -49,17 +56,17 @@
 #' print(all.equal(tau_future, manual_result))
 #'
 #' @export
-hg_linear <- function(times, future_time) {
-  force(times); force(future_time)
+hg_linear <- function(times, future_time, weights = NULL) {
+  force(times); force(future_time); force(weights)
   function(tau_g) {
-    w <- dh_linear(times, future_time)
+    w <- dh_linear(times, future_time, weights)
     as.numeric(sum(w * tau_g))
   }
 }
 
 #' @rdname hg_linear
 #' @export
-dh_linear <- function(times, future_time) {
+dh_linear <- function(times, future_time, weights = NULL) {
   # Validate minimum observations
   p <- length(times)
   if (p < 2) {
@@ -69,11 +76,18 @@ dh_linear <- function(times, future_time) {
   X <- cbind(1, times)
   xstar <- c(1, future_time)
 
-  # Safe matrix inversion with singularity checking
-  XtX_inv <- safe_matrix_inverse(X)
-
-  # Compute projection weights: x*' (X'X)^{-1} X'
-  w <- as.numeric(t(xstar) %*% XtX_inv %*% t(X))
+  if (is.null(weights)) {
+    w <- as.numeric(t(xstar) %*% safe_matrix_inverse(X) %*% t(X))
+  } else {
+    if (length(weights) != p) {
+      stop(stringr::str_glue(
+        "weights must have length {p} (one per observed time), got {length(weights)}."
+      ), call. = FALSE)
+    }
+    # Weighted least squares: x*' (X'WX)^{-1} X'W, W = diag(weights)
+    XtWX_inv <- safe_matrix_inverse(X, weights = weights)
+    w <- as.numeric(t(xstar) %*% XtWX_inv %*% t(X * weights))
+  }
   w
 }
 

@@ -8,6 +8,15 @@
 #' @param data A data.frame or tibble with at least columns for outcome `Y`,
 #'   group `G`, time `t`, treatment timing (as required by `did`), and optional covariates `X`.
 #' @param y,g,t Bare column names (or strings) for outcome, group, and time.
+#' @param id Bare column name (or string) for the unit identifier. Strongly
+#'   recommended: passing `id` lets `did::att_gt()` align each unit's EIF
+#'   contribution consistently across group-time cells, which downstream
+#'   aggregation (Path 1) and extrapolation (Path 2) EIF propagation assumes
+#'   (see Appendix, Regularity Condition RC2). If omitted, `did::att_gt()` is
+#'   called with `idname = NULL`; the returned EIF vectors are then only
+#'   correct if `did` orders rows identically across every group-time cell
+#'   given the same panel, which is not guaranteed by `did`'s own contract and
+#'   should not be relied on. A warning is issued in this case.
 #' @param x Optional character vector of covariate names to carry along.
 #' @param cluster Optional bare name or string for cluster id for variance.
 #' @param ... Additional arguments passed to did estimation functions.
@@ -21,7 +30,7 @@
 #' - ids: optional unit identifiers if available
 #'
 #' @export
-estimate_group_time_ATT <- function(data, y, g, t, x = NULL, cluster = NULL, ...) {
+estimate_group_time_ATT <- function(data, y, g, t, id = NULL, x = NULL, cluster = NULL, ...) {
   # Input validation
   if (!is.data.frame(data)) {
     stop("data must be a data.frame or tibble", call. = FALSE)
@@ -34,18 +43,24 @@ estimate_group_time_ATT <- function(data, y, g, t, x = NULL, cluster = NULL, ...
     stop("data is empty (0 rows)", call. = FALSE)
   }
 
-  # NSE handling
+  # NSE handling. enquo() (not is.null() + ensym()) so a bare-symbol argument
+  # is never evaluated as an expression in the caller's frame -- is.null(x)
+  # on an unevaluated promise forces evaluation and errors with "object not
+  # found" for exactly the common case of passing a column name unquoted.
   y <- rlang::ensym(y)
   g <- rlang::ensym(g)
   t <- rlang::ensym(t)
-  if (!is.null(cluster)) cluster <- rlang::ensym(cluster)
+  cluster_quo <- rlang::enquo(cluster)
+  id_quo <- rlang::enquo(id)
+  cluster <- if (rlang::quo_is_null(cluster_quo)) NULL else rlang::as_name(rlang::ensym(cluster))
+  id_name <- if (rlang::quo_is_null(id_quo)) NULL else rlang::as_name(rlang::ensym(id))
 
   # Validate required columns exist
   y_name <- rlang::as_name(y)
   g_name <- rlang::as_name(g)
   t_name <- rlang::as_name(t)
 
-  required_cols <- c(y_name, g_name, t_name)
+  required_cols <- c(y_name, g_name, t_name, id_name)
   missing_cols <- setdiff(required_cols, names(df))
 
   if (length(missing_cols) > 0) {
@@ -69,12 +84,22 @@ estimate_group_time_ATT <- function(data, y, g, t, x = NULL, cluster = NULL, ...
     )
   }
 
+  if (is.null(id_name)) {
+    warning(
+      "estimate_group_time_ATT() called without `id`: did::att_gt() will be run with ",
+      "idname = NULL. The returned per-unit EIF vectors are then only correctly aligned ",
+      "across group-time cells if did's internal row ordering happens to be consistent, ",
+      "which is not part of did's documented contract. Pass `id` (a unit identifier column) ",
+      "to guarantee correct alignment for the EIF propagation used by extrapolate_ATT() ",
+      "and path1_aggregate().",
+      call. = FALSE
+    )
+  }
+
   # We attempt a flexible call; users can pass ... to att_gt
-  # NOTE (Phase 3 follow-up): idname is hardcoded NULL, so did cannot align inffunc rows
-  # to units across periods. For unit-aligned EIFs, idname should be plumbed through.
   att <- did::att_gt(yname = y_name,
                      tname = t_name,
-                     idname = NULL,
+                     idname = id_name,
                      gname = g_name,
                      data = df,
                      ...)

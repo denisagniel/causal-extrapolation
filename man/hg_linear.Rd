@@ -5,14 +5,22 @@
 \alias{dh_linear}
 \title{Linear temporal extrapolation h_g and its Jacobian}
 \usage{
-hg_linear(times, future_time)
+hg_linear(times, future_time, weights = NULL)
 
-dh_linear(times, future_time)
+dh_linear(times, future_time, weights = NULL)
 }
 \arguments{
 \item{times}{Numeric vector of observed times (length p >= 2).}
 
 \item{future_time}{Single numeric future time (p + m).}
+
+\item{weights}{Optional numeric vector of length \code{length(times)}, the
+weighted-least-squares weights \eqn{\lambda_t}. If \code{NULL} (default), an
+equal-weighted (ordinary least squares) fit is used, matching prior
+behavior. Passing the inverse-variance weights from \code{\link[=gls_weights]{gls_weights()}}
+attains the semiparametric efficiency bound for Path 2, per RC5 and the
+Path 2 EIF derivation (Appendix); any other fixed, positive \code{weights}
+remains a valid (if generally inefficient) choice.}
 }
 \value{
 \code{hg_linear()} returns a function that maps a vector of τ_{g,1:p} to τ_{g,p+m}.
