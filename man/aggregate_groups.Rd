@@ -4,7 +4,7 @@
 \alias{aggregate_groups}
 \title{Aggregate values and EIFs across groups with weights}
 \usage{
-aggregate_groups(values_g, eif_list, omega)
+aggregate_groups(values_g, eif_list, omega, omega_scores = NULL)
 }
 \arguments{
 \item{values_g}{Numeric vector of per-group values.}
@@ -12,12 +12,26 @@ aggregate_groups(values_g, eif_list, omega)
 \item{eif_list}{List of numeric EIF vectors per group (same length as values_g).}
 
 \item{omega}{Numeric vector of group weights (same length as values_g).}
+
+\item{omega_scores}{Optional \eqn{n \times q} matrix of per-unit influence functions for
+\emph{estimated} group weights, as returned by \code{\link[=build_omega_score]{build_omega_score()}}. Supply this only
+when \code{omega} was estimated from the same sample: the returned EIF then additionally
+carries the functional-delta-method term
+\eqn{\sum_g \texttt{values\_g}_g \, \phi_{\omega_g,i}} (paper, Appendix
+\code{app:eif1}). Default \code{NULL} treats \code{omega} as fixed and known, which reproduces
+this function's historical behavior exactly.}
 }
 \value{
 A list with aggregated value \code{value} and EIF vector \code{phi}.
 }
 \description{
 Aggregate values and EIFs across groups with weights
+}
+\details{
+The point estimate never depends on \code{omega_scores}; only the propagated influence
+function does. Omitting \code{omega_scores} when \code{omega} was in fact estimated understates
+the variance (except in the degenerate case where all \code{values_g} are equal, in which
+case the extra term is identically zero -- see \code{\link[=build_omega_score]{build_omega_score()}}).
 }
 \examples{
 # Per-group estimates
@@ -40,4 +54,7 @@ result <- aggregate_groups(values_g, eif_list, omega)
 print(result$value)  # Weighted average: 0.5*0.5 + 0.3*0.3 + 0.2*0.7
 print(length(result$phi))  # EIF vector of length 50
 
+}
+\seealso{
+\code{\link[=build_omega_score]{build_omega_score()}} for constructing \code{omega_scores}.
 }

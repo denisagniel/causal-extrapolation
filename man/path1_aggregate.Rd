@@ -4,7 +4,16 @@
 \alias{path1_aggregate}
 \title{Path 1: aggregate group-time ATTs assuming constant effect within group}
 \usage{
-path1_aggregate(gt_object, omega = NULL, weighting = c("equal", "gls"))
+path1_aggregate(
+  gt_object,
+  omega = NULL,
+  weighting = c("equal", "gls", "gls-joint"),
+  omega_estimated = FALSE,
+  omega_scores = NULL,
+  ids = NULL,
+  cluster = NULL,
+  shrink = "auto"
+)
 }
 \arguments{
 \item{gt_object}{An object of class gt_object (data, phi, groups, n).}
@@ -20,8 +29,45 @@ first-stage. \code{"gls"} uses the inverse-variance (GLS) weights
 \eqn{\lambda_{gt} \propto 1/\mathrm{Var}(\phi_{gt})}, estimated from the
 sample variance of each cell's supplied EIF vector, and attains the
 semiparametric efficiency bound when the first-stage EIFs are themselves
-efficient. Both schemes are valid (correct variance); only the
-efficiency differs.}
+efficient. \code{"gls-joint"} bypasses the within-group-then-across-group
+two-step structure entirely: it reassembles \emph{every} cell (not just
+one group's) into a single jointly-aligned score matrix via
+\code{\link[=build_score_matrix]{build_score_matrix()}} and combines all cells directly into the
+per-group \eqn{\widehat\beta_g} and the overall \eqn{\widehat\theta_{p+1}}
+via \code{\link[=combine_cell_scores]{combine_cell_scores()}}, using the \emph{full} cross-cell covariance
+rather than assuming cells (including cells in different groups) are
+uncorrelated. This requires a reliable unit id (\code{ids}, or
+\code{gt_object$ids}) to align cells row-for-row; see Details. All three
+schemes are valid (correct variance) when the identifying assumptions
+hold; only the efficiency differs, and \code{"gls-joint"}'s efficiency
+statement is the one documented in \code{\link[=combine_cell_scores]{combine_cell_scores()}} (optimal-GMM
+among linear combinations of the supplied cells, not the semiparametric
+efficiency bound for \eqn{\theta_{p+1}} itself).}
+
+\item{omega_estimated}{Logical. Were the cohort weights \code{omega} estimated from this same
+sample (rather than fixed and known a priori)? Default \code{FALSE}, which reproduces this
+function's historical behavior exactly. When \code{TRUE}, the propagated EIF additionally
+carries the functional-delta-method term \eqn{\sum_g \theta_{g\cdot}\phi_{\omega_g,i}}
+from the paper's Path 1 derivation (Appendix \code{app:eif1}), and \code{omega_scores} must
+be supplied. Leaving this at \code{FALSE} while using estimated weights \emph{understates}
+the variance.}
+
+\item{omega_scores}{An \eqn{n \times q} matrix of per-unit weight influence functions, as
+returned by \code{\link[=build_omega_score]{build_omega_score()}}. Required when \code{omega_estimated = TRUE} and ignored
+otherwise. If \code{omega} is \code{NULL} the weights are taken from
+\code{attr(omega_scores, "omega")}, so that the weights and their influence functions are
+guaranteed to correspond to the same estimator.}
+
+\item{ids}{Row keys for \code{\link[=build_score_matrix]{build_score_matrix()}}, used only when
+\code{weighting = "gls-joint"}. \code{NULL} (default) uses \code{gt_object$ids}; if that is also
+\code{NULL}, \code{path1_aggregate()} errors rather than silently assuming a consistent row
+order across cells (same contract as \code{build_score_matrix(require_ids = TRUE)}).}
+
+\item{cluster}{Optional cluster identifier passed to \code{\link[=build_score_matrix]{build_score_matrix()}}, used only
+when \code{weighting = "gls-joint"}.}
+
+\item{shrink}{Shrinkage rule passed to \code{\link[=estimate_score_cov]{estimate_score_cov()}}, used only when
+\code{weighting = "gls-joint"}. Default \code{"auto"}.}
 }
 \value{
 A list with tau_future (scalar), phi_future (length-n vector), and
@@ -31,6 +77,20 @@ tau_g (per-group means) and phi_g (list of EIF vectors per group) for optional u
 For each group, computes the (weighted) average of tau_hat over observed (g,t)
 cells, then aggregates across groups with omega. Propagates EIFs by
 within-group averaging then aggregation.
+}
+\details{
+\subsection{Estimated versus known cohort weights}{
+
+The Path 1 estimand is \eqn{\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}} with
+\eqn{\omega_g = \P(G_i = g \mid A_{ip} = 1)}. Its influence function has \emph{two}
+terms (paper, Appendix \code{app:eif1}):
+\deqn{\phi_{\psi_1,i} = \sum_g \omega_g \phi_{\theta_{g\cdot},i}
+  + \sum_g \theta_{g\cdot}\phi_{\omega_g,i}.}
+The second term is present only when \eqn{\omega} is estimated. Set
+\code{omega_estimated = TRUE} and pass \code{omega_scores} in that case; otherwise the reported
+standard errors are too small. See \code{\link[=build_omega_score]{build_omega_score()}} for the exactly-zero
+certificate that the extra term satisfies under effect homogeneity.
+}
 }
 \examples{
 # Create mock gt_object with multiple observations per group
@@ -61,4 +121,7 @@ result <- path1_aggregate(gt_obj, omega)
 print(result$tau_g)  # Per-group averages
 print(result$tau_future)  # Overall weighted average
 
+}
+\seealso{
+\code{\link[=build_omega_score]{build_omega_score()}}, \code{\link[=aggregate_groups]{aggregate_groups()}}
 }

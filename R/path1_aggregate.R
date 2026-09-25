@@ -15,10 +15,55 @@
 #'   \eqn{\lambda_{gt} \propto 1/\mathrm{Var}(\phi_{gt})}, estimated from the
 #'   sample variance of each cell's supplied EIF vector, and attains the
 #'   semiparametric efficiency bound when the first-stage EIFs are themselves
-#'   efficient. Both schemes are valid (correct variance); only the
-#'   efficiency differs.
+#'   efficient. `"gls-joint"` bypasses the within-group-then-across-group
+#'   two-step structure entirely: it reassembles \emph{every} cell (not just
+#'   one group's) into a single jointly-aligned score matrix via
+#'   [build_score_matrix()] and combines all cells directly into the
+#'   per-group \eqn{\widehat\beta_g} and the overall \eqn{\widehat\theta_{p+1}}
+#'   via [combine_cell_scores()], using the \emph{full} cross-cell covariance
+#'   rather than assuming cells (including cells in different groups) are
+#'   uncorrelated. This requires a reliable unit id (`ids`, or
+#'   `gt_object$ids`) to align cells row-for-row; see Details. All three
+#'   schemes are valid (correct variance) when the identifying assumptions
+#'   hold; only the efficiency differs, and `"gls-joint"`'s efficiency
+#'   statement is the one documented in [combine_cell_scores()] (optimal-GMM
+#'   among linear combinations of the supplied cells, not the semiparametric
+#'   efficiency bound for \eqn{\theta_{p+1}} itself).
+#' @param omega_estimated Logical. Were the cohort weights `omega` estimated from this same
+#'   sample (rather than fixed and known a priori)? Default `FALSE`, which reproduces this
+#'   function's historical behavior exactly. When `TRUE`, the propagated EIF additionally
+#'   carries the functional-delta-method term \eqn{\sum_g \theta_{g\cdot}\phi_{\omega_g,i}}
+#'   from the paper's Path 1 derivation (Appendix \code{app:eif1}), and `omega_scores` must
+#'   be supplied. Leaving this at `FALSE` while using estimated weights \emph{understates}
+#'   the variance.
+#' @param omega_scores An \eqn{n \times q} matrix of per-unit weight influence functions, as
+#'   returned by [build_omega_score()]. Required when `omega_estimated = TRUE` and ignored
+#'   otherwise. If `omega` is `NULL` the weights are taken from
+#'   `attr(omega_scores, "omega")`, so that the weights and their influence functions are
+#'   guaranteed to correspond to the same estimator.
+#' @param ids Row keys for [build_score_matrix()], used only when
+#'   `weighting = "gls-joint"`. `NULL` (default) uses `gt_object$ids`; if that is also
+#'   `NULL`, `path1_aggregate()` errors rather than silently assuming a consistent row
+#'   order across cells (same contract as `build_score_matrix(require_ids = TRUE)`).
+#' @param cluster Optional cluster identifier passed to [build_score_matrix()], used only
+#'   when `weighting = "gls-joint"`.
+#' @param shrink Shrinkage rule passed to [estimate_score_cov()], used only when
+#'   `weighting = "gls-joint"`. Default `"auto"`.
 #' @return A list with tau_future (scalar), phi_future (length-n vector), and
 #'   tau_g (per-group means) and phi_g (list of EIF vectors per group) for optional use.
+#'
+#' @details
+#' ## Estimated versus known cohort weights
+#'
+#' The Path 1 estimand is \eqn{\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}} with
+#' \eqn{\omega_g = \P(G_i = g \mid A_{ip} = 1)}. Its influence function has \emph{two}
+#' terms (paper, Appendix \code{app:eif1}):
+#' \deqn{\phi_{\psi_1,i} = \sum_g \omega_g \phi_{\theta_{g\cdot},i}
+#'   + \sum_g \theta_{g\cdot}\phi_{\omega_g,i}.}
+#' The second term is present only when \eqn{\omega} is estimated. Set
+#' `omega_estimated = TRUE` and pass `omega_scores` in that case; otherwise the reported
+#' standard errors are too small. See [build_omega_score()] for the exactly-zero
+#' certificate that the extra term satisfies under effect homogeneity.
 #'
 #' @examples
 #' # Create mock gt_object with multiple observations per group
@@ -49,9 +94,17 @@
 #' print(result$tau_g)  # Per-group averages
 #' print(result$tau_future)  # Overall weighted average
 #'
+#' @seealso [build_omega_score()], [aggregate_groups()]
+#'
 #' @export
-path1_aggregate <- function(gt_object, omega = NULL, weighting = c("equal", "gls")) {
+path1_aggregate <- function(gt_object, omega = NULL, weighting = c("equal", "gls", "gls-joint"),
+                            omega_estimated = FALSE, omega_scores = NULL,
+                            ids = NULL, cluster = NULL, shrink = "auto") {
   weighting <- match.arg(weighting)
+  if (!is.logical(omega_estimated) || length(omega_estimated) != 1 ||
+        is.na(omega_estimated)) {
+    stop("`omega_estimated` must be a single TRUE or FALSE.", call. = FALSE)
+  }
   validate_gt_object(gt_object, name = "gt_object")
   df <- gt_object$data
   phi_rows <- gt_object$phi
@@ -60,12 +113,68 @@ path1_aggregate <- function(gt_object, omega = NULL, weighting = c("equal", "gls
   validate_lengths_match(phi_rows, seq_len(nrow(df)),
                          name_x = "phi", name_y = "data rows")
 
+  if (omega_estimated) {
+    if (is.null(omega_scores)) {
+      stop(
+        "path1_aggregate(omega_estimated = TRUE) requires `omega_scores`, the per-unit ",
+        "influence functions of the estimated cohort weights. Build them with ",
+        "build_omega_score(G, treated_by_p, groups = gt_object$groups).",
+        call. = FALSE
+      )
+    }
+    omega_scores <- .validate_omega_scores(
+      omega_scores, n_groups = length(groups), n = n
+    )
+    # Prefer the omega_hat carried by the scores when the caller did not name one: that
+    # keeps the weights and their influence functions tied to a single estimator.
+    if (is.null(omega)) {
+      omega <- attr(omega_scores, "omega")
+      if (is.null(omega)) {
+        stop(
+          "`omega` is NULL and `omega_scores` carries no \"omega\" attribute. Supply ",
+          "`omega`, or build the scores with build_omega_score().",
+          call. = FALSE
+        )
+      }
+      omega <- unname(omega)
+    }
+  } else if (!is.null(omega_scores)) {
+    warning(
+      "`omega_scores` was supplied but `omega_estimated` is FALSE, so the ",
+      "estimated-weight variance term is NOT included. Set omega_estimated = TRUE to ",
+      "propagate it.",
+      call. = FALSE
+    )
+    omega_scores <- NULL
+  }
+
   # Default to equal group weights; validate before use so callers cannot silently
   # drop or misspecify omega (audit M1/M9).
   if (is.null(omega)) {
     omega <- rep(1 / length(groups), length(groups))
   }
   validate_group_weights(omega, n_groups = length(groups), name = "omega", warn_sum = TRUE)
+
+  if (weighting == "gls-joint") {
+    Phi <- build_score_matrix(gt_object, ids = ids, cluster = cluster, require_ids = TRUE)
+    cells <- attr(Phi, "cells")
+    cmb <- combine_cell_scores(
+      Phi, values = df$tau_hat, restriction = cells$g, target = omega,
+      shrink = shrink, omega_scores = omega_scores
+    )
+
+    tau_g <- cmb$beta
+    names(tau_g) <- colnames(cmb$phi_beta)
+    phi_g <- lapply(seq_len(ncol(cmb$phi_beta)), function(k) cmb$phi_beta[, k])
+    names(phi_g) <- colnames(cmb$phi_beta)
+
+    return(list(
+      tau_future = cmb$value,
+      phi_future = cmb$phi,
+      tau_g = tau_g,
+      phi_g = phi_g
+    ))
+  }
 
   results <- purrr::map(seq_along(groups), \(i) {
     g <- groups[i]
@@ -92,7 +201,7 @@ path1_aggregate <- function(gt_object, omega = NULL, weighting = c("equal", "gls
   phi_g <- purrr::map(results, "phi")
   names(phi_g) <- groups
 
-  agg <- aggregate_groups(tau_g, phi_g, omega)
+  agg <- aggregate_groups(tau_g, phi_g, omega, omega_scores = omega_scores)
   list(
     tau_future = agg$value,
     phi_future = agg$phi,
