@@ -2,9 +2,41 @@
 
 **Instance path:** `inst/paper/story.md`
 **Governed by:** `.claude/rules/paper-protocol.md`
-**Status:** draft as of 2026-09-23. Reconciled against the simulation suite as of this date
+**Status:** draft as of 2026-09-25. Reconciled against the simulation suite as of 2026-09-23
 (Section 4b added a real-first-stage validation; the simulations-section scope-boundary bullet
-below is updated accordingly). No major claim (S1-S8) changed.
+below is updated accordingly), and against the Path-3 EIF rewrite as of 2026-09-25 (see
+reconciliation note below). No major claim (S1-S8) changed by either revision.
+
+## Reconciliation: 2026-09-25, Path-3 two-regime EIF rewrite
+
+The commit rewriting Path 3's estimator/EIF, RC7-RC10, the asymptotic-normality proof's Path-3
+step, and the collapse lemma into a two-regime taxonomy (internally-defined target vs.
+known/fixed density ratio) does not change what **S5** or **S6** can honestly claim.
+
+- **S5** ("The covariate route breaks the dependence on temporal patterns entirely... the
+  future effect is identified by estimating the conditional effect on historical data and
+  integrating it against the future covariate distribution — equivalently, by density-ratio
+  reweighting from source to target.") is stated at the identification level: the FATT equals
+  $\int \tau(x)\,dF^{p+1}_{\bX\mid A_{ip}=1}(x) = \E_{\mathrm{src}}[w(\bX)\tau(\bX)]$
+  (Proposition~3, `main.tex:441`). This identity is unchanged by the rewrite — the two-regime
+  split concerns *estimation and inference for* $\theta_{p+1}$, not its identification. Verdict:
+  **S5 unchanged.**
+- **S6** ("Inference is not re-derived per design; it is propagated... the scalar target admits
+  a Neyman-orthogonal doubly-robust transport score, and root-n inference for the scalar is
+  recovered through orthogonality with cross-fitted nuisances at the usual rate.") is stated at
+  the same level of abstraction. The rewrite replaces a single (defective, non-orthogonal)
+  weighting scheme with two regimes, each carrying its own Neyman-orthogonal doubly-robust
+  score (`main.tex:1296-1487`, orthogonality verified explicitly against $\mu_1$, $\mu_0$, $e$,
+  and $q$) and each recovering root-$n$ inference for the scalar via the same cross-fitted,
+  $o_\P(n^{-1/2})$-product-rate mechanism (Assumption~RC8, `main.tex:860`). "A" Neyman-orthogonal
+  score becomes "one of two," which is a strengthening of the delivered result, not a change to
+  what S6 asserts. Verdict: **S6 unchanged.**
+
+Neither claim asserted a specific single-weight functional form, so neither needed correction. What
+changed is downstream of both claims: the *particular* score object Section 4/5 exhibits as the
+witness for S5/S6 was defective (anti-conservative, not orthogonal) before this rewrite and is
+correct after it. This is recorded in `claims.md` table 2 as a revision to the anchor for
+Proposition 3 and the EIF results in Appendix~C.3, not as a change to `story.md`.
 
 ## Framing
 
