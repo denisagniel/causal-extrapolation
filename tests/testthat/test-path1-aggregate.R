@@ -13,6 +13,70 @@ test_that("path1_aggregate computes group averages", {
   expect_length(result$phi_future, 50)
 })
 
+test_that("path1_aggregate(weighting = 'gls-joint') requires ids and errors clearly without", {
+  gt_obj <- make_mock_gt_object(n = 50, n_groups = 2, n_times = 3)
+  expect_null(gt_obj$ids)
+
+  expect_error(
+    path1_aggregate(gt_obj, omega = c(0.5, 0.5), weighting = "gls-joint"),
+    "ids"
+  )
+})
+
+test_that("path1_aggregate(weighting = 'gls-joint') bypasses the two-step structure end to end", {
+  set.seed(20260925)
+  n <- 300
+  data <- expand.grid(t = 1:3, g = 0:1)[, c("g", "t")]
+  data <- tibble::as_tibble(data)
+  data$tau_hat <- c(0.4, 0.45, 0.5, 0.6, 0.65, 0.7)
+  data$k <- data$t - data$g
+
+  # Cells within a group share a group-specific comparator component, so the joint
+  # covariance is genuinely non-diagonal -- the scenario "gls-joint" exists for.
+  common_g0 <- rnorm(n)
+  common_g1 <- rnorm(n)
+  phi <- list(
+    common_g0 * 0.8 + rnorm(n, sd = 0.3),
+    common_g0 * 0.8 + rnorm(n, sd = 0.3),
+    common_g0 * 0.8 + rnorm(n, sd = 0.3),
+    common_g1 * 0.8 + rnorm(n, sd = 0.3),
+    common_g1 * 0.8 + rnorm(n, sd = 0.3),
+    common_g1 * 0.8 + rnorm(n, sd = 0.3)
+  )
+  ids <- paste0("u", seq_len(n))
+  gt_obj <- list(
+    data = data, phi = phi, times = 1:3, groups = 0:1,
+    event_times = sort(unique(data$k)), n = n, ids = ids, meta = list()
+  )
+  class(gt_obj) <- c("gt_object", "extrapolateATT")
+
+  omega <- c(0.5, 0.5)
+  res <- path1_aggregate(gt_obj, omega, weighting = "gls-joint")
+
+  expect_named(res, c("tau_future", "phi_future", "tau_g", "phi_g"))
+  expect_length(res$phi_future, n)
+  expect_length(res$tau_g, 2)
+  expect_named(res$tau_g, c("0", "1"))
+  expect_length(res$phi_g, 2)
+  expect_named(res$phi_g, c("0", "1"))
+  for (g in res$phi_g) expect_length(g, n)
+
+  # The overall estimate is still the omega-weighted combination of the per-group estimates
+  # (same contract as the two-step "gls"/"equal" paths), even though beta_g's weights
+  # within each group are no longer diagonal-only.
+  expect_equal(res$tau_future, sum(omega * res$tau_g), tolerance = 1e-8)
+  expect_equal(res$phi_future, as.numeric(res$phi_g[[1]]) * omega[1] +
+    as.numeric(res$phi_g[[2]]) * omega[2], tolerance = 1e-8)
+})
+
+test_that("path1_aggregate(weighting = 'gls-joint') accepts an explicit ids= override", {
+  gt_obj <- make_mock_gt_object(n = 50, n_groups = 2, n_times = 3)
+  ids <- paste0("u", seq_len(50))
+
+  res <- path1_aggregate(gt_obj, omega = c(0.5, 0.5), weighting = "gls-joint", ids = ids)
+  expect_length(res$phi_future, 50)
+})
+
 test_that("path1_aggregate validates gt_object", {
   bad_obj <- list(data = data.frame())
 
