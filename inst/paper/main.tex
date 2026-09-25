@@ -429,7 +429,7 @@ All three identification paths require estimation and inference for the FATT $\t
 
 The contribution of this subsection is to derive the influence function (or, for Path~3, the score) for the policy-relevant FATT $\theta_{p+1}$ from an asymptotically linear first-stage estimator of the relevant object, so that valid standard errors propagate automatically wherever propagation is possible. For Paths~1 and~2 that object is the group-time ATTs $\theta_{gt}$, and the FATT is a smooth finite-dimensional function of them, so an influence function propagates by linearity or the chain rule. Path~3 is structurally different, and we say so rather than obscuring it: its first-stage object is the conditional effect function $\tau(\cdot)$, which is generally not root-$n$ estimable, so no influence function is propagated for it. In its place we develop a Neyman-orthogonal doubly-robust transport score for the scalar target $\theta_{p+1}$ directly, and recover root-$n$ inference for that scalar through orthogonality with cross-fitted nuisances -- the same destination as Paths~1 and~2, reached by a different mechanism. We present Paths~1 and~2 first, then Path~3.
 
-\paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). By linearity (see Appendix \ref{app:eif1}), the EIF for $\psi_1 = \theta_{p+1}$ is
+\paragraph{Path 1 (time homogeneity).} Under within-group time homogeneity, $\theta_{p+1} = \sum_g \omega_g \theta_{g\cdot}$ with $\omega_g = \P(G_i = g | A_{ip} = 1)$. Take as given the EIF $\phi_{\theta_{g\cdot}}$ for each $\theta_{g\cdot}$ (e.g., averaged over $t$ in the observed window, or as provided by the first-stage). How that within-cohort average should be formed is not innocuous when a cohort contributes several group-time cells whose influence functions are correlated---as they are whenever the first stage draws on overlapping comparison units, for instance a not-yet-treated control group \citep{callawayDifferenceindifferencesMultipleTime2021}. Section~\ref{sec:md-aggregation} treats that aggregation step explicitly; the display below holds for whatever asymptotically linear $\widehat{\theta}_{g\cdot}$ results. By linearity (see Appendix \ref{app:eif1}), the EIF for $\psi_1 = \theta_{p+1}$ is
 \begin{align*}
     \phi_{\psi_1} = \sum_g \omega_g \, \phi_{\theta_{g\cdot}} \; + \; \sum_g \theta_{g\cdot} \phi_{\omega_g},
 \end{align*}
@@ -563,8 +563,75 @@ This is the same orthogonal-estimation principle used elsewhere in the paper, bu
 
 This is the same machinery used for Paths~1 and~2, with one structural difference: there the first-stage \emph{object} $\widehat{\theta}_{gt}$ is itself $\sqrt{n}$ and the map to $\theta_{p+1}$ is a finite-dimensional delta method, whereas here the first-stage \emph{function} $\widehat{\tau}$ is estimated slowly and $\sqrt{n}$ inference for the scalar $\theta_{p+1}$ is recovered through orthogonality. We note this so that the asymmetry is not mistaken for an inconsistency. If the conditional model is misspecified (e.g.\ a parametric $m$ that omits relevant heterogeneity), $\widehat{\theta}_{p+1}$ converges to a pseudo-true value rather than the FATT; researchers should assess conditional-model fit and the plausibility of the overlap condition (Regime (iii)'s bounded $w$, or Regime (i)'s overlap in $e$), discussed next.
 
+\subsection{Aggregating correlated cells}\label{sec:md-aggregation}
+
+Paths~1 and~2 both reduce the FATT to a linear functional of a lower-dimensional parameter that the observed group-time cells overidentify, and both displays above take the aggregation across cells as given. This subsection makes it explicit, because the cells' influence functions are in general correlated and the correlation is not a nuisance to be ignored: cells sharing comparison units---most visibly when the first stage uses a not-yet-treated control group \citep{callawayDifferenceindifferencesMultipleTime2021}---have genuinely dependent scores, and an aggregation that assumes independence is neither efficient nor correctly sized.
+
+\paragraph{Stacked scores.} Let $\cC := \{(g,t) : g \in \cG,\ g \leq t \leq p\}$ index the $J := |\cC|$ observed cells, and collect the first-stage influence functions of Assumption~\ref{RC2} into the random vector
+\[
+\bphi_i := (\phi_{gt,i})_{(g,t)\in\cC} \in \R^{J},
+\qquad
+\bSigma := \Var(\bphi_i) = \E[\bphi_i\bphi_i^{\top}].
+\]
+Assumption~\ref{RC2} is a marginal statement, cell by cell, but no separate joint condition is needed: every $\phi_{gt,i}$ is a square-integrable function of the same unit $i$'s observed data, and the units are i.i.d., so for any fixed $\ba \in \R^{J}$ the scalar $\ba^{\top}\bphi_i$ is a mean-zero i.i.d.\ average and $\ba^{\top}\{\sqrt n(\bthetahat - \btheta)\} \leadsto N(0, \ba^{\top}\bSigma\ba)$. Cram\'er--Wold then delivers joint asymptotic normality of the stacked vector $\sqrt n(\bthetahat-\btheta) \leadsto N(\vzero,\bSigma)$ with no assumption beyond Assumption~\ref{RC2}. What $\bSigma$ is \emph{not} is diagonal, and that is the content of this subsection.
+
+\paragraph{The restriction and the target.} Suppose the identifying assumption of the chosen path restricts the cells to a linear model in a $d$-dimensional parameter,
+\[
+\theta_{gt} = \bx_{gt}^{\top}\bgamma
+\quad \text{for all } (g,t)\in\cC,
+\qquad\text{equivalently}\qquad
+\btheta = X\bgamma,
+\]
+with $X$ the $J \times d$ matrix of rows $\bx_{gt}^{\top}$ of Corollary~\ref{cor:linear-rank}, and let
+\[
+\bx_{p+1} := \sum_{g\in\cG}\omega_g\,\bx_{g,p+1},
+\qquad\text{so that}\qquad
+\theta_{p+1} = \bx_{p+1}^{\top}\bgamma .
+\]
+Two cases matter here. Path~1 is $\bx_{gt} = \be_g$, the indicator of cohort $g$, with $d = q := |\cG|$, $\bgamma = (\theta_{g\cdot})_{g\in\cG}$, and $\bx_{p+1} = \bomega$; the restriction $\btheta = X\bgamma$ is then exactly Assumption~\ref{within-group-strict-time-homogeneity} on the observed window. Path~2 with $f$ linear in $\bgamma$ is $\bx_{gt}$ as in Corollary~\ref{cor:linear-rank} and $\bx_{p+1} = \sum_g \omega_g \bx_{g,p+1}$, which covers the event-time and spline specifications used in Section~\ref{sec:model-selection} and in the simulations. In neither case does the efficient combination factor into a within-cohort step followed by an across-cohort step, unless $\bSigma$ happens to be block diagonal across cohorts.
+
+\begin{proposition}[Efficient aggregation of correlated cells]\label{prop:md-aggregation}
+Let Assumptions~\ref{RC1}--\ref{RC3}, \ref{RC6} and \ref{RC11} hold, let $\btheta = X\bgamma$ with $X$ of full column rank $d$ (Assumption~\ref{RC5}(ii) and Corollary~\ref{cor:linear-rank}), and set
+\[
+H := X^{\top}\bSigma^{-1}X,
+\qquad
+\bgammahat := H_n^{-1}X^{\top}\bSigmahat^{-1}\bthetahat,
+\qquad
+H_n := X^{\top}\bSigmahat^{-1}X .
+\]
+Then the following hold.
+\begin{enumerate}
+\item[(i)] \emph{Asymptotic linearity.} $\bgammahat$ is asymptotically linear with influence function $H^{-1}X^{\top}\bSigma^{-1}\bphi_i$, and for known $\bomega$ the estimator $\widehat{\theta}_{p+1} := \bx_{p+1}^{\top}\bgammahat = \blambda^{*\top}\bthetahat$ with
+\[
+\blambda^{*} := \bSigma^{-1}X H^{-1}\bx_{p+1} \in \R^{J}
+\]
+is asymptotically linear with influence function
+\[
+\phi_{p+1,i} \;=\; \blambda^{*\top}\bphi_i \;=\; \bx_{p+1}^{\top}H^{-1}X^{\top}\bSigma^{-1}\bphi_i,
+\qquad
+\Var\!\left(\sqrt n\,\widehat{\theta}_{p+1}\right) \to \bx_{p+1}^{\top}H^{-1}\bx_{p+1}.
+\]
+If $\bomega$ is estimated, the influence function acquires the additional term $\sum_{g\in\cG} \bx_{g,p+1}^{\top}\bgamma\,\phi_{\omega_g,i}$, exactly as in the Path~1 and Path~2 displays of Section~\ref{sec:eif-derivation}.
+\item[(ii)] \emph{Unbiasedness of the combination.} $\blambda^{*\top}X = \bx_{p+1}^{\top}$, so $\blambda^{*\top}\btheta = \theta_{p+1}$ for every $\bgamma$ satisfying the restriction.
+\item[(iii)] \emph{Optimality within the class.} Among all fixed $\blambda \in \R^{J}$ satisfying the unbiasedness constraint $\blambda^{\top}X = \bx_{p+1}^{\top}$, the asymptotic variance $\blambda^{\top}\bSigma\blambda$ is uniquely minimized at $\blambda = \blambda^{*}$, with minimum $\bx_{p+1}^{\top}H^{-1}\bx_{p+1}$.
+\item[(iv)] \emph{Independent cells.} If $\bSigma = \mathrm{diag}(\sigma^2_{gt})$ and the restriction is within-cohort constancy, $\blambda^{*}$ reduces to inverse-variance weighting: within each cohort $g$, cell $(g,t)$ receives weight proportional to $\sigma_{gt}^{-2}$, and the cohort averages are combined with weights $\omega_g$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+See Appendix~\ref{app:prop-md}.
+\end{proof}
+
+\begin{remark}[What is optimized, and what is not]\label{rem:md-efficiency}
+Proposition~\ref{prop:md-aggregation}(iii) is an optimality statement inside a stated class, and the class matters. The comparison set is the fixed linear combinations of the \emph{supplied} cell influence functions that are unbiased for $\theta_{p+1}$ under the restriction; within that set $\blambda^{*}$ attains $\bx_{p+1}^{\top}(X^{\top}\bSigma^{-1}X)^{-1}\bx_{p+1}$, which is the efficient minimum-distance---equivalently, optimal-GMM---variance for the linear moment system $\E[\bthetahat - X\bgamma] = \vzero$. It is \emph{not} a claim that $\widehat{\theta}_{p+1}$ attains the semiparametric efficiency bound for the FATT. Attaining that bound would require three further things that Proposition~\ref{prop:md-aggregation} neither assumes nor delivers: that the efficient influence function for $\theta_{p+1}$ in the restricted model lie in the linear span of the $J$ supplied cell influence functions; that the cell set $\cC$ and the first-stage design be themselves an efficient use of the data; and that each supplied $\phi_{gt}$ be efficient for its own $\theta_{gt}$. Each can fail independently of the others, and the first fails generically whenever the restricted model's tangent space is not spanned by the chosen cells. The honest reading of the proposition is therefore conditional: given the cells the researcher has and the first-stage scores that came with them, this is the best fixed reweighting of those scores, and it dominates the diagonal weighting of part~(iv) exactly to the extent that $\bSigma$ has nonzero off-diagonal entries. The parallel hedge in Appendix~\ref{app:eif1} is the same statement made cell by cell.
+\end{remark}
+
+\begin{remark}[Estimated cohort shares break the optimality, not the validity]\label{rem:md-omega}
+Part~(iii) is stated for known $\bomega$ for a reason. When $\bomega$ is estimated, the influence function of $\widehat{\theta}_{p+1}$ is $\blambda^{\top}\bphi_i + r_i$ with $r_i := \sum_g \bx_{g,p+1}^{\top}\bgamma\,\phi_{\omega_g,i}$, and minimizing $\Var(\blambda^{\top}\bphi_i + r_i)$ subject to $\blambda^{\top}X = \bx_{p+1}^{\top}$ is not the problem solved by $\blambda^{*}$ unless $\bsigma := \Cov(\bphi_i, r_i) = \vzero$. The constrained minimizer is $\blambda^{\dagger} = \blambda^{*} - \bSigma^{-1}(I_J - X H^{-1}X^{\top}\bSigma^{-1})\bsigma$, which differs from $\blambda^{*}$ by a correction in the $\bSigma^{-1}$-orthogonal complement of the column space of $X$. Using $\blambda^{*}$ when $\bsigma \neq \vzero$ therefore costs efficiency but not validity: part~(i) still gives the correct influence function and hence correctly sized inference, because unbiasedness of the combination, part~(ii), does not involve $\bsigma$. We use $\blambda^{*}$ throughout and do not claim optimality in this case.
+\end{remark}
+
 \begin{proposition}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]\label{prop:asymp}
-Under the identifying assumptions of the applicable path and Assumptions~\ref{RC1}--\ref{RC10} relevant to that path, suppose the stated influence functions have finite, positive variance.
+Under the identifying assumptions of the applicable path and Assumptions~\ref{RC1}--\ref{RC11} relevant to that path, suppose the stated influence functions have finite, positive variance.
 
 For Paths~1 and~2, let $\widehat{\theta}_{p+1}$ be the corresponding asymptotically linear aggregation or extrapolation estimator. For Path~3, let $\widehat{\theta}_{p+1}$ be either the internally targeted estimator \eqref{eq:fatt-path3-est} or the known/fixed-density-ratio estimator \eqref{eq:fatt-path3-fixed}. Then
 \[
@@ -881,8 +948,17 @@ Path~3 inference uses one of the following information regimes.
 These conditions do not cover a genuinely independent finite target sample whose empirical covariate distribution contributes sampling variability.
 \end{assumption}
 
+\begin{assumption}[Nonsingular and estimable score covariance]\label{RC11}
+For the aggregation of Section~\ref{sec:md-aggregation}, with $\bphi_i := (\phi_{gt,i})_{(g,t)\in\cC}$ and $\bSigma := \Var(\bphi_i)$ over the finite, fixed cell set $\cC$:
+\begin{enumerate}
+\item[(i)] $\bSigma \succ 0$, that is, $\Var(\ba^{\top}\bphi_i) > 0$ for every $\ba \neq \vzero$; equivalently, no nontrivial linear combination of the cell influence functions is degenerate.
+\item[(ii)] There is an estimator with $\bSigmahat \to_{\P} \bSigma$, for instance the sample covariance $n^{-1}\sum_i \widehat{\bphi}_i\widehat{\bphi}_i^{\top}$ of the estimated scores aligned on a common unit index.
+\end{enumerate}
+Clause~(i) strengthens Assumption~\ref{RC2}, which bounds each $\E[\phi_{gt,i}^2]$ marginally but permits exact linear dependence across cells; it is what makes $\bSigma^{-1}$ and $X^{\top}\bSigma^{-1}X$ well defined. No separate joint-asymptotic-linearity condition is imposed: because every $\phi_{gt,i}$ is a function of the same unit $i$'s data and the units are i.i.d., joint asymptotic normality of the stacked vector follows from Assumption~\ref{RC2} by the Cram\'er--Wold theorem. The full-column-rank requirement on $X$ is not new either: Assumption~\ref{RC5}(ii) is stated for an arbitrary positive weight matrix $\Lambda$, and $\Lambda = \bSigma^{-1}$ is one, so under clause~(i) the nonsingularity of $H = X^{\top}\bSigma^{-1}X$ is exactly Assumption~\ref{RC5}(ii) (Corollary~\ref{cor:linear-rank} for linear $f$).
+\end{assumption}
+
 \begin{remark}
-Assumptions~\ref{RC1}--\ref{RC3} and \ref{RC6} govern the asymptotically linear first stages used by Paths~1 and~2. Assumptions~\ref{RC4}--\ref{RC5} are specific to Path~2. Assumptions~\ref{RC8}--\ref{RC10} distinguish the two Path~3 information regimes: internally observed target membership and a known or conditionally fixed density ratio. Assumption~\ref{RC7} records the $o_{\P}(n^{-1/2})$ product-rate requirement used with cross-fitting, following \citet{chernozhukovDoubleDebiasedMachine2018}.
+Assumptions~\ref{RC1}--\ref{RC3} and \ref{RC6} govern the asymptotically linear first stages used by Paths~1 and~2. Assumptions~\ref{RC4}--\ref{RC5} are specific to Path~2. Assumptions~\ref{RC8}--\ref{RC10} distinguish the two Path~3 information regimes: internally observed target membership and a known or conditionally fixed density ratio. Assumption~\ref{RC7} records the $o_{\P}(n^{-1/2})$ product-rate requirement used with cross-fitting, following \citet{chernozhukovDoubleDebiasedMachine2018}. Assumption~\ref{RC11} governs Section~\ref{sec:md-aggregation}'s efficient aggregation across correlated cells for Paths~1 and~2.
 \end{remark}
 
 \subsection{Proof of Proposition 1}\label{app:prop1}
@@ -1017,7 +1093,7 @@ The influence function is
 &= \sum_{g} \omega_g \phi_{\theta_{g\cdot}} + \sum_g \theta_{g\cdot} \phi_{\omega_g}.
 \end{align*}
 
-\textbf{(4)} \textit{Validity and efficiency:} $\widehat{\theta}_{p+1}$ is asymptotically linear with the stated influence function, so the propagated variance is valid for any asymptotically linear first-stage estimators of $\theta_{g\cdot}$. It attains the semiparametric efficiency bound for $\theta_{p+1}$ when the supplied first-stage influence functions $\phi_{\theta_{g\cdot}}$ and the aggregation weights $\omega_g$ are themselves efficient.
+\textbf{(4)} \textit{Validity and efficiency:} $\widehat{\theta}_{p+1}$ is asymptotically linear with the stated influence function, so the propagated variance is valid for any asymptotically linear first-stage estimators of $\theta_{g\cdot}$. It attains the semiparametric efficiency bound for $\theta_{p+1}$ only under the further conditions catalogued in Remark~\ref{rem:md-efficiency}; efficiency of the supplied $\phi_{\theta_{g\cdot}}$ and of the weights $\widehat{\omega}_g$ is necessary for that but not sufficient, since it says nothing about whether the cell set spans the restricted model's tangent space or whether the within-cohort aggregation over $t$ is itself efficient---the question Proposition~\ref{prop:md-aggregation} answers.
 
 \textbf{Result:} The Path 1 EIF is
 \[
@@ -1505,12 +1581,65 @@ Every equality is algebraic, so the collapse is exact.
 \paragraph{Post-proof audit.}
 The lemma uses only the identities $T=A$, $\rho=\pi$, and $q=e$ together with strict overlap. It does not set $w\equiv1$ under the full observed-data law. Setting a common weight equal to one in Regime~(iii) instead yields the ordinary ATE influence function and is a different statement. For conditional difference-in-differences, the exact Sant'Anna--Zhao ATT influence function additionally requires their smooth propensity-odds weighting of the comparison residual; replacing that comparison weight by a hard comparison indicator generally changes the influence function and its variance.
 
+\subsection{Proof of the Efficient-Aggregation Proposition}\label{app:prop-md}
+
+We prove Proposition~\ref{prop:md-aggregation}.
+
+\begin{proof}
+\textit{Roadmap:} the estimator is an exactly-identified linear map of $\bthetahat$, so asymptotic linearity is algebra plus consistency of $\bSigmahat$; optimality is a one-line completion of the square in the $\bSigma$ inner product, which simultaneously delivers the unbiasedness identity and the variance identity.
+
+\textbf{Step 1 (joint expansion).} By Assumption~\ref{RC2}, $\sqrt n(\bthetahat - \btheta) = n^{-1/2}\sum_i \bphi_i + o_{\P}(1)$ coordinatewise, hence in $\R^{J}$ since $J$ is finite and fixed. Each $\bphi_i$ is a function of unit $i$'s data alone and the units are i.i.d.\ with $\E[\bphi_i]=\vzero$ and, by Assumption~\ref{RC6}, finite second moments; so for any fixed $\ba$, the classical CLT gives $\ba^{\top}n^{-1/2}\sum_i\bphi_i \leadsto N(0,\ba^{\top}\bSigma\ba)$, and Cram\'er--Wold gives $\sqrt n(\bthetahat - \btheta) \leadsto N(\vzero,\bSigma)$. In particular $\bthetahat - X\bgamma = O_{\P}(n^{-1/2})$ under the restriction.
+
+\textbf{Step 2 (asymptotic linearity of $\bgammahat$).} Since $X$ has full column rank $d$ and $\bSigmahat \succ 0$ with probability approaching one by Assumption~\ref{RC11}, $H_n$ is invertible on that event and, using $X^{\top}\bSigmahat^{-1}X H_n^{-1} = I_d$,
+\[
+\bgammahat - \bgamma
+= H_n^{-1}X^{\top}\bSigmahat^{-1}\bthetahat - \bgamma
+= H_n^{-1}X^{\top}\bSigmahat^{-1}\left(\bthetahat - X\bgamma\right),
+\]
+an exact identity requiring no expansion. By Assumption~\ref{RC11}(ii), $H_n^{-1}X^{\top}\bSigmahat^{-1} = H^{-1}X^{\top}\bSigma^{-1} + o_{\P}(1)$, and this multiplies an $O_{\P}(n^{-1/2})$ vector by Step~1, so the substitution costs $o_{\P}(n^{-1/2})$:
+\[
+\sqrt n(\bgammahat - \bgamma) = n^{-1/2}\sum_i H^{-1}X^{\top}\bSigma^{-1}\bphi_i + o_{\P}(1).
+\]
+Estimating the weight matrix therefore does not affect the first-order limit, the standard two-step minimum-distance conclusion. Part~(i)'s display for $\widehat{\theta}_{p+1}$ follows by the fixed linear map $\bx_{p+1}^{\top}$ when $\bomega$ is known, since then $\bx_{p+1}^{\top}H^{-1}X^{\top}\bSigma^{-1} = \blambda^{*\top}$ by the definition of $\blambda^{*}$. When $\bomega$ is estimated, apply the delta method to $(\bgamma,\bomega)\mapsto \sum_g \omega_g\bx_{g,p+1}^{\top}\bgamma$ and use Assumption~\ref{RC3}; the $\partial/\partial\omega_g$ terms are the stated $\sum_g \bx_{g,p+1}^{\top}\bgamma\,\phi_{\omega_g,i}$.
+
+\textbf{Step 3 (part (ii), unbiasedness).} Directly,
+\[
+\blambda^{*\top}X = \bx_{p+1}^{\top}H^{-1}X^{\top}\bSigma^{-1}X = \bx_{p+1}^{\top}H^{-1}H = \bx_{p+1}^{\top},
+\]
+so $\blambda^{*\top}\btheta = \bx_{p+1}^{\top}\bgamma = \theta_{p+1}$ whenever $\btheta = X\bgamma$.
+
+\textbf{Step 4 (part (iii), optimality and the variance identity).} Let $\blambda$ satisfy $\blambda^{\top}X = \bx_{p+1}^{\top}$ and write $\bdelta := \blambda - \blambda^{*}$, so that $X^{\top}\bdelta = \vzero$ by Step~3. Since $\bSigma\blambda^{*} = X H^{-1}\bx_{p+1}$, the cross term vanishes:
+\[
+\bdelta^{\top}\bSigma\blambda^{*} = \bdelta^{\top}X H^{-1}\bx_{p+1} = \vzero^{\top}H^{-1}\bx_{p+1} = 0 .
+\]
+Hence
+\[
+\blambda^{\top}\bSigma\blambda
+= \blambda^{*\top}\bSigma\blambda^{*} + \bdelta^{\top}\bSigma\bdelta,
+\qquad
+\blambda^{*\top}\bSigma\blambda^{*}
+= \bx_{p+1}^{\top}H^{-1}X^{\top}\bSigma^{-1}\bSigma\bSigma^{-1}X H^{-1}\bx_{p+1}
+= \bx_{p+1}^{\top}H^{-1}\bx_{p+1},
+\]
+the second display being the variance identity asserted in part~(i). Because $\bSigma \succ 0$ by Assumption~\ref{RC11}(i), $\bdelta^{\top}\bSigma\bdelta \geq 0$ with equality if and only if $\bdelta = \vzero$, so the minimum is attained uniquely at $\blambda^{*}$. This is the efficient minimum-distance, equivalently optimal-GMM, weighting for the moment system $\E[\bthetahat - X\bgamma] = \vzero$: the optimal weight matrix is the inverse of the moment covariance.
+
+\textbf{Step 5 (part (iv), the diagonal case).} Suppose $\bSigma = \mathrm{diag}(\sigma^2_{gt})$ and $\bx_{gt} = \be_g$, so $X$ is the matrix of cohort indicators and $d = q$. Then $X^{\top}\bSigma^{-1}X = \mathrm{diag}\big(\sum_{t : (g,t)\in\cC}\sigma_{gt}^{-2}\big)_{g\in\cG}$ is diagonal, so with $\bx_{p+1} = \bomega$,
+\[
+\lambda^{*}_{gt}
+= \omega_g\,\frac{\sigma_{gt}^{-2}}{\sum_{s : (g,s)\in\cC}\sigma_{gs}^{-2}} .
+\]
+Within each cohort the weights are proportional to $\sigma_{gt}^{-2}$ and sum to one, and the cohort aggregates carry weight $\omega_g$: inverse-variance weighting within cohorts followed by $\bomega$-weighting across them. The two-step form is a consequence of $X^{\top}\bSigma^{-1}X$ being diagonal, which fails in general when $\bSigma$ has nonzero entries linking cells of different cohorts.
+\end{proof}
+
+\paragraph{Post-proof audit.}
+Assumption~\ref{RC11}(i) is used twice and both uses are essential: to define $\bSigma^{-1}$ and $H$, and to get the strict inequality that makes the minimizer in Step~4 unique. Assumption~\ref{RC11}(ii) is used only in Step~2, and only to replace $\bSigmahat$ by $\bSigma$ inside a product with an $O_{\P}(n^{-1/2})$ term; no rate on $\bSigmahat$ beyond consistency is required, and no Donsker condition enters, because the cell set is finite and fixed and $X$ is nonrandom. The full-column-rank requirement on $X$ is Assumption~\ref{RC5}(ii) with $\Lambda = \bSigma^{-1}$, not a new condition. The identity in Step~2 is exact rather than a first-order expansion, so no second-order remainder is being suppressed. Two limits of the result should be read off explicitly. First, the optimality in Step~4 is over fixed $\blambda$ within the constraint set $\{\blambda : \blambda^{\top}X = \bx_{p+1}^{\top}\}$ only; it says nothing about estimators outside the span of the supplied cell scores, and is therefore not a semiparametric efficiency claim for $\theta_{p+1}$ (Remark~\ref{rem:md-efficiency}). Second, Step~4 assumes $\bomega$ known; when $\bomega$ is estimated with influence function correlated with $\bphi_i$, part~(i) still holds but part~(iii) does not, and the constrained minimizer is the $\blambda^{\dagger}$ of Remark~\ref{rem:md-omega}. Nonlinearity of $f$ in $\bgamma$ is outside the scope of the proposition: the restriction is assumed linear, so the construction applies to Path~1 always and to Path~2 only when $f$ is linear in $\bgamma$, for which Corollary~\ref{cor:linear-rank} supplies the rank condition.
+
 \subsection{Proof of Asymptotic Distribution Proposition}\label{app:prop-asymp}
 
 We restate and prove Proposition~\ref{prop:asymp} from Section~\ref{sec:eif-derivation} (extended to cover all three paths).
 
 \begin{proposition*}[Asymptotic distribution of $\widehat{\theta}_{p+1}$]
-Under the identifying assumptions of the applicable path and Assumptions~\ref{RC1}--\ref{RC10} relevant to that path, suppose the stated influence functions have finite, positive variance. For Paths~1 and~2, let $\widehat{\theta}_{p+1}$ be the corresponding asymptotically linear aggregation or extrapolation estimator. For Path~3, let $\widehat{\theta}_{p+1}$ be either the internally targeted estimator \eqref{eq:fatt-path3-est} or the known/fixed-density-ratio estimator \eqref{eq:fatt-path3-fixed}. Then $\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$, where $\phi$ is the influence function corresponding to the selected path and, for Path~3, to the selected information regime. The result does not cover inference based on an independent finite target sample.
+Under the identifying assumptions of the applicable path and Assumptions~\ref{RC1}--\ref{RC11} relevant to that path, suppose the stated influence functions have finite, positive variance. For Paths~1 and~2, let $\widehat{\theta}_{p+1}$ be the corresponding asymptotically linear aggregation or extrapolation estimator. For Path~3, let $\widehat{\theta}_{p+1}$ be either the internally targeted estimator \eqref{eq:fatt-path3-est} or the known/fixed-density-ratio estimator \eqref{eq:fatt-path3-fixed}. Then $\sqrt{n}(\widehat{\theta}_{p+1} - \theta_{p+1}) \leadsto N(0, \sigma^2)$ with $\sigma^2 = \E[\phi^2]$, where $\phi$ is the influence function corresponding to the selected path and, for Path~3, to the selected information regime. The result does not cover inference based on an independent finite target sample.
 \end{proposition*}
 
 \begin{proof}
