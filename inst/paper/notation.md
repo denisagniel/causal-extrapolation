@@ -17,15 +17,22 @@
 > to match the story-first `outline.md` (see that file's §2 content-migration table): sections
 > were renamed, promoted from subsections to top-level sections, and reordered (Path 2 and
 > Path 3 are now their own top-level sections; the two "connecting" subsections were merged and
-> reordered into one weakening-then-strengthening argument). **No symbol or assumption's
-> mathematical content changed** — every formula below is still verbatim correct — but every
-> `main.tex:NNN` line-number citation in §§1-2 below (the symbol and assumption registries) was
-> written against the pre-restructuring line numbers and has **not** been individually
-> re-verified against the new numbering in this pass, unlike `claims.md`'s table 2, which was.
-> The `\label{}` names themselves (e.g. `strict-time-homogeneity`, `RC5`, `prop:path2`) are
-> unaffected by line shifts and remain the reliable cross-reference; treat every bare line
-> number here as approximate until a dedicated re-anchoring pass greps each label's current
-> line, the way `claims.md`'s update did.
+> reordered into one weakening-then-strengthening argument). For that restructuring, **no
+> symbol or assumption's mathematical content changed** — every formula was verbatim correct,
+> only relocated — but every `main.tex:NNN` line-number citation in §§1-2 below (the symbol and
+> assumption registries) was written against the pre-restructuring line numbers and has **not**
+> been individually re-verified against the new numbering in this pass, unlike `claims.md`'s
+> table 2, which was. The `\label{}` names themselves (e.g. `strict-time-homogeneity`, `RC5`,
+> `prop:path2`) are unaffected by line shifts and remain the reliable cross-reference; treat
+> every bare line number here as approximate until a dedicated re-anchoring pass greps each
+> label's current line, the way `claims.md`'s update did.
+>
+> **Genuinely new content added, same day, later pass (Item 2).** §1a and RC11 below (and
+> `main.tex`'s new `sec:md-aggregation` subsection, `prop:md-aggregation`,
+> `rem:md-efficiency`, `rem:md-omega`) are **not** restructured pre-existing content — this is
+> new theory, added after the restructuring pass above, with fresh line-number citations
+> verified against the current `main.tex` at the time of writing (not subject to the staleness
+> flag above).
 
 **Environment name(s) in use:** `assumption` (via `\newtheorem{assumption}{Assumption}`,
 `main.tex:24`). A single shared counter runs across the body and Appendix B — this is why RC1
@@ -92,6 +99,19 @@ follows Assumption `assump:cross-group` numerically rather than restarting.
   appendix (`app:eif3`) introduces $S_{\mathrm{src}}, S_{\mathrm{tar}}, \rho_{\mathrm{src}},
   \rho_{\mathrm{tar}}$ as a *general* stacked-population device that specializes to the body's
   $T_i, \rho, q(x)$ (Regime i) and to Regime (iii) — this is deliberate scoping, not a defect.
+
+### 1a. Added 2026-09-25 (Item 2, `sec:md-aggregation`)
+
+| Symbol | Meaning | Defined at | Notes / forbidden variants |
+|---|---|---|---|
+| $\cC$ | The finite, fixed set of observed group-time cells, $\cC := \{(g,t): g\in\cG, g\le t\le p\}$. | `main.tex:568` | Distinct from $\cG$ (cohorts) and from any per-cohort period set; not the same object as `rem:last-cohort`'s informal $\cT_g$ (Oracle's design note flagged these as reconcilable but left unreconciled to avoid scope creep on an existing remark). |
+| $J$ | $J := \abs{\cC}$, the number of observed cells (dimension of the stacked score vector). | `main.tex:568` | Same role as the package's `J` in `build_score_matrix()`/`estimate_score_cov()` — this is the one place the paper's and package's notation were deliberately kept identical. |
+| $\bphi_i$ | The stacked per-unit cell-score vector, $\bphi_i := (\phi_{gt,i})_{(g,t)\in\cC} \in \R^J$. | `main.tex:570` | Not to be confused with any single-cell $\phi_{gt,i}$ (already registered above); the bold face is the paper's existing convention for stacked vectors (matches $\btheta$, $\bgamma$, $\bomega$). |
+| $\bSigma$ | $\bSigma := \Var(\bphi_i)$, the $J\times J$ covariance of the stacked cell scores (per-unit scale, matching the paper's $\Var(\phi)/n$ convention). | `main.tex:571` | Governed by Assumption RC11 below. |
+| $X$ | The $J\times d$ design matrix of rows $\bx_{gt}^\top$ encoding the path's linear restriction $\btheta = X\bgamma$. | `main.tex:576` (this subsection); first introduced at `cor:linear-rank` in the appendix, now also used in the body | This symbol is **reused**, not newly minted — `cor:linear-rank`/`lem:injectivity` already used $X$ for exactly this object in the appendix; `sec:md-aggregation` is the first *body* use. |
+| $\bx_{gt}$, $\bx_{p+1}$ | Row of $X$ for cell $(g,t)$; $\bx_{p+1} := \sum_{g\in\cG}\omega_g\bx_{g,p+1}$, the target's coefficient vector, so $\theta_{p+1}=\bx_{p+1}^\top\bgamma$. | `main.tex:579` | Path 1 specializes $\bx_{gt}=\be_g$ (cohort indicator), $\bx_{p+1}=\bomega$; Path 2 (linear $f$) specializes to `cor:linear-rank`'s $\bx_{gt}$. |
+| $H$ | $H := X^\top\bSigma^{-1}X$ ($d\times d$); $H_n$ its finite-sample, $\bSigmahat$-plugged-in analogue. | `main.tex:594` | Nonsingularity of $H$ is Assumption~\ref{RC5}(ii) with $\Lambda=\bSigma^{-1}$ — not a new rank condition (see RC11's entry below). |
+| $\blambda^*$ | The GMM/minimum-distance-optimal combination weights, $\blambda^* := \bSigma^{-1}XH^{-1}\bx_{p+1} \in \R^J$; $\widehat\theta_{p+1} = \blambda^{*\top}\bthetahat$. | `main.tex:598` | The direct generalization of the (never-formalized-in-the-paper) diagonal inverse-variance weighting the R package's `gls_weights()` already implemented; Proposition~\ref{prop:md-aggregation}(iv) states the diagonal special case explicitly. |
 
 ---
 
@@ -391,16 +411,47 @@ single environment; no alternate names like `assum`/`cond`/`hyp` appear in this 
   Proposition (Asymptotic distribution), Path-3 step; explicitly discussed at `main.tex:1651`
   (external-ratio bias). **Declared in:** appendix, used by a body result.
 
-**RC1-RC10 range citation, expanded:** `Assumptions~\ref{RC1}--\ref{RC10}` (cited at
-`main.tex:618`, the asymptotic-normality proposition's premise, and again at `main.tex:806` as
-the appendix's own scope statement) currently expands to **all ten**: RC1 (first-stage
+#### `Nonsingular and estimable score covariance` — `\label{RC11}` (added 2026-09-25, Item 2)
+- **Stated at:** `main.tex:951` (appendix, immediately after RC10). **Statement:** (i)
+  $\bSigma := \Var(\bphi_i) \succ 0$ for the stacked cell-score vector $\bphi_i$ over the fixed
+  cell set $\cC$ — no nontrivial linear combination of cell scores is degenerate; (ii) a
+  consistent estimator $\bSigmahat \to_\P \bSigma$ exists (e.g. the sample covariance of the
+  aligned per-cell scores). **Discharges:** makes $\bSigma^{-1}$ and $X^\top\bSigma^{-1}X$ well
+  defined; **explicitly does not introduce a new rank condition** — the assumption's own text
+  notes that Assumption~\ref{RC5}(ii) already covers full-column-rank of $X$ for *any* positive
+  weight matrix $\Lambda$, and $\Lambda=\bSigma^{-1}$ is one instance. **Also explicitly does
+  not introduce a joint-asymptotic-linearity condition** — the assumption's prose states that
+  joint normality of the stacked vector follows from the existing marginal Assumption~\ref{RC2}
+  via Cram\'er--Wold, since every $\phi_{gt,i}$ is a function of the same i.i.d.\ unit $i$. This
+  is the formal resolution of the "4th-moment/joint-vs-marginal-asymptotic-linearity" question
+  the 2026-09-24 proof-audit had already answered informally (see `session_notes/2026-09-24.md`,
+  13:20 entry: "confirmed unfounded... joint AL follows from marginal AL by Cram\'er-Wold over a
+  common i.i.d. index") but never transcribed into the manuscript's own regularity apparatus
+  until now. **Verifiable from data?** (i) is partially checkable — a near-singular sample
+  $\widehat{\bSigma}$ is directly observable and is exactly what `estimate_score_cov()` (the
+  package implementation) flags via its condition-number diagnostic; (ii) is a standard
+  consistency condition, not separately testable. **Used by:** Proposition
+  `prop:md-aggregation` (both steps of its proof use clause (i); clause (ii) is used only in
+  Step 2 to justify replacing $\bSigmahat$ by $\bSigma$ inside an already-$O_\P(n^{-1/2})$
+  product — no rate beyond consistency is required). **Declared in:** appendix, used by a body
+  result (§6, `sec:md-aggregation`) — the same appendix-before-body-citation pattern already
+  flagged for RC1-RC10 below, not newly introduced by RC11.
+
+**RC1-RC11 range citation, expanded:** `Assumptions~\ref{RC1}--\ref{RC11}` (cited at
+`main.tex:634`, the asymptotic-normality proposition's premise, and again at `main.tex:1589` as
+the appendix's own restatement — **both updated together in the 2026-09-25 pass, closing the
+exact "restatement lags the main-text fix" failure mode the 2026-09-24 session note recorded
+happening once already for `prop:asymp`**) now expands to **all eleven**: RC1 (first-stage
 identification), RC2 (asymptotic linearity), RC3 (weight identification), RC4 (smoothness of
 $f$), RC5 (identifiability/local rank), RC6 (bounded moments), RC7 (Donsker/cross-fitting rate),
-RC8 (Path-3 nuisance rates), RC9 (Path-3 overlap), RC10 (Path-3 target information). This range
-is **mutable**: inserting an eleventh regularity condition between RC1 and RC10 would silently
-expand what the asymptotic-normality proposition claims to require, with no diff at the citation
-site. `Assumptions~\ref{RC8}--\ref{RC10}` (cited at `main.tex:547`, the Path-3 EIF section)
-currently expands to RC8, RC9, RC10 only — the three Path-3-specific conditions.
+RC8 (Path-3 nuisance rates), RC9 (Path-3 overlap), RC10 (Path-3 target information), RC11
+(nonsingular/estimable score covariance, Item 2). **The mutability warning below is now
+realized, not just anticipated:** RC11 was appended *after* RC10 specifically so this range
+citation's endpoint moves (RC10→RC11) rather than its interior silently absorbing a new
+condition — the safer of the two ways an insertion could have gone, and the one this note's
+prior draft flagged as the risk to avoid. `Assumptions~\ref{RC8}--\ref{RC10}` (cited at
+`main.tex:560`, the Path-3 EIF section) is unaffected by the insertion and still correctly
+expands to RC8, RC9, RC10 only.
 
 ### 2b. Implicit — carried in constraints or prose, not numbered
 
@@ -425,7 +476,7 @@ currently expands to RC8, RC9, RC10 only — the three Path-3-specific condition
 | Strict/within-group time homogeneity (Path 1) | Substitutes constancy-in-time for an explicit temporal model; buys the FATT for free from the backward-looking ATT (or a cohort-weighted average of it). |
 | Parametric temporal model + RC4-RC5 (Path 2) | Substitutes a known functional form for constancy; buys extrapolation to $p+1$ at the cost of correct specification and a rank/identifiability condition. |
 | Conditional identification + structural stability + target-distribution access (Path 3) | Substitutes covariate-conditional invariance for temporal invariance; buys robustness to regime change at the cost of correct conditional-effect specification and covariate overlap. |
-| RC1-RC10 | The full regularity apparatus making the asymptotic-normality proposition rigorous across all three paths; RC8-RC10 specifically distinguish Path 3's two information regimes. |
+| RC1-RC11 | The full regularity apparatus making the asymptotic-normality proposition rigorous across all three paths; RC8-RC10 specifically distinguish Path 3's two information regimes; RC11 (added 2026-09-25) makes the correlated-cell aggregation of `sec:md-aggregation` well-posed by requiring the stacked score covariance to be nonsingular and estimable. |
 
 ### 2e. Blanket statements — one claim covering a set of assumptions
 
