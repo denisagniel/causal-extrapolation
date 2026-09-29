@@ -1,20 +1,23 @@
 % =====================================================================
-% SEMI-DEPRECATED. main-lean.tex is CANONICAL for all ported content.
-% This file is retained for material not yet ported (full proofs, extended
-% simulations/application). Its Path 3 framing is STALE: §4.1 ("General
-% framework") still presents all three paths as theta_gt = f(g,I_t;theta)
-% and Path 3 as inverting the marginals — superseded. The canonical Path 3
-% (direct CATE estimation + covariate transport, doubly-robust EIF) lives
-% in main-lean.tex §4 (Path 3: Covariate Transport) and §5. Do not treat
-% this file's Path 3 / general-framework as current. See
-% quality_reports/2026-06-30_phase1-path3-theory-note.md.
-% =====================================================================
+% CANONICAL. main.tex is the current draft of "What we estimate when we
+% estimate dynamic causal effects in panel data." Restructured 2026-09-25
+% around the story-first outline (inst/paper/outline.md; see that file's
+% §2 content-migration table for what each section reuses from this
+% file's own pre-restructuring content) and actively edited since.
+% main-lean.tex and theory.tex are earlier working drafts; whether/how to
+% archive them is an open item (session_notes/2026-09-25.md, "Next"), not
+% yet resolved. Do not treat either as canonical over this file.=====================================================================
 \documentclass{article}
 \usepackage{graphicx} % Required for inserting images
 \usepackage{amsmath, amsfonts, amssymb, amsthm}
 \usepackage{color, xcolor}
 \usepackage{setspace}
-\usepackage{natbib}
+\usepackage[round,semicolon]{natbib} % explicit citation punctuation: \bibliographystyle{plainnat}
+  % otherwise auto-overrides natbib's own defaults to square brackets + comma-separated
+  % multi-citations (natbib.sty's \bibstyle@plainnat hook), which is ambiguous with the
+  % comma already separating author and year within one citation. round+semicolon options
+  % disable that auto-override (natbib's `nobibstyle` mechanism) and restore natbib's true
+  % defaults explicitly.
 \usepackage{booktabs}
 \title{What we estimate when we estimate dynamic causal effects in panel data}
 \date{\today}
@@ -39,20 +42,19 @@
 \begin{document}
 
 \maketitle
-
 \begin{abstract}
 Policy-relevant decisions depend on causal effects in the current or next period (e.g., FATT, FATU), but standard panel-data methods target backward-looking estimands such as the average treatment effect on the treated (ATT) or group-time ATTs over the observed window. We formalize this gap using future causal effects and present three identification strategies. Taking dynamic effects \emph{less} seriously, the FATT is identified under time homogeneity by the ATT or by a convex combination of within-group ATTs (Path~1). Taking them \emph{more} seriously, the FATT is identified either by specifying how group-time effects evolve and extrapolating (Path~2), or by modeling structural heterogeneity via covariates and integrating over the future covariate distribution (Path~3). Path~3 enables identification under regime change when reduced-form temporal patterns break but structural covariates remain predictive. For Path~2, we provide the first systematic framework for model selection in causal extrapolation, using time-series cross-validation to test extrapolation performance rather than in-sample fit. We give efficient influence functions for the FATT under all three paths so that standard errors and confidence intervals propagate correctly from first-stage estimators.
 \end{abstract}
 
 \section{Introduction}
 
-There is a fundamental and unacknowledged tension at the heart of policy analysis and causal inference with panel data more broadly \citep{egamiElementsExternalValidity2023,heckmanPolicyRelevantTreatmentEffects2001}. This tension arises because of the possibility of dynamic causal effects (effects that change over time), which, as we'll argue below, preclude an important type of external validity: if policy effects are truly unrestrictedly dynamic, then it is impossible to use historical data to inform \textit{any} current decisions, which decisions are presumably the reason we care about estimating any causal effects in the first place.
+There is a fundamental and unacknowledged tension at the heart of the panel-data causal inference literature: under the typical assumptions, it is not clear that any estimated effects can be used to inform any current policy decisions. This tension arises because of the possibility of dynamic causal effects (effects that change over time). Without additional assumptions, such dynamic effects preclude an important type of external validity: if policy effects are truly unrestrictedly dynamic, then it is impossible to use historical data to inform \textit{any} current decisions -- decisions that are presumably why we care about estimating causal effects in the first place.
 
-Most causal inference rests on an implicit assumption of time homogeneity. We might call this assumption the Fundamental Promise of Causal Inference: causal effects estimated (by necessity) on data collected in the past can be used to inform decision-making in the present \citep{egamiElementsExternalValidity2023,khosrowiExtrapolationCausalEffects2019,cartwrightHuntingCausesUsing2007}. If two identical clinical trials -- same target population and inclusion criteria, same treatment, same outcome -- were expected to not only give different results but in fact target different causal effects simply because of the passage of time, that would be a major crisis for causal inference. A durable understanding of causal effects would be elusive.
+Most causal inference rests on an implicit assumption of time homogeneity. We call this assumption the Fundamental Promise of Causal Inference: causal effects estimated (by necessity) on data collected in the past can be used to inform decision-making in the present \citep{egamiElementsExternalValidity2023,khosrowiExtrapolationCausalEffects2019,cartwrightHuntingCausesUsing2007}. If two identical clinical trials -- same target population and inclusion criteria, same treatment, same outcome -- were expected to not only give different results but in fact target different causal effects simply because of the passage of time, that would be a major crisis for causal inference. A durable understanding of causal effects would be elusive. Section~\ref{sec:effect-level-invariance} below reinstates a weakened form of exactly this assumption for the panel-data estimands.
 
 Public policies are widely understood to violate this assumption and are assumed to have effects that inherently change over time \citep{lucasjrEconometricPolicyEvaluation1976,ericssonExogeneityCointegrationEconomic1998,estrellaAreDeepParameters1999}. Policies are introduced into dynamic contexts, may be administered or enforced differently over time, and may themselves cause changes in public behavior and attitude. Technological advancement, public opinion, economic conditions, and new research may all modify the causal effects policies.
 
-This basic possibility of dynamic effects has driven a great deal of recent advances in methods for causal inference with panel data \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a}. Recent surveys clarify how heterogeneity and dynamics enter identification and estimation in this setting \citep{arkhangelskyCausalModelsLongitudinal2024,dechaisemartinTwowayFixedEffects2023}. It is now standard to assume that causal effects vary both with time of treatment and time since implementation. These effects (often called ``group-time'' effects) may be of interest in themselves but more typically are aggregated into coarser effects like an ``overall'' average treatment effect on the treated (ATT). Assuming such dynamic effects solves a problem with classical methods like two-way fixed effects: they may incur bias in the presence of time-heterogeneous effects because they implicitly include comparisons between units treated at different times in their estimate of the ATT \citep{sunEstimatingDynamicTreatment2021}.
+This basic possibility of dynamic effects has driven a great many recent advances in methods for causal inference with panel data \citep{sunEstimatingDynamicTreatment2021,wangAdvancesDifferenceindifferencesMethods2024a}. Recent surveys clarify how heterogeneity and dynamics enter identification and estimation in this setting \citep{arkhangelskyCausalModelsLongitudinal2024,dechaisemartinTwowayFixedEffects2023}. It is now standard to assume that causal effects vary both with time of treatment and time since implementation. These effects (often called ``group-time'' effects) may be of interest in themselves but more typically are aggregated into coarser effects like an ``overall'' average treatment effect on the treated (ATT). Assuming such dynamic effects solves a problem with classical methods like two-way fixed effects: they may incur bias in the presence of time-heterogeneous effects because they implicitly include comparisons between units treated at different times in their estimate of the ATT \citep{sunEstimatingDynamicTreatment2021}.
 
 This is a genuine methodological advance, and it comes at a hidden cost. The group-time ATT, the overall ATT, and any weighted aggregate of them are all defined on the distribution of the data at some \emph{observed} period: each is a statement about what already happened. The decisions that motivate estimating them in the first place are not. A state legislature asking whether to keep a law it passed, or to pass one it has not, next session is asking about a period the study does not cover. If effects can drift arbitrarily with time -- which is exactly the possibility the group-time literature takes seriously -- then no amount of care about the observed window licenses using an estimate from that window to answer a question about a period outside it. The very assumption that motivated disaggregating the ATT into group-time effects has, without being noticed, undercut the field's warrant for using any of those effects, or their aggregate, to inform a current or future decision.
 
@@ -78,25 +80,24 @@ The Lucas Critique and the question of policy invariance underlie our discussion
 
 Philosophical work on causal invariance and extrapolation \citep{cartwrightHuntingCausesUsing2007} and empirical evidence on heterogeneous treatment effects in policy and program evaluation \citep{gablerDealingHeterogeneityTreatment2009,cintronHeterogeneousTreatmentEffects2022} further motivate the need to be explicit about which effects are policy-relevant and under what assumptions they can be identified from historical data.
 
-Our future-looking estimands sit at the intersection of three strategies for making causal claims about the future: structural or parameter invariance, statistical transport or reweighting, and explicit modeling of heterogeneity or dynamics.
-
-% \begin{itemize}
-%     \item Classical causal inference imagines a stable treatment.
-%     \item The effect of a drug may vary with patient characteristics, but we implicitly assume when we run clinical trials that the effect of the drug will not typically change just because of the passage of time. It doesn't matter when the clinical trial is run, it will still inform the effectiveness of the drug today.
-%     \item Policies are different -- their effects may change over time for lots of reasons... implementation, enforcement, public behavior, etc.
-%     \item Recent advances in causal inference for panel data (the typical approach for studying policies) have been directly targeted at addressing issues of time heterogeneity.
-%     \item However, there is a contradiction at the heart of these analyses: if the effects of the policy can change unrestrictedly over time, the classical paradigm completely breaks down. Causal effects based on historical data cannot be immediately used to infer the effect of the policy today, the only time we really care about.
-%     \item We propose two ways of resolving this contradiction: either take time heterogeneity more or less seriously.
-%     \item Less seriously: assume some form of time homogeneity that identifies the effect of the policy today with something that can be estimated with historical data. This is the spirit in which most estimated policy effects appear to be interpreted today: if the causal effect on historical data is found to be positive, it is assumed that the effect of the law today will be broadly positive.
-%     \item More seriously: model how the policy changes over time and extrapolate policy effects to today.
-%     \item Something about how we define new causal effects and why that's needed for this paper.
-% \end{itemize}
-
 \section{The Future Effect Family and Its Identification Problem}\label{sec:future-effect-family}
 
 \subsection{Setting}\label{context}
 
-Suppose we measure an indicator of a policy $A_{it}$, a possibly affected outcome $Y_{it}$, and pre-treatment covariates $\bX_{it}$---which may be time-invariant or time-varying---for $i = 1, ..., n$ units (often the units are geographic entities, like states, counties, etc.) and $t = 1, ..., p$ timepoints. We write $\bX_i$ when covariates are time-invariant or when the period is clear from context; the distinction matters for Path~3 (Section~\ref{sec:covariate-transport}), where a shifting covariate distribution is the engine of extrapolation. For ease of exposition, we take $A_{it}$ to be a policy, but all that follows applies equally to other types of interventions. Define the counterfactual value that $Y_{it}$ would take if the policy were set, possibly contrary to fact, to $A_{it} = a$ as $Y_{it}(a)$. We assume no interference: each unit's potential outcomes depend only on that unit's treatment, so $Y_{it}(a)$ is well-defined. We further assume throughout that the covariates $\bX_{it}$ used for adjustment are \emph{unaffected by the policy}---pre-treatment or otherwise externally determined, so that $\bX_{it}$ does not lie on a causal path from treatment to outcome. With time-invariant baseline covariates this holds automatically; it is the standard condition underlying covariate adjustment in any first-stage design and is invoked again by Path~3 (Section~\ref{sec:covariate-transport}), which integrates over a \emph{future} covariate distribution. When covariates are time-varying \emph{and} affected by treatment, valid adjustment requires g-methods \citep{robinsNewApproachCausal1986}; we assume exogeneity and leave that case to future work. Let $\cO = \{\bX_i, \bY_{i}(0), \bY_{i}(1), \bA_{i}\}_{i = 1, ..., n} \sim \P$ where $\bY_i(a) = \{\bY_{it}(a)\}_{t = 1, ..., p}$ and $\bA_i = (A_{it})_{t = 1,.., p}$. We extend the setting to future time periods when defining the future effect family below. The distribution of data at time $t$ is $\P_t$. For integer $k \geq 1$, we write $\P_{p+k}$ for the distribution at the future period $p+k$; nothing in the observed data identifies $\P_{p+k}$ without further assumption, which is the identification problem this section states and the remainder of the paper solves three different ways.
+Suppose we measure an indicator of a policy $A_{it}$, a possibly affected outcome $Y_{it}$, and pre-treatment covariates $\bX_{it}$---which may be time-invariant or time-varying---for $i = 1, ..., n$ units (often the units are geographic entities, like states, counties, etc.) and $t = 1, ..., p$ timepoints. We write $\bX_i$ when covariates are time-invariant or when the period is clear from context. For ease of exposition, we take $A_{it}$ to be a policy, but all that follows applies equally to other types of interventions. Define the counterfactual value that $Y_{it}$ would take if the policy were set, possibly contrary to fact, to $A_{it} = a$ as $Y_{it}(a)$. We assume no interference: each unit's potential outcomes depend only on that unit's own treatment, so $Y_{it}(a)$ is well-defined.
+
+\begin{assumption}[Consistency]\label{assump:consistency}
+$Y_{it}(a) = Y_{it}$ whenever $A_{it} = a$.
+\end{assumption}
+
+We further assume that covariates are not affected by the policy.
+\begin{assumption}[Covariate exogeneity]\label{assump:cov-exog}
+Covariates are assumed to be pre-treatment or otherwise externally determined, so that $\bX_{it}$ does not lie on a causal path from treatment to outcome.
+\end{assumption}
+
+With time-invariant baseline covariates, Assumption~\ref{assump:cov-exog} holds automatically; it is the standard condition underlying covariate adjustment in any first-stage design and is invoked again by Path~3 (Section~\ref{sec:covariate-transport}), which integrates over a \emph{future} covariate distribution. When covariates are time-varying \emph{and} affected by treatment, valid adjustment requires different methods \citep{robinsNewApproachCausal1986}, outside the scope of this work.
+
+Let $\cO = \{\bX_i, \bY_{i}(0), \bY_{i}(1), \bA_{i}\}_{i = 1, ..., n} \sim \P$, where $\bY_i(a) = \{\bY_{it}(a)\}_{t = 1, ..., p}$ and $\bA_i = (A_{it})_{t = 1,.., p}$; we extend this setup to future time periods when defining the future effect family below. The distribution of data at time $t$ is $\P_t$, and for integer $k \geq 1$ we write $\P_{p+k}$ for the distribution at the future period $p+k$. Nothing in the observed data identifies $\P_{p+k}$ without further assumption -- this is the identification problem this section states and the remainder of the paper solves three different ways.
 
 It is typical (though not necessary) in such studies to take the target of estimation to be the average treatment effect on the treated (ATT). The ATT may be defined as
 \begin{align*}
@@ -375,7 +376,7 @@ The conditional ATT is invariant across periods $t \in \{1,\ldots,p,p+1\}$: for 
 \]
 \end{assumption}
 
-Assumption~\ref{assump:struct-stab} is the analog of time homogeneity (Assumption~1) but conditional on covariates rather than marginal over time. The effect for units with covariate value $x$ does not change over time, even though the marginal distribution of $\bX$ (and hence the marginal ATT $\theta_t$) may shift. This is weaker than marginal time homogeneity when composition changes: if early adopters differ systematically from later adopters in observed $\bX$, Assumption~\ref{assump:struct-stab} can hold even when marginal $\theta_t$ varies. Conversely, if unobserved factors drive time-varying effects not captured by $\bX$, it fails. As with the homogeneity assumption of Path~1, the assumption has a \emph{testable} component and an \emph{untestable} one. Over the observed periods $t \leq p$ it is testable: wherever $\tau_t(x)$ is identified at two or more periods, one can test whether the conditional effect functions coincide, and substantial drift in $\tau_t(\cdot)$ across observed periods is evidence against stability. The extrapolation to $t = p+1$, however, concerns $\P_{p+1}$ and is untestable; it can be supported only by substantive reasoning together with the observed-period evidence.
+Assumption~\ref{assump:struct-stab} is the analog of time homogeneity (Assumption~\ref{strict-time-homogeneity}) but conditional on covariates rather than marginal over time. The effect for units with covariate value $x$ does not change over time, even though the marginal distribution of $\bX$ (and hence the marginal ATT $\theta_t$) may shift. This is weaker than marginal time homogeneity when composition changes: if early adopters differ systematically from later adopters in observed $\bX$, Assumption~\ref{assump:struct-stab} can hold even when marginal $\theta_t$ varies. Conversely, if unobserved factors drive time-varying effects not captured by $\bX$, it fails. As with the homogeneity assumption of Path~1, the assumption has a \emph{testable} component and an \emph{untestable} one. Over the observed periods $t \leq p$ it is testable: wherever $\tau_t(x)$ is identified at two or more periods, one can test whether the conditional effect functions coincide, and substantial drift in $\tau_t(\cdot)$ across observed periods is evidence against stability. The extrapolation to $t = p+1$, however, concerns $\P_{p+1}$ and is untestable; it can be supported only by substantive reasoning together with the observed-period evidence.
 
 \begin{assumption}[Access to target covariate distribution and overlap]\label{assump:target-dist}
 Either (a) a sample $\{\bX_i^*\}_{i=1}^{n^*}$ from $F_{\bX | A_{ip}=1}^{p+1}$ is observed, or (b) draws are available via forecast or simulation. Moreover the density ratio $w(x) = dF_{\bX | A_{ip}=1}^{p+1} / dF_{\bX}^{\mathrm{src}}(x)$, where $F_{\bX}^{\mathrm{src}}$ is the distribution on which $\tau$ is estimated, exists and is bounded.
@@ -423,7 +424,7 @@ The trade-off is as follows: Path~1 requires marginal temporal stability (strong
 
 \section{Inference: Propagated, Not Re-Derived}\label{sec:eif}\label{sec:inference}
 
-All three identification paths require estimation and inference for the FATT $\theta_{p+1}$. We do not commit to a specific identification or first-stage estimation strategy. We assume that the group-time ATTs $\theta_{gt}$ are identified under the researcher's chosen design (e.g., difference-in-differences, synthetic control, or other methods); we do not restrict the identification strategy. We further assume that for each $(g,t)$, the researcher has access to an estimator $\widehat{\theta}_{gt}$ that is asymptotically linear with influence function $\phi_{gt}$: $\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \phi_{gt,i} + o_{\P}(1)$. Such estimators exist in the literature for various designs \citep{callawayDifferenceindifferencesMultipleTime2021} and may be constructed with or without cross-fitting; our results hold for any such first-stage estimators.
+All three identification paths require estimation and inference for the FATT $\theta_{p+1}$. We do not commit to a specific identification or first-stage estimation strategy. We assume that the group-time ATTs $\theta_{gt}$ are identified under the researcher's chosen design (e.g., difference-in-differences, synthetic control, or other methods); we do not restrict the identification strategy. We further assume that for each $(g,t)$, the researcher has access to an estimator $\widehat{\theta}_{gt}$ that is asymptotically linear with influence function $\phi_{gt}$: $\sqrt{n}(\widehat{\theta}_{gt} - \theta_{gt}) = n^{-1/2}\sum_{i=1}^n \phi_{gt,i} + o_{\P}(1)$ (Assumptions~\ref{RC1}--\ref{RC2}). Such estimators exist in the literature for various designs \citep{callawayDifferenceindifferencesMultipleTime2021} and may be constructed with or without cross-fitting; our results hold for any such first-stage estimators.
 
 \subsection{Efficient influence functions}\label{sec:eif-derivation}
 
@@ -458,7 +459,7 @@ and define
 -
 \frac{(1-A_i)\{Y_i-\mu_0(\bX_i)\}}{1-e(\bX_i)}.
 \]
-Suppose that $T$ is constructed so that its observed law matches the transport target, $F_{\bX\mid T=1} = F_{\bX \mid A_{ip}=1}^{p+1}$, equivalently $q(x)/\rho = w(x)$ for the density ratio of Assumption~\ref{assump:target-dist}. The target parameter is then
+Suppose that $T$ is constructed so that its observed law matches the transport target, $F_{\bX\mid T=1} = F_{\bX \mid A_{ip}=1}^{p+1}$, equivalently $q(x)/\rho = w(x)$ for the density ratio of Assumption~\ref{assump:target-dist} -- this is Regime~(i) of Assumption~\ref{RC10}. The target parameter is then
 \[
 \theta_{p+1}
 =

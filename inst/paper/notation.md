@@ -437,6 +437,57 @@ single environment; no alternate names like `assum`/`cond`/`hyp` appear in this 
   result (§6, `sec:md-aggregation`) — the same appendix-before-body-citation pattern already
   flagged for RC1-RC10 below, not newly introduced by RC11.
 
+#### `Consistency` — `\label{assump:consistency}` (added 2026-09-29, during a §2.1 structural audit)
+- **Stated at:** `main.tex:91` (§2.1 Setting, immediately after the no-interference sentence).
+  **Statement:** $Y_{it}(a) = Y_{it}$ whenever $A_{it} = a$ — the observed outcome equals the
+  potential outcome at the realized treatment. **Discharges:** together with no interference
+  (prose, unlabeled — see §2b below), makes $Y_{it}(a)$ meaningful as more than a purely
+  counterfactual symbol; the second half of the standard SUTVA pair. **Gap this closes:** prior
+  to 2026-09-29, `main.tex` never stated this half of SUTVA anywhere, in any form — not prose,
+  not formal. This was a genuine completeness gap, not merely an unformalized-but-present
+  assumption like the other rows in this file; found via Oracle consultation while executing
+  the author's request to formalize prose assumptions, confirmed independently (grepped for
+  "consistency" / "$Y_{it} = Y_{it}(A_{it})$" before editing: zero hits). Wording lifted from
+  `main-lean.tex:124` (identical label, identical statement), the one sibling manuscript
+  variant that already had it. **Verifiable from data?** No — a structural/definitional
+  primitive of the potential-outcomes framework, not a testable restriction. **Used by:** every
+  result equating an estimand built from $Y_{it}(a)$'s to something computed from observed
+  $Y_{it}$'s — i.e., implicitly all of them; not separately cited by any single proposition
+  because it is definitional infrastructure, the same status no-interference has. **Declared
+  in:** body (§2.1), used throughout without further citation.
+
+#### `Covariate exogeneity` — `\label{assump:cov-exog}` (promoted from prose 2026-09-29)
+- **Stated at:** `main.tex:95` (§2.1 Setting, replacing what was previously an unlabeled prose
+  paragraph). **Statement:** the covariates $\bX_{it}$ used for adjustment are unaffected by
+  the policy — pre-treatment or otherwise externally determined, not on a causal path from
+  treatment to outcome. **Discharges:** underlies every covariate-adjustment step in the
+  paper; binds hardest for Path 3's transport target, invoked again there by reference rather
+  than restatement as of this edit (see the discharged §2b row below). **Verifiable from
+  data?** Partially — time-invariance of $\bX_{it}$ is directly checkable and is the condition
+  under which the assumption "holds automatically" per the body text; exogeneity of a
+  genuinely time-varying covariate is not itself testable from observed data. **Used by:**
+  every first-stage covariate-adjustment step; Path 3's transport target specifically, where
+  it rules out treatment-affected covariates contaminating the future covariate distribution
+  being integrated against. **Declared in:** body (§2.1), re-invoked by reference (not
+  restatement) in the Path-3 section as of this edit.
+
+**Renumbering note (2026-09-29):** promoting these two assumptions inserted them ahead of
+every existing body and appendix assumption (both placed at §2.1, the earliest point any
+assumption is used), shifting every subsequent `Assumption` label's rendered number by exactly
++2 — confirmed by a `main.aux` `newlabel` diff before/after (`absorbing-adoption`: 1→3;
+`strict-time-homogeneity`: 2→4; ... `RC11`: 22→24). All cross-references are `\ref`-based, so
+this required no other `.tex` changes beyond one pre-existing exception, fixed as an isolated
+edit *first*, before the renumbering, per the Oracle consultation's specific caution:
+`main.tex:370` read the literal text "(Assumption~1)" for `strict-time-homogeneity`, which
+`main.aux` already showed was wrong (rendering as Assumption 2) *before* this promotion — an
+unrelated, pre-existing bug, now `\ref`-based and therefore correct under any future
+renumbering too. Two light-touch citation additions were also made connecting existing body
+prose to formal appendix conditions it silently restated: `main.tex:428` (RC1/RC2, first-stage
+identification and asymptotic linearity, restated almost verbatim in §6's opening) and
+`main.tex:463` (RC10 Regime (i), restated in the Path-3 EIF section) — both kept their
+original prose (removing it would force an early reader into the appendix) and simply added
+the missing citation.
+
 **RC1-RC11 range citation, expanded:** `Assumptions~\ref{RC1}--\ref{RC11}` (cited at
 `main.tex:634`, the asymptotic-normality proposition's premise, and again at `main.tex:1589` as
 the appendix's own restatement — **both updated together in the 2026-09-25 pass, closing the
@@ -457,9 +508,9 @@ expands to RC8, RC9, RC10 only.
 
 | Assumption | Where it hides | Role | Should it be promoted to formal? |
 |---|---|---|---|
-| Covariates unaffected by the policy (no causal path from treatment to $\bX$) | `main.tex:91` (setting, prose: "we further assume throughout that the covariates... are unaffected by the policy") | Underlies every covariate-adjustment step in the paper, and binds hardest for Path 3's transport target (`main.tex:437`) | Arguably yes — it is load-bearing for Path 3 specifically and is currently stated only in prose in §2 (Setting), then re-invoked in prose again in §4.7. A single formal statement, cited by reference from §4.7 rather than re-argued, would remove the current duplication. Recorded as a finding, not fixed (no `.tex` edits in scope). |
-| No interference (each unit's potential outcomes depend only on that unit's own treatment) | `main.tex:91` | Standard SUTVA-type condition underlying the entire potential-outcomes setup | No — this is universal boilerplate in the literature and not specific to this paper's contribution; formalizing it would not aid a reader. |
-| $\rho_{\mathrm{src}}>0$, $\rho_{\mathrm{tar}}>0$ (stacked-population regularity, Appendix EIF derivation) | `main.tex:1138` | Needed for the quotient-rule differentiation in `app:eif3` to be well-defined | No — this is a technical restatement of Regime (i)'s $\rho>0$ (already formal, in RC9) and Regime (iii)'s implicit $w$-boundedness; promoting it separately would duplicate RC9. |
+| Covariates unaffected by the policy (no causal path from treatment to $\bX$) | **DISCHARGED 2026-09-29** — promoted to `Assumption~\ref{assump:cov-exog}`, §2a above. This row kept for history. | Underlies every covariate-adjustment step in the paper, and binds hardest for Path 3's transport target | — |
+| No interference (each unit's potential outcomes depend only on that unit's own treatment) | `main.tex:87` | Standard SUTVA-type condition underlying the entire potential-outcomes setup | No — reconfirmed 2026-09-29 (author asked to formalize "all" prose assumptions; this one deliberately excluded). This is universal boilerplate in the literature and not specific to this paper's contribution; formalizing it would not aid a reader. Matches `main-lean.tex`'s own choice (which formalizes Consistency and Covariate exogeneity but likewise leaves no-interference in prose, citing "the no-interference condition of Section~\ref{sec:setting}" rather than a label) — independent convergence on the same call, not just this project's habit. |
+| $\rho_{\mathrm{src}}>0$, $\rho_{\mathrm{tar}}>0$ (stacked-population regularity, Appendix EIF derivation) | `main.tex:1155` (line-shifted +10 from the §2.1 promotions above; content unchanged) | Needed for the quotient-rule differentiation in `app:eif3` to be well-defined | **Deepened, not resolved, 2026-09-29.** Original verdict ("technical restatement of RC9's $\rho>0$") is not quite right: RC9 parameterizes a *single* indicator $\rho=\P(T=1)$ within one sample; the `app:eif3` derivation uses a *stacked two-sample* design with two indicators $S_{\mathrm{src}}, S_{\mathrm{tar}}$, and $\rho_{\mathrm{tar}}$ has **no counterpart in RC9 at all**. Worse: RC10's own text explicitly disclaims covering this — "These conditions do not cover a genuinely independent finite target sample whose empirical covariate distribution contributes sampling variability" (`main.tex:950`) — which is exactly the stacked-sample scenario `app:eif3` uses. So the existing `\ref{RC9}` citation at `main.tex:1155` asks the reader to accept coverage neither RC9 nor RC10 actually provides. This borders on a proof-completeness question (a possibly-missing regularity condition/regime for one of Path 3's information cases), not a prose-formalization question — per `edit-paper-with-context`'s own scope limit ("does not touch proofs as proofs... that is proof-protocol.md's territory"), **not fixed this session; recommend `proof-auditor` review before amending RC9 or RC10.** |
 
 ### 2c. Regularity conditions — technical requirements
 
